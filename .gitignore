@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.log
+
+# Local application settings and publish artifacts
+settings.json
+publish/
