@@ -2,6 +2,10 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
+<p align="center">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor アイコン" width="128">
+</p>
+
 Codex の使用制限と現在の CPU・RAM 使用率を表示する Windows 10/11 用トレイアプリです。
 
 ![Codex Usage Monitor Compact Bar](docs/compact-bar.png)

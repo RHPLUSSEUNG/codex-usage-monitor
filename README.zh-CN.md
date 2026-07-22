@@ -2,6 +2,10 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
+<p align="center">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor 图标" width="128">
+</p>
+
 一款适用于 Windows 10/11 的托盘程序，可同时显示 Codex 使用限额以及当前 CPU 和 RAM 使用率。
 
 ![Codex Usage Monitor Compact Bar](docs/compact-bar.png)

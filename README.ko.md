@@ -2,6 +2,10 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
+<p align="center">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor 아이콘" width="128">
+</p>
+
 Codex 사용 한도와 현재 CPU·RAM 사용률을 함께 표시하는 Windows 10/11용 트레이 프로그램입니다.
 
 ![Codex Usage Monitor Compact Bar](docs/compact-bar.png)

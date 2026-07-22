@@ -2,6 +2,10 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
+<p align="center">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor icon" width="128">
+</p>
+
 A Windows 10/11 tray application that shows Codex quota usage together with current CPU and RAM usage.
 
 ![Codex Usage Monitor compact bar](docs/compact-bar.png)
