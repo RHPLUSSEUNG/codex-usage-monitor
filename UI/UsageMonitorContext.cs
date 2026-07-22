@@ -181,7 +181,18 @@ public sealed class UsageMonitorContext : ApplicationContext
     private void ShowSettings()
     {
         using var form = new SettingsForm(_settings);
-        if (form.ShowDialog() != DialogResult.OK)
+        _compactBar.SuspendRendering();
+        DialogResult result;
+        try
+        {
+            result = form.ShowDialog();
+        }
+        finally
+        {
+            _compactBar.ResumeRendering();
+        }
+
+        if (result != DialogResult.OK)
             return;
 
         bool executableChanged = !string.Equals(
