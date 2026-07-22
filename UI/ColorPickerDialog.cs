@@ -1,9 +1,11 @@
 using System.Drawing.Drawing2D;
+using CodexUsageMonitor.Models;
 
 namespace CodexUsageMonitor.UI;
 
 internal sealed class ColorPickerDialog : Form
 {
+    private readonly AppLanguage _language;
     private readonly ColorWheelControl _wheel = new()
     {
         Size = new Size(280, 280),
@@ -27,10 +29,11 @@ internal sealed class ColorPickerDialog : Form
 
     public Color SelectedColor { get; private set; }
 
-    public ColorPickerDialog(Color initial)
+    public ColorPickerDialog(Color initial, AppLanguage? language = null)
     {
+        _language = language ?? Localization.CurrentLanguage;
         SelectedColor = initial;
-        Text = Localization.Text("ColorPickerTitle");
+        Text = T("ColorPickerTitle");
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -55,7 +58,7 @@ internal sealed class ColorPickerDialog : Form
         _alpha.Anchor = AnchorStyles.Top;
         content.Controls.Add(_preview, 0, 0);
         content.Controls.Add(_wheel, 0, 1);
-        content.Controls.Add(new Label { Text = Localization.Text("Opacity"), AutoSize = true, Margin = new Padding(10, 4, 0, 2) }, 0, 2);
+        content.Controls.Add(new Label { Text = T("Opacity"), AutoSize = true, Margin = new Padding(10, 4, 0, 2) }, 0, 2);
         content.Controls.Add(_alpha, 0, 3);
 
         var channels = new TableLayoutPanel
@@ -88,8 +91,8 @@ internal sealed class ColorPickerDialog : Form
             Anchor = AnchorStyles.Right,
             FlowDirection = FlowDirection.RightToLeft
         };
-        var ok = new Button { Text = Localization.Text("Ok"), AutoSize = true };
-        var cancel = new Button { Text = Localization.Text("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true };
+        var ok = new Button { Text = T("Ok"), AutoSize = true };
+        var cancel = new Button { Text = T("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true };
         buttons.Controls.Add(ok);
         buttons.Controls.Add(cancel);
         content.Controls.Add(buttons, 0, 6);
@@ -128,7 +131,7 @@ internal sealed class ColorPickerDialog : Form
     {
         if (!TryParseRgbHex(_hex.Text, out _))
         {
-            MessageBox.Show(Localization.Text("HexError"), Localization.Text("ColorFormatError"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(T("HexError"), T("ColorFormatError"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
             _hex.Focus();
             _hex.SelectAll();
             return;
@@ -137,6 +140,8 @@ internal sealed class ColorPickerDialog : Form
         DialogResult = DialogResult.OK;
         Close();
     }
+
+    private string T(string key) => Localization.Text(_language, key);
 
     private void ChannelChanged(object? sender, EventArgs args)
     {

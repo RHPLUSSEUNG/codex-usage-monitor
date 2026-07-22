@@ -13,6 +13,7 @@ public sealed class CompactBarForm : Form
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemUsage = SystemUsageSnapshot.Empty;
     private bool _dragging;
+    private bool _renderingSuspended;
     private Point _dragCursorStart;
     private Point _dragWindowStart;
 
@@ -49,6 +50,14 @@ public sealed class CompactBarForm : Form
         _settingsMenu.Text = Localization.Text("Settings");
     }
 
+    public void SuspendRendering() => _renderingSuspended = true;
+
+    public void ResumeRendering()
+    {
+        _renderingSuspended = false;
+        PositionWindow();
+    }
+
     protected override CreateParams CreateParams
     {
         get
@@ -81,13 +90,13 @@ public sealed class CompactBarForm : Form
 
         if (!Visible)
             Show();
-        if (!_dragging)
+        if (!_dragging && !_renderingSuspended)
             RenderAtStoredPosition();
     }
 
     public void PositionWindow()
     {
-        if (Visible && !_dragging)
+        if (Visible && !_dragging && !_renderingSuspended)
             RenderAtStoredPosition();
     }
 
