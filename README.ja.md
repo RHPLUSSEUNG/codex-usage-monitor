@@ -2,48 +2,118 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-Codex の短期・週間使用制限と現在の CPU・RAM 使用率を表示する Windows トレイアプリです。
+<p align="center">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor アイコン" width="128">
+</p>
+
+Codex の使用制限と現在の CPU・RAM 使用率を表示する Windows 10/11 用トレイアプリです。
 
 ![Codex Usage Monitor Compact Bar](docs/compact-bar.png)
 
-Compact Bar は 2×2 構成です。1列目は上から `5H` と `WK`、2列目は `CPU` と `RAM` を表示します。各項目はパーセント、FillBar、または両方を表示できます。デスクトップ上の任意の位置へドラッグすると、その位置が自動保存されます。
+Compact Bar は2列構成です。1列目は上から `5H` と `WK`、2列目は `CPU` と `RAM` を表示します。各項目はパーセント、FillBar、または両方を表示できます。デスクトップ上でドラッグすると位置が自動保存されます。
 
-## 機能
+## インストール前の準備
 
-- 5時間・週間・CPU・RAM の各項目を個別に表示／非表示
-- Codex 制限を残りパーセントまたは使用済みパーセントで表示
-- RGB・アルファ・Hex による塗りつぶし色、トラック色、四角形背景色の設定
-- 英語・韓国語・簡体字中国語・日本語の設定 UI
-- 更新間隔、トレイ操作、Windows 起動時の自動実行
-- リセット時刻と今日／累計トークンの表示
+次の環境が必要です。
 
-## 要件とビルド
-
-- Windows 10/11
+- 64ビット版 Windows 10 または Windows 11
+- ダウンロードしたソースをビルドするための [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - Codex CLI のインストールと ChatGPT へのログイン
-- ソースからのビルドには .NET 8 SDK
+
+PowerShell で Codex CLI を準備します。すでに `codex` がインストール済みなら、インストールコマンドは省略できます。
 
 ```powershell
 npm install -g @openai/codex
 codex login
+codex login status
+```
+
+## 簡単インストール
+
+1. GitHub で **Code → Download ZIP** を選択し、ZIP を展開します。またはリポジトリをクローンします。
+2. 展開した `codex-usage-monitor` フォルダーを開きます。
+3. `install.cmd` をダブルクリックします。
+4. ビルドが完了するまで待ちます。インストール後、アプリは自動的に起動します。
+5. 次回からは Windows のスタートメニューで **Codex Usage Monitor** を検索して起動します。
+
+インストール先：
+
+```text
+アプリ:       %LOCALAPPDATA%\Programs\CodexUsageMonitor\CodexUsageMonitor.exe
+ショートカット: スタートメニュー\プログラム\Codex Usage Monitor
+設定ファイル:   %LOCALAPPDATA%\CodexUsageMonitor\settings.json
+```
+
+更新する場合は、新しいソースを入手し、トレイメニューから実行中のアプリを終了してから `install.cmd` をもう一度実行します。既存の設定は維持されます。
+
+## 手動ビルド
+
+```powershell
 dotnet build
 ```
 
-単体配布版は `build.ps1` で作成できます。`install.cmd` をダブルクリックすると `%LOCALAPPDATA%\Programs\CodexUsageMonitor` にインストールし、スタートメニューのショートカットを作成してアプリを起動します。
+インストーラーと同じ自己完結型の単一実行ファイルを作成する場合：
 
-## 使い方
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
 
-- トレイアイコンを左クリック：詳細な使用状況
-- トレイアイコンを右クリック：更新、Compact Bar の切り替え、設定、終了
-- Compact Bar をダブルクリック：設定
+出力先：`bin\Release\net8.0-windows\win-x64\publish\CodexUsageMonitor.exe`
+
+## 起動と操作
+
+アプリは通常のタスクバーウィンドウではなく、通知領域で動作します。
+
+- トレイアイコンを左クリック：詳細な使用状況を表示
+- トレイアイコンを右クリック：状態、更新、Compact Bar の切り替え、設定、終了
+- トレイアイコンまたは Compact Bar をダブルクリック：設定を開く
+- Compact Bar を右クリック：更新または設定
 - Compact Bar をドラッグ：移動して位置を自動保存
 
-設定は `%LOCALAPPDATA%\CodexUsageMonitor\settings.json` に保存されます。
+Compact Bar が見えない場合は、トレイアイコンを右クリックして **Compact Bar を表示**を有効にします。
 
-## データアクセス
+## 設定ガイド
 
-Web ページのスクレイピングや認証ファイルの直接読み取りは行いません。ローカルの `codex app-server` を起動し、公式 JSON-RPC メソッド `account/rateLimits/read` と `account/usage/read` を使用します。API キーはアプリに保存されません。
+### 一般設定
+
+| 設定 | 説明 |
+|---|---|
+| Compact Bar を表示 | フローティング表示の 2×2 モニターを表示または非表示にします。 |
+| Windows 起動時に自動実行 | Windows のスタートアップに登録または解除します。 |
+| 言語 | 英語、韓国語、簡体字中国語、日本語を選択します。選択すると現在の設定画面がすぐに翻訳され、保存するとアプリ全体に適用されます。 |
+| 表示基準 | Codex 制限を残りパーセントまたは使用済みパーセントで表示します。CPU と RAM は常に現在の使用率です。 |
+| 更新間隔 | Codex 使用量の更新間隔を 30～1,800 秒に設定します。CPU と RAM は個別に更新されます。 |
+| Codex 実行ファイル | 通常は `codex` のままにします。起動できない場合は `where.exe codex` で表示されるフルパスを入力します。 |
+
+### Compact Bar と各項目
+
+`5H`、`WK`、`CPU`、`RAM` の各項目には次の設定があります。
+
+| 設定 | 説明 |
+|---|---|
+| 表示 | その項目を有効または無効にします。 |
+| パーセントのみ | FillBar を表示せず、数値だけを表示します。 |
+| FillBar のみ | FillBar だけを表示します。 |
+| パーセント + FillBar | 数値と FillBar の両方を表示します。 |
+| 塗りつぶし色 | バーの塗りつぶされた部分の色を設定します。 |
+| トラック色 | バーの塗りつぶされていない背景色を設定します。 |
+
+**四角形の背景**は Compact Bar の背景だけを変更します。カラーピッカーでは RGBA 値、アルファスライダー、6桁の RGB Hex を使用できます。背景の Alpha を `0` にしても背景だけが透明になり、文字とグラフは表示されたままです。
+
+## データとプライバシー
+
+Web ページのスクレイピングや認証ファイルの直接読み取りは行いません。ローカルの `codex app-server` を起動し、公式 JSON-RPC メソッド `account/rateLimits/read` と `account/usage/read` を使用します。API キーは保存しません。
 
 ## トラブルシューティング
 
-app-server を開始できない場合は、設定で `codex.exe` のフルパスを指定してください（`where.exe codex`）。ログインが必要な場合は `codex login` と `codex login status` を実行してください。Compact Bar が画面外にある場合は、モニター構成や拡大率を変更後、トレイメニューから一度オフにして再度オンにしてください。
+### Codex 使用量を取得できない
+
+`codex login status` を実行してください。必要なら `codex login` で再ログインします。設定の `Codex 実行ファイル`を `where.exe codex` で確認したフルパスに変更することもできます。
+
+### Compact Bar が表示されない
+
+通知領域を確認し、トレイメニューから **Compact Bar を表示**を有効にします。モニター構成や画面の拡大率を変更した後は、一度オフにしてから再度オンにしてください。
+
+### 再インストールに失敗する
+
+実行中のファイルを置き換えられるように、トレイメニューから Codex Usage Monitor を終了してから `install.cmd` を再実行してください。
