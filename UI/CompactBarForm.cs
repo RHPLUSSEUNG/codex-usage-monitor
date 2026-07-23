@@ -20,6 +20,7 @@ public sealed class CompactBarForm : Form
     public event EventHandler? SettingsRequested;
     public event EventHandler? RefreshRequested;
     public event EventHandler? PositionChanged;
+    public Point StoredPosition => new(_settings.WindowPositionX, _settings.WindowPositionY);
 
     public CompactBarForm()
     {
@@ -73,9 +74,12 @@ public sealed class CompactBarForm : Form
 
     public void Apply(AppSettings settings, UsageSnapshot snapshot, SystemUsageSnapshot systemUsage)
     {
-        _settings = settings;
         _snapshot = snapshot;
         _systemUsage = systemUsage;
+        if (_renderingSuspended)
+            return;
+
+        _settings = settings;
 
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled
@@ -94,13 +98,34 @@ public sealed class CompactBarForm : Form
             RenderAtStoredPosition();
     }
 
+    public void Preview(AppSettings settings)
+    {
+        settings.WindowPositionX = _settings.WindowPositionX;
+        settings.WindowPositionY = _settings.WindowPositionY;
+        _settings = settings;
+        bool anyMetricEnabled = settings.FiveHour.Enabled
+                                || settings.Weekly.Enabled
+                                || settings.Cpu.Enabled
+                                || settings.Memory.Enabled;
+        if (!settings.ShowCompactBar || !anyMetricEnabled)
+        {
+            Hide();
+            return;
+        }
+
+        if (!Visible)
+            Show();
+        if (!_dragging)
+            RenderAtStoredPosition(updateZOrder: false);
+    }
+
     public void PositionWindow()
     {
         if (Visible && !_dragging && !_renderingSuspended)
             RenderAtStoredPosition();
     }
 
-    private void RenderAtStoredPosition()
+    private void RenderAtStoredPosition(bool updateZOrder = true)
     {
         Size size = CalculateWindowSize();
         Rectangle virtualScreen = SystemInformation.VirtualScreen;
@@ -109,34 +134,32 @@ public sealed class CompactBarForm : Form
         int defaultY = virtualScreen.Top + Math.Max(0, (virtualScreen.Height - size.Height) / 2);
         int x = hasStoredPosition ? _settings.WindowPositionX : defaultX;
         int y = hasStoredPosition ? _settings.WindowPositionY : defaultY;
-        RenderLayeredWindow(new Point(x, y), size);
+        RenderLayeredWindow(new Point(x, y), size, updateZOrder);
     }
 
     private Size CalculateWindowSize()
     {
         float scale = DeviceDpi / 96f;
-        int padding = Scale(2, scale);
-        int marginX = Scale(2, scale);
-        int marginY = Scale(1, scale);
-        int metricHeight = Scale(20, scale);
-
-        int firstColumn = Math.Max(
-            _settings.FiveHour.Enabled ? MetricWidth(_settings.FiveHour, scale) : 0,
-            _settings.Weekly.Enabled ? MetricWidth(_settings.Weekly, scale) : 0);
-        int secondColumn = Math.Max(
-            _settings.Cpu.Enabled ? MetricWidth(_settings.Cpu, scale) : 0,
-            _settings.Memory.Enabled ? MetricWidth(_settings.Memory, scale) : 0);
-        int columns = (firstColumn > 0 ? firstColumn + marginX * 2 : 0)
-                      + (secondColumn > 0 ? secondColumn + marginX * 2 : 0);
-
-        bool firstRow = _settings.FiveHour.Enabled || _settings.Cpu.Enabled;
-        bool secondRow = _settings.Weekly.Enabled || _settings.Memory.Enabled;
-        int rowHeight = metricHeight + marginY * 2;
-        int rows = (firstRow ? rowHeight : 0) + (secondRow ? rowHeight : 0);
-        return new Size(Math.Max(1, columns + padding * 2), Math.Max(1, rows + padding * 2));
+        return CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale));
     }
 
-    private void RenderLayeredWindow(Point location, Size size)
+    private int TaskbarHeight(float scale)
+    {
+        Point location = _settings.WindowPositionX != -1 || _settings.WindowPositionY != -1
+            ? new Point(_settings.WindowPositionX, _settings.WindowPositionY)
+            : Cursor.Position;
+        Screen screen = Screen.FromPoint(location);
+        Rectangle bounds = screen.Bounds;
+        Rectangle working = screen.WorkingArea;
+        int top = Math.Max(0, working.Top - bounds.Top);
+        int bottom = Math.Max(0, bounds.Bottom - working.Bottom);
+        int horizontalTaskbar = Math.Max(top, bottom);
+        return horizontalTaskbar > 0
+            ? horizontalTaskbar
+            : Math.Max(1, (int)Math.Round(48 * scale));
+    }
+
+    private void RenderLayeredWindow(Point location, Size size, bool updateZOrder)
     {
         using var bitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppArgb);
         bitmap.SetResolution(DeviceDpi, DeviceDpi);
@@ -182,49 +205,14 @@ public sealed class CompactBarForm : Form
             ReleaseDC(IntPtr.Zero, screenDc);
         }
 
-        SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
+        if (updateZOrder)
+            SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
     }
 
     private void DrawContent(Graphics graphics, Size size)
     {
-        Color configuredBackground = HexColor.ParseOrDefault(
-            _settings.BackgroundColor,
-            Color.FromArgb(255, 22, 24, 28));
-        // Alpha 1 is visually transparent but keeps the whole rectangle clickable.
-        Color background = Color.FromArgb(
-            Math.Max(1, (int)configuredBackground.A),
-            configuredBackground.R,
-            configuredBackground.G,
-            configuredBackground.B);
-        using (var backgroundBrush = new SolidBrush(background))
-            graphics.FillRectangle(backgroundBrush, new Rectangle(Point.Empty, size));
-
         float scale = DeviceDpi / 96f;
-        int padding = Scale(2, scale);
-        int marginX = Scale(2, scale);
-        int marginY = Scale(1, scale);
-        int metricHeight = Scale(20, scale);
-        int firstColumnWidth = Math.Max(
-            _settings.FiveHour.Enabled ? MetricWidth(_settings.FiveHour, scale) : 0,
-            _settings.Weekly.Enabled ? MetricWidth(_settings.Weekly, scale) : 0);
-        int secondColumnWidth = Math.Max(
-            _settings.Cpu.Enabled ? MetricWidth(_settings.Cpu, scale) : 0,
-            _settings.Memory.Enabled ? MetricWidth(_settings.Memory, scale) : 0);
-        int firstColumnTotal = firstColumnWidth > 0 ? firstColumnWidth + marginX * 2 : 0;
-        int secondX = padding + firstColumnTotal + marginX;
-        int firstX = padding + marginX;
-        bool firstRowVisible = _settings.FiveHour.Enabled || _settings.Cpu.Enabled;
-        int firstY = padding + marginY;
-        int secondY = padding + (firstRowVisible ? metricHeight + marginY * 2 : 0) + marginY;
-
-        if (_settings.FiveHour.Enabled)
-            DrawQuotaMetric(graphics, new Rectangle(firstX, firstY, MetricWidth(_settings.FiveHour, scale), metricHeight), "5H", _snapshot.FiveHour, _settings.FiveHour, scale);
-        if (_settings.Cpu.Enabled)
-            DrawMetric(graphics, new Rectangle(secondX, firstY, MetricWidth(_settings.Cpu, scale), metricHeight), "CPU", _systemUsage.CpuPercent, _settings.Cpu, scale);
-        if (_settings.Weekly.Enabled)
-            DrawQuotaMetric(graphics, new Rectangle(firstX, secondY, MetricWidth(_settings.Weekly, scale), metricHeight), "WK", _snapshot.Weekly, _settings.Weekly, scale);
-        if (_settings.Memory.Enabled)
-            DrawMetric(graphics, new Rectangle(secondX, secondY, MetricWidth(_settings.Memory, scale), metricHeight), "RAM", _systemUsage.MemoryPercent, _settings.Memory, scale);
+        CompactBarRenderer.Draw(graphics, size, _settings, _snapshot, _systemUsage, scale);
     }
 
     private void DrawQuotaMetric(
@@ -243,7 +231,7 @@ public sealed class CompactBarForm : Form
         DrawMetric(graphics, bounds, title, percent, settings, scale);
     }
 
-    private static void DrawMetric(
+    private void DrawMetric(
         Graphics graphics,
         Rectangle bounds,
         string title,
@@ -257,6 +245,21 @@ public sealed class CompactBarForm : Form
         using var textBrush = new SolidBrush(Color.White);
         float textX = bounds.X + 5f * scale;
         float textY = bounds.Y + 2f * scale;
+
+        if (_settings.CompactBarStyle == CompactBarStyle.LabelBoxes)
+        {
+            DrawLabelBoxMetric(
+                graphics,
+                bounds,
+                title,
+                percent,
+                percentText,
+                settings,
+                boldFont,
+                textBrush,
+                scale);
+            return;
+        }
 
         if (settings.Presentation == MetricPresentation.PercentOnly)
         {
@@ -298,12 +301,93 @@ public sealed class CompactBarForm : Form
         graphics.FillPath(fillBrush, fillPath);
     }
 
-    private static int MetricWidth(MetricSettings settings, float scale) => settings.Presentation switch
+    private static void DrawLabelBoxMetric(
+        Graphics graphics,
+        Rectangle bounds,
+        string title,
+        double? percent,
+        string percentText,
+        MetricSettings settings,
+        Font boldFont,
+        Brush valueBrush,
+        float scale)
     {
-        MetricPresentation.PercentOnly => Scale(94, scale),
-        MetricPresentation.BarOnly => Scale(124, scale),
-        _ => Scale(152, scale)
-    };
+        Color fillColor = HexColor.ParseOrDefault(settings.FillColor, Color.FromArgb(98, 214, 167));
+        Color labelColor = Color.FromArgb(255, fillColor.R, fillColor.G, fillColor.B);
+        Color labelBackground = Color.FromArgb(
+            Math.Clamp(fillColor.A / 4, 24, 64),
+            fillColor.R,
+            fillColor.G,
+            fillColor.B);
+        var labelBounds = new Rectangle(
+            bounds.X + Scale(1, scale),
+            bounds.Y + Scale(1, scale),
+            Scale(38, scale),
+            Math.Max(Scale(16, scale), bounds.Height - Scale(2, scale)));
+
+        using (var labelBackgroundBrush = new SolidBrush(labelBackground))
+        using (GraphicsPath labelPath = RoundedRectangle(labelBounds, Scale(4, scale)))
+            graphics.FillPath(labelBackgroundBrush, labelPath);
+
+        using var labelBrush = new SolidBrush(labelColor);
+        using var labelFormat = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        graphics.DrawString(title, boldFont, labelBrush, labelBounds, labelFormat);
+
+        int contentX = labelBounds.Right + Scale(5, scale);
+        float textY = bounds.Y + 2f * scale;
+        if (settings.Presentation == MetricPresentation.PercentOnly)
+        {
+            graphics.DrawString(percentText, boldFont, valueBrush, contentX, textY);
+            return;
+        }
+
+        int valueWidth = 0;
+        if (settings.Presentation == MetricPresentation.PercentAndBar)
+        {
+            SizeF valueSize = graphics.MeasureString(percentText, boldFont);
+            valueWidth = (int)Math.Ceiling(valueSize.Width) + Scale(5, scale);
+            graphics.DrawString(percentText, boldFont, valueBrush, bounds.Right - valueSize.Width - 3f * scale, textY);
+        }
+
+        var track = new Rectangle(
+            contentX,
+            bounds.Y + Scale(7, scale),
+            Math.Max(Scale(8, scale), bounds.Right - contentX - valueWidth - Scale(4, scale)),
+            Scale(6, scale));
+        Color trackColor = HexColor.ParseOrDefault(settings.TrackColor, Color.FromArgb(58, 61, 69));
+        using (var trackBrush = new SolidBrush(trackColor))
+        using (GraphicsPath trackPath = RoundedRectangle(track, Scale(3, scale)))
+            graphics.FillPath(trackBrush, trackPath);
+
+        int fillWidth = percent is null
+            ? 0
+            : (int)Math.Round(track.Width * Math.Clamp(percent.Value, 0d, 100d) / 100d);
+        if (fillWidth <= 0)
+            return;
+
+        var fill = new Rectangle(track.X, track.Y, Math.Min(track.Width, Math.Max(fillWidth, Scale(5, scale))), track.Height);
+        using var fillBrush = new SolidBrush(fillColor);
+        using GraphicsPath fillPath = RoundedRectangle(fill, Scale(3, scale));
+        graphics.FillPath(fillBrush, fillPath);
+    }
+
+    private int MetricWidth(MetricSettings settings, float scale)
+    {
+        int width = settings.Presentation switch
+        {
+            MetricPresentation.PercentOnly => 94,
+            MetricPresentation.BarOnly => 124,
+            _ => 152
+        };
+        if (_settings.CompactBarStyle == CompactBarStyle.LabelBoxes)
+            width += 6;
+        return Scale(width, scale);
+    }
 
     private static int Scale(int value, float scale) => Math.Max(1, (int)Math.Round(value * scale));
 

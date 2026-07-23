@@ -13,6 +13,27 @@ public enum PercentageMode
     Used
 }
 
+public enum CompactBarStyle
+{
+    DarkMinimal = 0,
+    Classic = DarkMinimal,
+    LabelBoxes = 1,
+    NeonGlow = 2,
+    Light = 3,
+    Cards = 4,
+    CircularGauges = 5,
+    CompactRows = 6,
+    RoundedCapsules = 7,
+    Gradient = 8,
+    MinimalIcons = 9
+}
+
+public enum ThemeVariant
+{
+    Dark,
+    Light
+}
+
 public enum AppLanguage
 {
     English,
@@ -29,11 +50,61 @@ public sealed class MetricSettings
     public string TrackColor { get; set; } = "#3A3D45";
 }
 
+public sealed class CompactBarPreset
+{
+    public CompactBarStyle Style { get; set; } = CompactBarStyle.LabelBoxes;
+    public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
+    public string BackgroundColor { get; set; } = "#FF16181C";
+    public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
+    public MetricSettings FiveHour { get; set; } = new();
+    public MetricSettings Weekly { get; set; } = new();
+    public MetricSettings Cpu { get; set; } = new();
+    public MetricSettings Memory { get; set; } = new();
+
+    public static CompactBarPreset Capture(AppSettings settings) => new()
+    {
+        Style = settings.CompactBarStyle,
+        ThemeVariant = settings.ThemeVariant,
+        BackgroundColor = settings.BackgroundColor,
+        PercentageMode = settings.PercentageMode,
+        FiveHour = AppSettings.CopyMetric(settings.FiveHour),
+        Weekly = AppSettings.CopyMetric(settings.Weekly),
+        Cpu = AppSettings.CopyMetric(settings.Cpu),
+        Memory = AppSettings.CopyMetric(settings.Memory)
+    };
+
+    public CompactBarPreset Copy() => new()
+    {
+        Style = Style,
+        ThemeVariant = ThemeVariant,
+        BackgroundColor = BackgroundColor,
+        PercentageMode = PercentageMode,
+        FiveHour = AppSettings.CopyMetric(FiveHour),
+        Weekly = AppSettings.CopyMetric(Weekly),
+        Cpu = AppSettings.CopyMetric(Cpu),
+        Memory = AppSettings.CopyMetric(Memory)
+    };
+
+    public void ApplyTo(AppSettings settings)
+    {
+        settings.CompactBarStyle = Style;
+        settings.ThemeVariant = ThemeVariant;
+        settings.BackgroundColor = BackgroundColor;
+        settings.PercentageMode = PercentageMode;
+        AppSettings.CopyMetricInto(FiveHour, settings.FiveHour);
+        AppSettings.CopyMetricInto(Weekly, settings.Weekly);
+        AppSettings.CopyMetricInto(Cpu, settings.Cpu);
+        AppSettings.CopyMetricInto(Memory, settings.Memory);
+    }
+}
+
 public sealed class AppSettings
 {
-    public AppLanguage Language { get; set; } = AppLanguage.Korean;
+    public AppLanguage Language { get; set; } = AppLanguage.English;
+    public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
+    public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
     public bool ShowCompactBar { get; set; } = true;
-    public string BackgroundColor { get; set; } = "#FF16181C";
+    public string BackgroundColor { get; set; } = "#0016181C";
     public int WindowPositionX { get; set; } = -1;
     public int WindowPositionY { get; set; } = -1;
     public bool StartWithWindows { get; set; }
@@ -58,10 +129,26 @@ public sealed class AppSettings
         Enabled = true,
         FillColor = "#D48BFF"
     };
+    public CompactBarPreset? Preset1 { get; set; } = CreateInitialPreset();
+    public CompactBarPreset? Preset2 { get; set; }
+    public CompactBarPreset? Preset3 { get; set; }
+
+    private static CompactBarPreset CreateInitialPreset() => new()
+    {
+        Style = CompactBarStyle.LabelBoxes,
+        ThemeVariant = ThemeVariant.Dark,
+        BackgroundColor = "#0016181C",
+        FiveHour = new MetricSettings(),
+        Weekly = new MetricSettings { FillColor = "#77A8FF" },
+        Cpu = new MetricSettings { FillColor = "#F2C66D" },
+        Memory = new MetricSettings { FillColor = "#D48BFF" }
+    };
 
     public AppSettings Copy() => new()
     {
         Language = Language,
+        CompactBarStyle = CompactBarStyle,
+        ThemeVariant = ThemeVariant,
         ShowCompactBar = ShowCompactBar,
         BackgroundColor = BackgroundColor,
         WindowPositionX = WindowPositionX,
@@ -76,14 +163,25 @@ public sealed class AppSettings
         FiveHour = CopyMetric(FiveHour),
         Weekly = CopyMetric(Weekly),
         Cpu = CopyMetric(Cpu),
-        Memory = CopyMetric(Memory)
+        Memory = CopyMetric(Memory),
+        Preset1 = Preset1?.Copy(),
+        Preset2 = Preset2?.Copy(),
+        Preset3 = Preset3?.Copy()
     };
 
-    private static MetricSettings CopyMetric(MetricSettings source) => new()
+    internal static MetricSettings CopyMetric(MetricSettings source) => new()
     {
         Enabled = source.Enabled,
         Presentation = source.Presentation,
         FillColor = source.FillColor,
         TrackColor = source.TrackColor
     };
+
+    internal static void CopyMetricInto(MetricSettings source, MetricSettings destination)
+    {
+        destination.Enabled = source.Enabled;
+        destination.Presentation = source.Presentation;
+        destination.FillColor = source.FillColor;
+        destination.TrackColor = source.TrackColor;
+    }
 }
