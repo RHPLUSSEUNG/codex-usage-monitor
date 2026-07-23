@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor アイコン" width="96">
+  <img src="../Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor アイコン" width="96">
 </p>
 
 <h1 align="center">Codex Usage Monitor</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
+  <a href="../README.md">English</a> ·
   <a href="README.ko.md">한국어</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
   <a href="README.ja.md">日本語</a>
@@ -20,7 +20,7 @@
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 10 と 11">
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 8">
   <img src="https://img.shields.io/badge/UI-WinForms-5C2D91?style=flat-square" alt="WinForms">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/compact-bar.png" alt="Codex Usage Monitor Compact Bar">
+  <img src="../docs/compact-bar.png" alt="Codex Usage Monitor Compact Bar">
 </p>
 
 <p align="center"><sub>左に 5H・WK · 右に CPU・RAM · 好きな位置へドラッグ</sub></p>
@@ -186,4 +186,4 @@ Web ページのスクレイピングや認証ファイルの直接読み取り�
 
 ## 📄 ライセンス
 
-[MIT License](LICENSE) の下で公開されています。
+[MIT License](../LICENSE) の下で公開されています。
