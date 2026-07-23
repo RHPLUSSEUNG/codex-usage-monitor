@@ -79,12 +79,14 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 | Setting | Description |
 |---|---|
 | Show Compact Bar | Shows or hides the floating 2×2 monitor. |
-| Compact Bar style | Selects **Classic** or **Label boxes**. Label boxes use each metric's fill color while keeping the bar compact. |
+| Compact Bar style | Selects Dark minimal, Label boxes, Neon glow, Light, Cards, Circular gauges, Compact rows, Rounded capsules, Gradient, or Minimal icons + text. |
 | Start with Windows | Adds or removes the app from Windows startup. |
 | Language | Changes the settings UI between English, Korean, Simplified Chinese, and Japanese. The open settings dialog updates immediately; save to apply it to the whole app. |
 | Display basis | Shows either remaining quota percentage or used quota percentage. CPU and RAM always show current usage. |
 | Refresh interval | Sets Codex quota refresh frequency from 30 to 1,800 seconds. CPU and RAM refresh separately. |
 | Codex executable | Usually leave this as `codex`. If startup fails, enter the full path returned by `where.exe codex`. |
+
+Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, background, display basis, metric visibility, presentation modes, and colors. Press **Save slot** to capture the current appearance and **Load** to apply it.
 
 ### Compact Bar and metrics
 

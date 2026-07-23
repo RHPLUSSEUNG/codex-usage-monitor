@@ -181,14 +181,16 @@ public sealed class UsageMonitorContext : ApplicationContext
     private void ShowSettings()
     {
         using var form = new SettingsForm(_settings);
+        form.PreviewChanged += preview => _compactBar.Preview(preview);
         _compactBar.SuspendRendering();
-        DialogResult result;
+        DialogResult result = DialogResult.Cancel;
         try
         {
             result = form.ShowDialog();
         }
         finally
         {
+            _compactBar.Preview(result == DialogResult.OK ? form.Result : _settings);
             _compactBar.ResumeRendering();
         }
 

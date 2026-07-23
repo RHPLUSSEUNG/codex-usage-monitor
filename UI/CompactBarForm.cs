@@ -94,6 +94,25 @@ public sealed class CompactBarForm : Form
             RenderAtStoredPosition();
     }
 
+    public void Preview(AppSettings settings)
+    {
+        _settings = settings;
+        bool anyMetricEnabled = settings.FiveHour.Enabled
+                                || settings.Weekly.Enabled
+                                || settings.Cpu.Enabled
+                                || settings.Memory.Enabled;
+        if (!settings.ShowCompactBar || !anyMetricEnabled)
+        {
+            Hide();
+            return;
+        }
+
+        if (!Visible)
+            Show();
+        if (!_dragging)
+            RenderAtStoredPosition();
+    }
+
     public void PositionWindow()
     {
         if (Visible && !_dragging && !_renderingSuspended)
@@ -115,25 +134,7 @@ public sealed class CompactBarForm : Form
     private Size CalculateWindowSize()
     {
         float scale = DeviceDpi / 96f;
-        int padding = Scale(2, scale);
-        int marginX = Scale(2, scale);
-        int marginY = Scale(1, scale);
-        int metricHeight = Scale(20, scale);
-
-        int firstColumn = Math.Max(
-            _settings.FiveHour.Enabled ? MetricWidth(_settings.FiveHour, scale) : 0,
-            _settings.Weekly.Enabled ? MetricWidth(_settings.Weekly, scale) : 0);
-        int secondColumn = Math.Max(
-            _settings.Cpu.Enabled ? MetricWidth(_settings.Cpu, scale) : 0,
-            _settings.Memory.Enabled ? MetricWidth(_settings.Memory, scale) : 0);
-        int columns = (firstColumn > 0 ? firstColumn + marginX * 2 : 0)
-                      + (secondColumn > 0 ? secondColumn + marginX * 2 : 0);
-
-        bool firstRow = _settings.FiveHour.Enabled || _settings.Cpu.Enabled;
-        bool secondRow = _settings.Weekly.Enabled || _settings.Memory.Enabled;
-        int rowHeight = metricHeight + marginY * 2;
-        int rows = (firstRow ? rowHeight : 0) + (secondRow ? rowHeight : 0);
-        return new Size(Math.Max(1, columns + padding * 2), Math.Max(1, rows + padding * 2));
+        return CompactBarRenderer.CalculateSize(_settings, scale);
     }
 
     private void RenderLayeredWindow(Point location, Size size)
@@ -187,44 +188,8 @@ public sealed class CompactBarForm : Form
 
     private void DrawContent(Graphics graphics, Size size)
     {
-        Color configuredBackground = HexColor.ParseOrDefault(
-            _settings.BackgroundColor,
-            Color.FromArgb(255, 22, 24, 28));
-        // Alpha 1 is visually transparent but keeps the whole rectangle clickable.
-        Color background = Color.FromArgb(
-            Math.Max(1, (int)configuredBackground.A),
-            configuredBackground.R,
-            configuredBackground.G,
-            configuredBackground.B);
-        using (var backgroundBrush = new SolidBrush(background))
-            graphics.FillRectangle(backgroundBrush, new Rectangle(Point.Empty, size));
-
         float scale = DeviceDpi / 96f;
-        int padding = Scale(2, scale);
-        int marginX = Scale(2, scale);
-        int marginY = Scale(1, scale);
-        int metricHeight = Scale(20, scale);
-        int firstColumnWidth = Math.Max(
-            _settings.FiveHour.Enabled ? MetricWidth(_settings.FiveHour, scale) : 0,
-            _settings.Weekly.Enabled ? MetricWidth(_settings.Weekly, scale) : 0);
-        int secondColumnWidth = Math.Max(
-            _settings.Cpu.Enabled ? MetricWidth(_settings.Cpu, scale) : 0,
-            _settings.Memory.Enabled ? MetricWidth(_settings.Memory, scale) : 0);
-        int firstColumnTotal = firstColumnWidth > 0 ? firstColumnWidth + marginX * 2 : 0;
-        int secondX = padding + firstColumnTotal + marginX;
-        int firstX = padding + marginX;
-        bool firstRowVisible = _settings.FiveHour.Enabled || _settings.Cpu.Enabled;
-        int firstY = padding + marginY;
-        int secondY = padding + (firstRowVisible ? metricHeight + marginY * 2 : 0) + marginY;
-
-        if (_settings.FiveHour.Enabled)
-            DrawQuotaMetric(graphics, new Rectangle(firstX, firstY, MetricWidth(_settings.FiveHour, scale), metricHeight), "5H", _snapshot.FiveHour, _settings.FiveHour, scale);
-        if (_settings.Cpu.Enabled)
-            DrawMetric(graphics, new Rectangle(secondX, firstY, MetricWidth(_settings.Cpu, scale), metricHeight), "CPU", _systemUsage.CpuPercent, _settings.Cpu, scale);
-        if (_settings.Weekly.Enabled)
-            DrawQuotaMetric(graphics, new Rectangle(firstX, secondY, MetricWidth(_settings.Weekly, scale), metricHeight), "WK", _snapshot.Weekly, _settings.Weekly, scale);
-        if (_settings.Memory.Enabled)
-            DrawMetric(graphics, new Rectangle(secondX, secondY, MetricWidth(_settings.Memory, scale), metricHeight), "RAM", _systemUsage.MemoryPercent, _settings.Memory, scale);
+        CompactBarRenderer.Draw(graphics, size, _settings, _snapshot, _systemUsage, scale);
     }
 
     private void DrawQuotaMetric(

@@ -28,6 +28,7 @@ internal sealed class ColorPickerDialog : Form
     private bool _updating;
 
     public Color SelectedColor { get; private set; }
+    public event EventHandler? SelectedColorChanged;
 
     public ColorPickerDialog(Color initial, AppLanguage? language = null)
     {
@@ -174,6 +175,7 @@ internal sealed class ColorPickerDialog : Form
         _alpha.BaseColor = Color.FromArgb(255, color.R, color.G, color.B);
         _preview.BackColor = BlendOverChecker(color);
         _updating = false;
+        SelectedColorChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static bool TryParseRgbHex(string text, out Color color)
