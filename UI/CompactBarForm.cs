@@ -74,9 +74,12 @@ public sealed class CompactBarForm : Form
 
     public void Apply(AppSettings settings, UsageSnapshot snapshot, SystemUsageSnapshot systemUsage)
     {
-        _settings = settings;
         _snapshot = snapshot;
         _systemUsage = systemUsage;
+        if (_renderingSuspended)
+            return;
+
+        _settings = settings;
 
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled

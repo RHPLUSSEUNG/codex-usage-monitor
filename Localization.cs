@@ -24,7 +24,7 @@ internal static class Localization
         ["MinimalIconsStyle"] = ["Minimal icons + text", "미니멀 아이콘 + 텍스트", "极简图标 + 文本", "ミニマルアイコン + テキスト"],
         ["Presets"] = ["Presets", "프리셋", "预设", "プリセット"],
         ["GeneralTab"] = ["General", "일반", "常规", "一般"],
-        ["AppearanceTab"] = ["Appearance & presets", "모양 · 프리셋", "外观与预设", "外観・プリセット"],
+        ["AppearanceTab"] = ["Appearance", "모양", "外观", "外観"],
         ["MetricsTab"] = ["Metrics", "표시 항목", "指标", "表示項目"],
         ["Preset1"] = ["Preset 1", "프리셋 1", "预设 1", "プリセット 1"],
         ["Preset2"] = ["Preset 2", "프리셋 2", "预设 2", "プリセット 2"],

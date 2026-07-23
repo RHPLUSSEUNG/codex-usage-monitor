@@ -88,7 +88,7 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 
 Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, background, display basis, metric visibility, presentation modes, and colors. Press **Save slot** to capture the current appearance and **Load** to apply it.
 
-Settings are organized into **General**, **Appearance & presets**, and **Metrics** tabs. Selecting a style also applies its matching default background color; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
+Settings are organized into **General**, **Appearance**, and **Metrics** tabs. The three preset slots stay visible above every tab. Selecting a style also applies its matching default background color and opacity; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
 
 ### Compact Bar and metrics
 

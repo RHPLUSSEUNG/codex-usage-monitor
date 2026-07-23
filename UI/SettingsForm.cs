@@ -58,10 +58,22 @@ public sealed class SettingsForm : Form
         tabs.TabPages.Add(generalTab);
         tabs.TabPages.Add(appearanceTab);
         tabs.TabPages.Add(metricsTab);
-        Controls.Add(tabs);
+
+        var mainLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(8, 8, 8, 0)
+        };
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        mainLayout.Controls.Add(CreatePresetGroup(), 0, 0);
+        mainLayout.Controls.Add(tabs, 0, 1);
+        Controls.Add(mainLayout);
 
         var generalContent = CreateTabContent(generalTab, 3);
-        var appearanceContent = CreateTabContent(appearanceTab, 3);
+        var appearanceContent = CreateTabContent(appearanceTab, 2);
         var metricsContent = CreateTabContent(metricsTab, 4);
 
         SetLocalizationKey(_showCompactBar, "ShowCompactBar");
@@ -88,8 +100,7 @@ public sealed class SettingsForm : Form
         var styleLayout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = new Padding(0, 4, 0, 10) };
         AddBehaviorRow(styleLayout, "CompactBarStyle", _compactBarStyle, 0);
         appearanceContent.Controls.Add(styleLayout, 0, 0);
-        appearanceContent.Controls.Add(CreatePresetGroup(), 0, 1);
-        appearanceContent.Controls.Add(CreateBackgroundGroup(), 0, 2);
+        appearanceContent.Controls.Add(CreateBackgroundGroup(), 0, 1);
 
         metricsContent.Controls.Add(CreateMetricGroup("FiveHourLimit", _draft.FiveHour), 0, 0);
         metricsContent.Controls.Add(CreateMetricGroup("WeeklyLimit", _draft.Weekly), 0, 1);
@@ -134,9 +145,7 @@ public sealed class SettingsForm : Form
             if (_loadingControls || _updatingLanguage || _compactBarStyle.SelectedIndex < 0)
                 return;
             _draft.CompactBarStyle = StyleValues[_compactBarStyle.SelectedIndex];
-            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(
-                _draft.CompactBarStyle,
-                _draft.BackgroundColor);
+            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(_draft.CompactBarStyle);
             RefreshControlsFromDraft();
             RaisePreview();
         };

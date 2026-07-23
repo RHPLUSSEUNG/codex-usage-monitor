@@ -499,9 +499,8 @@ internal static class CompactBarRenderer
 
 internal static class CompactBarTheme
 {
-    public static string DefaultBackground(CompactBarStyle style, string currentBackground)
+    public static string DefaultBackground(CompactBarStyle style)
     {
-        Color current = HexColor.ParseOrDefault(currentBackground, Color.FromArgb(255, 22, 24, 28));
         Color theme = style switch
         {
             CompactBarStyle.NeonGlow => Color.FromArgb(18, 37, 34),
@@ -514,6 +513,14 @@ internal static class CompactBarTheme
             CompactBarStyle.MinimalIcons => Color.FromArgb(245, 245, 246),
             _ => Color.FromArgb(22, 24, 28)
         };
-        return HexColor.Format(Color.FromArgb(current.A, theme.R, theme.G, theme.B), includeAlpha: true);
+        int alpha = style switch
+        {
+            CompactBarStyle.NeonGlow => 238,
+            CompactBarStyle.Cards => 245,
+            CompactBarStyle.RoundedCapsules => 245,
+            CompactBarStyle.Gradient => 238,
+            _ => 255
+        };
+        return HexColor.Format(Color.FromArgb(alpha, theme.R, theme.G, theme.B), includeAlpha: true);
     }
 }
