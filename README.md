@@ -1,18 +1,64 @@
-# Codex Usage Monitor
-
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
-
 <p align="center">
-  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor icon" width="128">
+  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor icon" width="96">
 </p>
 
-A Windows 10/11 tray application that shows Codex quota usage together with current CPU and RAM usage.
+<h1 align="center">Codex Usage Monitor</h1>
 
-![Codex Usage Monitor compact bar](docs/compact-bar.png)
+<p align="center">
+  <strong>Your Codex limits and system load, always one glance away.</strong><br>
+  A lightweight Windows tray monitor for 5-hour, weekly, CPU, and RAM usage.
+</p>
 
-The Compact Bar uses two columns: `5H` and `WK` in the first column, and `CPU` and `RAM` in the second. Each item can show a percentage, a fill bar, or both. Drag the bar anywhere on the desktop to save its position.
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja.md">日本語</a>
+</p>
 
-## Before installation
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 8">
+  <img src="https://img.shields.io/badge/UI-WinForms-5C2D91?style=flat-square" alt="WinForms">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#settings">Settings</a> ·
+  <a href="#privacy">Privacy</a> ·
+  <a href="#troubleshooting">Troubleshooting</a>
+</p>
+
+<p align="center">
+  <img src="docs/compact-bar.png" alt="Codex Usage Monitor compact bar">
+</p>
+
+<p align="center"><sub>5H and WK on the left · CPU and RAM on the right · drag anywhere to reposition</sub></p>
+
+---
+
+<a id="features"></a>
+
+## ✨ At a glance
+
+| | Feature | What it gives you |
+|---|---|---|
+| 📊 | **Codex quota** | Live 5-hour and weekly remaining or used percentages |
+| 🖥️ | **System usage** | CPU and RAM usage updated independently |
+| 🎨 | **10 styles × 2 themes** | Ten Compact Bar styles, each in Black and White |
+| 💾 | **3 presets** | Instantly save and restore your preferred appearance |
+| 🌍 | **4 languages** | English, Korean, Simplified Chinese, and Japanese |
+| 🔒 | **Local and private** | Uses `codex app-server`; no webpage scraping or auth-file access |
+
+The Compact Bar uses two columns: `5H` and `WK` in the first column, and `CPU` and `RAM` in the second. Each item can show a percentage, a fill bar, or both.
+
+<a id="quick-start"></a>
+
+## 🚀 Quick start
+
+### Requirements
 
 You need:
 
@@ -28,7 +74,7 @@ codex login
 codex login status
 ```
 
-## Easy installation
+### Install
 
 1. On GitHub, select **Code → Download ZIP**, then extract the ZIP. Alternatively, clone the repository.
 2. Open the extracted `codex-usage-monitor` folder.
@@ -48,7 +94,10 @@ To update, download the new source, exit the running app from its tray menu, and
 
 On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
 
-## Manual build
+<details>
+<summary><strong>Build manually</strong></summary>
+
+<br>
 
 ```powershell
 dotnet build
@@ -62,7 +111,11 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 Output: `bin\Release\net8.0-windows\win-x64\publish\CodexUsageMonitor.exe`
 
-## Running and controls
+</details>
+
+<a id="controls"></a>
+
+## 🖱️ Running and controls
 
 The app runs in the notification area rather than as a normal taskbar window.
 
@@ -74,7 +127,9 @@ The app runs in the notification area rather than as a normal taskbar window.
 
 If the Compact Bar is hidden, right-click the tray icon and enable **Show Compact Bar**.
 
-## Settings guide
+<a id="settings"></a>
+
+## ⚙️ Settings guide
 
 ### General
 
@@ -107,11 +162,15 @@ Each `5H`, `WK`, `CPU`, and `RAM` section provides:
 
 The **Background** setting controls only the rounded Compact Bar background. The color picker supports RGBA channels, an Alpha slider, and a six-digit RGB Hex field. Setting background Alpha to `0` makes only the background transparent; text and graphs remain visible.
 
-## Data and privacy
+<a id="privacy"></a>
+
+## 🔒 Data and privacy
 
 The app does not scrape webpages or directly read authentication files. It starts the local `codex app-server` and calls the official JSON-RPC methods `account/rateLimits/read` and `account/usage/read`. It does not store an API key.
 
-## Troubleshooting
+<a id="troubleshooting"></a>
+
+## 🧰 Troubleshooting
 
 ### Codex usage is unavailable
 
@@ -124,3 +183,7 @@ Check the notification area, then enable **Show Compact Bar** from the tray menu
 ### Reinstallation fails
 
 Exit Codex Usage Monitor from the tray menu before running `install.cmd` again so the installed executable can be replaced.
+
+## 📄 License
+
+Released under the [MIT License](LICENSE).
