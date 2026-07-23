@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#quick-start">快速开始</a> ·
   <a href="#features">主要功能</a> ·
+  <a href="#styles">样式</a> ·
   <a href="#settings">设置</a> ·
   <a href="#privacy">隐私</a> ·
   <a href="#troubleshooting">故障排除</a>
@@ -53,6 +54,29 @@
 | 🔒 | **本地且私密** | 使用 `codex app-server`，不抓取网页或访问认证文件 |
 
 Compact Bar 分为两列：第一列显示 `5H` 和 `WK`，第二列显示 `CPU` 和 `RAM`。每项可显示百分比、FillBar 或两者。
+
+<a id="styles"></a>
+
+## 🎨 样式图库
+
+<p align="center">
+  <img src="../docs/themes/overview.png" alt="Codex Usage Monitor 的所有黑色与白色样式" width="840">
+</p>
+
+<details>
+<summary><strong>查看每种样式的详细图片</strong></summary>
+
+<br>
+
+| | |
+|---|---|
+| **深色极简**<br><img src="../docs/themes/dark-minimal.png" alt="深色极简样式" width="400"> | **标签框**<br><img src="../docs/themes/label-boxes.png" alt="标签框样式" width="400"> |
+| **霓虹光效**<br><img src="../docs/themes/neon-glow.png" alt="霓虹光效样式" width="400"> | **浅色**<br><img src="../docs/themes/light.png" alt="浅色样式" width="400"> |
+| **卡片**<br><img src="../docs/themes/cards.png" alt="卡片样式" width="400"> | **圆形仪表**<br><img src="../docs/themes/circular-gauges.png" alt="圆形仪表样式" width="400"> |
+| **紧凑条**<br><img src="../docs/themes/compact-rows.png" alt="紧凑条样式" width="400"> | **圆角胶囊**<br><img src="../docs/themes/rounded-capsules.png" alt="圆角胶囊样式" width="400"> |
+| **渐变**<br><img src="../docs/themes/gradient.png" alt="渐变样式" width="400"> | **极简图标 + 文本**<br><img src="../docs/themes/minimal-icons.png" alt="极简图标加文本样式" width="400"> |
+
+</details>
 
 <a id="quick-start"></a>
 

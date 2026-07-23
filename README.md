@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#features">Features</a> ·
+  <a href="#styles">Styles</a> ·
   <a href="#settings">Settings</a> ·
   <a href="#privacy">Privacy</a> ·
   <a href="#troubleshooting">Troubleshooting</a>
@@ -53,6 +54,29 @@
 | 🔒 | **Local and private** | Uses `codex app-server`; no webpage scraping or auth-file access |
 
 The Compact Bar uses two columns: `5H` and `WK` in the first column, and `CPU` and `RAM` in the second. Each item can show a percentage, a fill bar, or both.
+
+<a id="styles"></a>
+
+## 🎨 Style gallery
+
+<p align="center">
+  <img src="docs/themes/overview.png" alt="All Codex Usage Monitor styles in Black and White" width="840">
+</p>
+
+<details>
+<summary><strong>View each style in detail</strong></summary>
+
+<br>
+
+| | |
+|---|---|
+| **Dark minimal**<br><img src="docs/themes/dark-minimal.png" alt="Dark minimal style" width="400"> | **Label boxes**<br><img src="docs/themes/label-boxes.png" alt="Label boxes style" width="400"> |
+| **Neon glow**<br><img src="docs/themes/neon-glow.png" alt="Neon glow style" width="400"> | **Light**<br><img src="docs/themes/light.png" alt="Light style" width="400"> |
+| **Cards**<br><img src="docs/themes/cards.png" alt="Cards style" width="400"> | **Circular gauges**<br><img src="docs/themes/circular-gauges.png" alt="Circular gauges style" width="400"> |
+| **Compact rows**<br><img src="docs/themes/compact-rows.png" alt="Compact rows style" width="400"> | **Rounded capsules**<br><img src="docs/themes/rounded-capsules.png" alt="Rounded capsules style" width="400"> |
+| **Gradient**<br><img src="docs/themes/gradient.png" alt="Gradient style" width="400"> | **Minimal icons + text**<br><img src="docs/themes/minimal-icons.png" alt="Minimal icons and text style" width="400"> |
+
+</details>
 
 <a id="quick-start"></a>
 

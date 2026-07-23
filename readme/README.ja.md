@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#quick-start">クイックスタート</a> ·
   <a href="#features">主な機能</a> ·
+  <a href="#styles">スタイル</a> ·
   <a href="#settings">設定</a> ·
   <a href="#privacy">プライバシー</a> ·
   <a href="#troubleshooting">トラブルシューティング</a>
@@ -53,6 +54,29 @@
 | 🔒 | **ローカル・プライベート** | `codex app-server` を使用し、Webスクレイピングや認証ファイルへのアクセスなし |
 
 Compact Bar は2列構成です。1列目に `5H` と `WK`、2列目に `CPU` と `RAM` を表示します。各項目はパーセント、FillBar、または両方を表示できます。
+
+<a id="styles"></a>
+
+## 🎨 スタイルギャラリー
+
+<p align="center">
+  <img src="../docs/themes/overview.png" alt="Codex Usage Monitor の全ブラック・ホワイトスタイル" width="840">
+</p>
+
+<details>
+<summary><strong>各スタイルの詳細画像を表示</strong></summary>
+
+<br>
+
+| | |
+|---|---|
+| **ダークミニマル**<br><img src="../docs/themes/dark-minimal.png" alt="ダークミニマルスタイル" width="400"> | **ラベルボックス**<br><img src="../docs/themes/label-boxes.png" alt="ラベルボックススタイル" width="400"> |
+| **ネオングロー**<br><img src="../docs/themes/neon-glow.png" alt="ネオングロースタイル" width="400"> | **ライト**<br><img src="../docs/themes/light.png" alt="ライトスタイル" width="400"> |
+| **カード**<br><img src="../docs/themes/cards.png" alt="カードスタイル" width="400"> | **円形ゲージ**<br><img src="../docs/themes/circular-gauges.png" alt="円形ゲージスタイル" width="400"> |
+| **コンパクトバー**<br><img src="../docs/themes/compact-rows.png" alt="コンパクトバースタイル" width="400"> | **丸型カプセル**<br><img src="../docs/themes/rounded-capsules.png" alt="丸型カプセルスタイル" width="400"> |
+| **グラデーション**<br><img src="../docs/themes/gradient.png" alt="グラデーションスタイル" width="400"> | **ミニマルアイコン + テキスト**<br><img src="../docs/themes/minimal-icons.png" alt="ミニマルアイコンとテキストスタイル" width="400"> |
+
+</details>
 
 <a id="quick-start"></a>
 
