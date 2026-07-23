@@ -181,6 +181,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private void ToggleCompactBar()
     {
         _settings.ShowCompactBar = !_settings.ShowCompactBar;
+        _showBarMenu.Checked = _settings.ShowCompactBar;
         SettingsStore.Save(_settings);
         UpdateDisplay();
     }
@@ -258,6 +259,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _statusMenu.Text = Localization.Text("Status");
         _refreshMenu.Text = Localization.Text("Refresh");
         _showBarMenu.Text = Localization.Text("ShowCompactBar");
+        _showBarMenu.Checked = _settings.ShowCompactBar;
         _settingsMenu.Text = Localization.Text("Settings");
         _exitMenu.Text = Localization.Text("Exit");
     }
