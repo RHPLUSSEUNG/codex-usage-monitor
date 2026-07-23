@@ -13,7 +13,8 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly ToolStripMenuItem _settingsMenu = new();
     private readonly ToolStripMenuItem _exitMenu = new();
     private readonly NotifyIcon _trayIcon;
-    private readonly CompactBarForm _compactBar;
+    private readonly CompactBarHost _compactBar;
+    private readonly Control _uiDispatcher = new();
     private readonly System.Windows.Forms.Timer _usageTimer;
     private readonly System.Windows.Forms.Timer _systemTimer;
     private readonly SystemUsageMonitor _systemMonitor = new();
@@ -28,10 +29,16 @@ public sealed class UsageMonitorContext : ApplicationContext
         _settings = SettingsStore.Load();
         Localization.CurrentLanguage = _settings.Language;
         _client = new CodexAppServerClient(_settings.CodexExecutable);
-        _compactBar = new CompactBarForm();
+        _uiDispatcher.CreateControl();
+        _compactBar = new CompactBarHost(PostToUi);
         _compactBar.SettingsRequested += (_, _) => ShowSettings();
         _compactBar.RefreshRequested += async (_, _) => await RefreshAsync();
-        _compactBar.PositionChanged += (_, _) => SettingsStore.Save(_settings);
+        _compactBar.PositionChanged += position =>
+        {
+            _settings.WindowPositionX = position.X;
+            _settings.WindowPositionY = position.Y;
+            SettingsStore.Save(_settings);
+        };
 
         var menu = new ContextMenuStrip();
         _statusMenu.Click += (_, _) => ShowStatus();
@@ -182,7 +189,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     {
         using var form = new SettingsForm(_settings);
         form.PreviewChanged += preview => _compactBar.Preview(preview);
-        _compactBar.SuspendRendering();
+        _compactBar.BeginPreview();
         DialogResult result = DialogResult.Cancel;
         try
         {
@@ -190,8 +197,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
         finally
         {
-            _compactBar.Preview(result == DialogResult.OK ? form.Result : _settings);
-            _compactBar.ResumeRendering();
+            _compactBar.EndPreview(result == DialogResult.OK ? form.Result : _settings);
         }
 
         if (result != DialogResult.OK)
@@ -249,11 +255,12 @@ public sealed class UsageMonitorContext : ApplicationContext
         _usageTimer.Stop();
         _systemTimer.Stop();
         _trayIcon.Visible = false;
-        _compactBar.Close();
+        _compactBar.Dispose();
         _client.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _trayIcon.Dispose();
         _usageTimer.Dispose();
         _systemTimer.Dispose();
+        _uiDispatcher.Dispose();
         ExitThread();
     }
 
@@ -268,6 +275,16 @@ public sealed class UsageMonitorContext : ApplicationContext
     private static Color ParseColor(string html, Color fallback)
     {
         return HexColor.ParseOrDefault(html, fallback);
+    }
+
+    private void PostToUi(Action action)
+    {
+        if (_uiDispatcher.IsDisposed || !_uiDispatcher.IsHandleCreated)
+            return;
+        if (_uiDispatcher.InvokeRequired)
+            _uiDispatcher.BeginInvoke(action);
+        else
+            action();
     }
 }
 

@@ -8,7 +8,7 @@ internal static class CompactBarRenderer
     private const int GridCellWidth = 158;
     private const int GridRowHeight = 22;
 
-    public static Size CalculateSize(AppSettings settings, float scale)
+    public static Size CalculateSize(AppSettings settings, float scale, int taskbarHeight)
     {
         MetricVisual[] metrics = Metrics(settings, null, null);
         int count = metrics.Count(metric => metric.Settings.Enabled);
@@ -17,7 +17,7 @@ internal static class CompactBarRenderer
 
         return settings.CompactBarStyle switch
         {
-            CompactBarStyle.CircularGauges => new Size(S(8 + count * 68, scale), S(72, scale)),
+            CompactBarStyle.CircularGauges => CircularGaugeSize(count, scale, taskbarHeight),
             CompactBarStyle.CompactRows => new Size(S(250, scale), S(6 + count * 21, scale)),
             CompactBarStyle.MinimalIcons => new Size(S(8 + count * 74, scale), S(48, scale)),
             CompactBarStyle.Cards => GridSize(metrics, scale, 164, 28),
@@ -109,6 +109,13 @@ internal static class CompactBarRenderer
         return new Size(
             S(4 + columns * cellWidth + Math.Max(0, columns - 1) * 4, scale),
             S(4 + rows * rowHeight + Math.Max(0, rows - 1) * 2, scale));
+    }
+
+    private static Size CircularGaugeSize(int count, float scale, int taskbarHeight)
+    {
+        int height = Math.Max(1, taskbarHeight);
+        int cellWidth = Math.Max(S(50, scale), (int)Math.Round(height * 1.15d));
+        return new Size(S(6, scale) + count * cellWidth, height);
     }
 
     private static void DrawBackground(
@@ -266,19 +273,28 @@ internal static class CompactBarRenderer
 
     private static void DrawCircularGauges(Graphics graphics, MetricVisual[] metrics, float scale)
     {
+        int height = Math.Max(1, (int)Math.Round(graphics.VisibleClipBounds.Height));
+        int titleHeight = Math.Min(S(17, scale), Math.Max(S(12, scale), height / 3));
+        int diameter = Math.Max(S(12, scale), height - titleHeight - S(4, scale));
+        int cellWidth = Math.Max(S(50, scale), (int)Math.Round(height * 1.15d));
         int index = 0;
         foreach (MetricVisual metric in metrics.Where(metric => metric.Settings.Enabled))
         {
             Color color = MetricColor(metric, Color.CornflowerBlue);
-            int x = S(7 + index * 68, scale);
-            var gauge = new Rectangle(x + S(8, scale), S(20, scale), S(48, scale), S(48, scale));
-            using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
-            using var boldFont = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
+            int x = S(3, scale) + index * cellWidth;
+            var gauge = new Rectangle(
+                x + (cellWidth - diameter) / 2,
+                titleHeight + S(1, scale),
+                diameter,
+                diameter);
+            using var font = new Font("Segoe UI", 8f, FontStyle.Regular, GraphicsUnit.Point);
+            using var boldFont = new Font("Segoe UI", diameter < S(34, scale) ? 7.5f : 9f, FontStyle.Bold, GraphicsUnit.Point);
             using var titleBrush = new SolidBrush(Color.FromArgb(255, color.R, color.G, color.B));
             using var valueBrush = new SolidBrush(Color.White);
-            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, S(2, scale), S(64, scale), S(17, scale)));
-            using var trackPen = new Pen(Color.FromArgb(70, 255, 255, 255), S(6, scale));
-            using var fillPen = new Pen(color, S(6, scale)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight));
+            float penWidth = Math.Max(2f, Math.Min(S(6, scale), diameter / 7f));
+            using var trackPen = new Pen(Color.FromArgb(70, 255, 255, 255), penWidth);
+            using var fillPen = new Pen(color, penWidth) { StartCap = LineCap.Round, EndCap = LineCap.Round };
             graphics.DrawArc(trackPen, gauge, -90, 360);
             if (metric.Percent is not null)
                 graphics.DrawArc(fillPen, gauge, -90, (float)(360d * Math.Clamp(metric.Percent.Value, 0d, 100d) / 100d));
@@ -323,14 +339,14 @@ internal static class CompactBarRenderer
             Color color = MetricColor(metric, Color.CornflowerBlue);
             using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
             using var boldFont = new Font(font, FontStyle.Bold);
-            using var titleBrush = new SolidBrush(Color.White);
+            using var titleBrush = new SolidBrush(Color.FromArgb(42, 45, 52));
             using var valueBrush = new SolidBrush(color);
             DrawIcon(graphics, metric.Icon, new Rectangle(x, S(7, scale), S(14, scale), S(14, scale)), color, scale);
             graphics.DrawString(metric.Title, font, titleBrush, x + S(19, scale), S(5, scale));
             graphics.DrawString(PercentText(metric.Percent), boldFont, valueBrush, x + S(18, scale), S(25, scale));
             if (index > 0)
             {
-                using var divider = new Pen(Color.FromArgb(55, 255, 255, 255), S(1, scale));
+                using var divider = new Pen(Color.FromArgb(55, 30, 34, 42), S(1, scale));
                 graphics.DrawLine(divider, x - S(6, scale), S(8, scale), x - S(6, scale), S(40, scale));
             }
             index++;
@@ -478,5 +494,26 @@ internal static class CompactBarRenderer
         Cards,
         Capsules,
         Gradient
+    }
+}
+
+internal static class CompactBarTheme
+{
+    public static string DefaultBackground(CompactBarStyle style, string currentBackground)
+    {
+        Color current = HexColor.ParseOrDefault(currentBackground, Color.FromArgb(255, 22, 24, 28));
+        Color theme = style switch
+        {
+            CompactBarStyle.NeonGlow => Color.FromArgb(18, 37, 34),
+            CompactBarStyle.Light => Color.FromArgb(246, 247, 249),
+            CompactBarStyle.Cards => Color.FromArgb(18, 44, 43),
+            CompactBarStyle.CircularGauges => Color.FromArgb(26, 29, 34),
+            CompactBarStyle.CompactRows => Color.FromArgb(23, 25, 30),
+            CompactBarStyle.RoundedCapsules => Color.FromArgb(27, 29, 41),
+            CompactBarStyle.Gradient => Color.FromArgb(39, 75, 90),
+            CompactBarStyle.MinimalIcons => Color.FromArgb(245, 245, 246),
+            _ => Color.FromArgb(22, 24, 28)
+        };
+        return HexColor.Format(Color.FromArgb(current.A, theme.R, theme.G, theme.B), includeAlpha: true);
     }
 }

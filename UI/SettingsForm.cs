@@ -51,48 +51,50 @@ public sealed class SettingsForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(540, 650);
 
-        var scrollHost = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
-        Controls.Add(scrollHost);
-        var content = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            ColumnCount = 1,
-            RowCount = 9,
-            Padding = new Padding(16),
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink
-        };
-        for (int index = 0; index < content.RowCount; index++)
-            content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        scrollHost.Controls.Add(content);
+        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 5) };
+        var generalTab = CreateTab("GeneralTab");
+        var appearanceTab = CreateTab("AppearanceTab");
+        var metricsTab = CreateTab("MetricsTab");
+        tabs.TabPages.Add(generalTab);
+        tabs.TabPages.Add(appearanceTab);
+        tabs.TabPages.Add(metricsTab);
+        Controls.Add(tabs);
+
+        var generalContent = CreateTabContent(generalTab, 3);
+        var appearanceContent = CreateTabContent(appearanceTab, 3);
+        var metricsContent = CreateTabContent(metricsTab, 4);
 
         SetLocalizationKey(_showCompactBar, "ShowCompactBar");
         SetLocalizationKey(_startWithWindows, "StartWithWindows");
         var general = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Dock = DockStyle.Top };
         general.Controls.Add(_showCompactBar);
         general.Controls.Add(_startWithWindows);
-        content.Controls.Add(general);
+        generalContent.Controls.Add(general, 0, 0);
 
         _language.Items.AddRange(["English", "한국어", "中文", "日本語"]);
         _compactBarStyle.Items.AddRange(StyleNames());
         _percentageMode.Items.AddRange([T("RemainingPercent"), T("UsedPercent")]);
-        var behavior = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 12, 0, 8) };
+        var behavior = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 12, 0, 8), Dock = DockStyle.Top };
         AddBehaviorRow(behavior, "Language", _language, 0);
-        AddBehaviorRow(behavior, "CompactBarStyle", _compactBarStyle, 1);
-        AddBehaviorRow(behavior, "DisplayBasis", _percentageMode, 2);
-        AddBehaviorRow(behavior, "RefreshSeconds", _refreshSeconds, 3);
-        AddBehaviorRow(behavior, "CodexExecutable", _codexPath, 4);
-        content.Controls.Add(behavior);
+        AddBehaviorRow(behavior, "DisplayBasis", _percentageMode, 1);
+        AddBehaviorRow(behavior, "RefreshSeconds", _refreshSeconds, 2);
+        AddBehaviorRow(behavior, "CodexExecutable", _codexPath, 3);
+        generalContent.Controls.Add(behavior, 0, 1);
 
-        content.Controls.Add(CreatePresetGroup(), 0, 2);
-        content.Controls.Add(CreateBackgroundGroup(), 0, 3);
-        content.Controls.Add(CreateMetricGroup("FiveHourLimit", _draft.FiveHour), 0, 4);
-        content.Controls.Add(CreateMetricGroup("WeeklyLimit", _draft.Weekly), 0, 5);
-        content.Controls.Add(CreateMetricGroup("CpuUsage", _draft.Cpu), 0, 6);
-        content.Controls.Add(CreateMetricGroup("MemoryUsage", _draft.Memory), 0, 7);
         var note = new Label { AutoSize = true, MaximumSize = new Size(490, 0), ForeColor = Color.DimGray };
         SetLocalizationKey(note, "SettingsNote");
-        content.Controls.Add(note, 0, 8);
+        generalContent.Controls.Add(note, 0, 2);
+
+        var styleLayout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = new Padding(0, 4, 0, 10) };
+        AddBehaviorRow(styleLayout, "CompactBarStyle", _compactBarStyle, 0);
+        appearanceContent.Controls.Add(styleLayout, 0, 0);
+        appearanceContent.Controls.Add(CreatePresetGroup(), 0, 1);
+        appearanceContent.Controls.Add(CreateBackgroundGroup(), 0, 2);
+
+        metricsContent.Controls.Add(CreateMetricGroup("FiveHourLimit", _draft.FiveHour), 0, 0);
+        metricsContent.Controls.Add(CreateMetricGroup("WeeklyLimit", _draft.Weekly), 0, 1);
+        metricsContent.Controls.Add(CreateMetricGroup("CpuUsage", _draft.Cpu), 0, 2);
+        metricsContent.Controls.Add(CreateMetricGroup("MemoryUsage", _draft.Memory), 0, 3);
 
         var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Bottom, AutoSize = true, Padding = new Padding(8) };
         var save = new Button { AutoSize = true };
@@ -132,6 +134,10 @@ public sealed class SettingsForm : Form
             if (_loadingControls || _updatingLanguage || _compactBarStyle.SelectedIndex < 0)
                 return;
             _draft.CompactBarStyle = StyleValues[_compactBarStyle.SelectedIndex];
+            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(
+                _draft.CompactBarStyle,
+                _draft.BackgroundColor);
+            RefreshControlsFromDraft();
             RaisePreview();
         };
         _percentageMode.SelectedIndexChanged += (_, _) =>
@@ -143,6 +149,30 @@ public sealed class SettingsForm : Form
                 : PercentageMode.Used;
             RaisePreview();
         };
+    }
+
+    private TabPage CreateTab(string localizationKey)
+    {
+        var tab = new TabPage { Padding = new Padding(0), AutoScroll = true };
+        SetLocalizationKey(tab, localizationKey);
+        return tab;
+    }
+
+    private static TableLayoutPanel CreateTabContent(TabPage tab, int rows)
+    {
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            ColumnCount = 1,
+            RowCount = rows,
+            Padding = new Padding(16),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
+        };
+        for (int index = 0; index < rows; index++)
+            content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tab.Controls.Add(content);
+        return content;
     }
 
     private void AddBehaviorRow(TableLayoutPanel layout, string labelKey, Control control, int row)

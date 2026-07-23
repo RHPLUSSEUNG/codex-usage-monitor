@@ -20,6 +20,7 @@ public sealed class CompactBarForm : Form
     public event EventHandler? SettingsRequested;
     public event EventHandler? RefreshRequested;
     public event EventHandler? PositionChanged;
+    public Point StoredPosition => new(_settings.WindowPositionX, _settings.WindowPositionY);
 
     public CompactBarForm()
     {
@@ -134,7 +135,23 @@ public sealed class CompactBarForm : Form
     private Size CalculateWindowSize()
     {
         float scale = DeviceDpi / 96f;
-        return CompactBarRenderer.CalculateSize(_settings, scale);
+        return CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale));
+    }
+
+    private int TaskbarHeight(float scale)
+    {
+        Point location = _settings.WindowPositionX != -1 || _settings.WindowPositionY != -1
+            ? new Point(_settings.WindowPositionX, _settings.WindowPositionY)
+            : Cursor.Position;
+        Screen screen = Screen.FromPoint(location);
+        Rectangle bounds = screen.Bounds;
+        Rectangle working = screen.WorkingArea;
+        int top = Math.Max(0, working.Top - bounds.Top);
+        int bottom = Math.Max(0, bounds.Bottom - working.Bottom);
+        int horizontalTaskbar = Math.Max(top, bottom);
+        return horizontalTaskbar > 0
+            ? horizontalTaskbar
+            : Math.Max(1, (int)Math.Round(48 * scale));
     }
 
     private void RenderLayeredWindow(Point location, Size size, bool updateZOrder)
