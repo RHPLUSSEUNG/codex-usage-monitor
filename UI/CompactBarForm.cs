@@ -110,7 +110,7 @@ public sealed class CompactBarForm : Form
         if (!Visible)
             Show();
         if (!_dragging)
-            RenderAtStoredPosition();
+            RenderAtStoredPosition(updateZOrder: false);
     }
 
     public void PositionWindow()
@@ -119,7 +119,7 @@ public sealed class CompactBarForm : Form
             RenderAtStoredPosition();
     }
 
-    private void RenderAtStoredPosition()
+    private void RenderAtStoredPosition(bool updateZOrder = true)
     {
         Size size = CalculateWindowSize();
         Rectangle virtualScreen = SystemInformation.VirtualScreen;
@@ -128,7 +128,7 @@ public sealed class CompactBarForm : Form
         int defaultY = virtualScreen.Top + Math.Max(0, (virtualScreen.Height - size.Height) / 2);
         int x = hasStoredPosition ? _settings.WindowPositionX : defaultX;
         int y = hasStoredPosition ? _settings.WindowPositionY : defaultY;
-        RenderLayeredWindow(new Point(x, y), size);
+        RenderLayeredWindow(new Point(x, y), size, updateZOrder);
     }
 
     private Size CalculateWindowSize()
@@ -137,7 +137,7 @@ public sealed class CompactBarForm : Form
         return CompactBarRenderer.CalculateSize(_settings, scale);
     }
 
-    private void RenderLayeredWindow(Point location, Size size)
+    private void RenderLayeredWindow(Point location, Size size, bool updateZOrder)
     {
         using var bitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppArgb);
         bitmap.SetResolution(DeviceDpi, DeviceDpi);
@@ -183,7 +183,8 @@ public sealed class CompactBarForm : Form
             ReleaseDC(IntPtr.Zero, screenDc);
         }
 
-        SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
+        if (updateZOrder)
+            SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
     }
 
     private void DrawContent(Graphics graphics, Size size)

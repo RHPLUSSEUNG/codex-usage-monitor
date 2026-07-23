@@ -33,6 +33,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _percentageMode = NewCombo();
     private readonly NumericUpDown _refreshSeconds = new() { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
     private readonly TextBox _codexPath = new() { Width = 280 };
+    private readonly System.Windows.Forms.Timer _previewTimer = new() { Interval = 33 };
+    private AppSettings? _pendingPreview;
 
     public AppSettings Result => _draft;
     public event Action<AppSettings>? PreviewChanged;
@@ -112,6 +114,12 @@ public sealed class SettingsForm : Form
         _codexPath.Text = settings.CodexExecutable;
         save.Click += (_, _) => SaveAndClose();
         _language.SelectedIndexChanged += (_, _) => ChangeLanguage();
+        _previewTimer.Tick += (_, _) => FlushPreview();
+        FormClosed += (_, _) =>
+        {
+            _previewTimer.Stop();
+            _previewTimer.Dispose();
+        };
         _showCompactBar.CheckedChanged += (_, _) =>
         {
             if (_loadingControls)
@@ -422,7 +430,21 @@ public sealed class SettingsForm : Form
             : PercentageMode.Used;
     }
 
-    private void RaisePreview() => PreviewChanged?.Invoke(_draft.Copy());
+    private void RaisePreview()
+    {
+        _pendingPreview = _draft.Copy();
+        if (!_previewTimer.Enabled)
+            _previewTimer.Start();
+    }
+
+    private void FlushPreview()
+    {
+        _previewTimer.Stop();
+        AppSettings? preview = _pendingPreview;
+        _pendingPreview = null;
+        if (preview is not null)
+            PreviewChanged?.Invoke(preview);
+    }
 
     private string[] StyleNames() =>
     [
