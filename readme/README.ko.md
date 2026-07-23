@@ -59,15 +59,6 @@ Compact Bar는 두 열로 구성됩니다. 1열에는 `5H`와 `WK`, 2열에는 `
 
 ## 🎨 스타일 갤러리
 
-<p align="center">
-  <img src="../docs/themes/overview.png" alt="Codex Usage Monitor의 모든 블랙·화이트 스타일" width="840">
-</p>
-
-<details>
-<summary><strong>스타일별 자세한 이미지 보기</strong></summary>
-
-<br>
-
 | | |
 |---|---|
 | **다크 미니멀**<br><img src="../docs/themes/dark-minimal.png" alt="다크 미니멀 스타일" width="400"> | **라벨 박스형**<br><img src="../docs/themes/label-boxes.png" alt="라벨 박스형 스타일" width="400"> |
@@ -75,8 +66,6 @@ Compact Bar는 두 열로 구성됩니다. 1열에는 `5H`와 `WK`, 2열에는 `
 | **카드**<br><img src="../docs/themes/cards.png" alt="카드 스타일" width="400"> | **원형 게이지**<br><img src="../docs/themes/circular-gauges.png" alt="원형 게이지 스타일" width="400"> |
 | **컴팩트 바**<br><img src="../docs/themes/compact-rows.png" alt="컴팩트 바 스타일" width="400"> | **둥근 캡슐**<br><img src="../docs/themes/rounded-capsules.png" alt="둥근 캡슐 스타일" width="400"> |
 | **그라데이션**<br><img src="../docs/themes/gradient.png" alt="그라데이션 스타일" width="400"> | **미니멀 아이콘 + 텍스트**<br><img src="../docs/themes/minimal-icons.png" alt="미니멀 아이콘과 텍스트 스타일" width="400"> |
-
-</details>
 
 <a id="quick-start"></a>
 

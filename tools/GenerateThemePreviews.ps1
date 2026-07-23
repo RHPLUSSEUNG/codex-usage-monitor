@@ -156,65 +156,19 @@ try {
             [Drawing.Imaging.ImageFormat]::Png)
     }
 
-    $columns = 2
-    $cellWidth = 840
-    $cellHeight = 360
-    $headerHeight = 170
-    $overview = [Drawing.Bitmap]::new(
-        $columns * $cellWidth,
-        $headerHeight + 5 * $cellHeight,
-        [Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $graphics = [Drawing.Graphics]::FromImage($overview)
-    try {
-        $graphics.Clear([Drawing.Color]::FromArgb(255, 8, 12, 18))
-        $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::HighQuality
-        $titleFont = [Drawing.Font]::new("Segoe UI", 28, [Drawing.FontStyle]::Bold)
-        $subtitleFont = [Drawing.Font]::new("Segoe UI", 13, [Drawing.FontStyle]::Regular)
-        $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(240, 246, 252))
-        $subtitleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(139, 148, 158))
-        try {
-            $graphics.DrawString("Codex Usage Monitor", $titleFont, $titleBrush, 54, 36)
-            $graphics.DrawString(
-                "10 Compact Bar styles  |  Black + White themes",
-                $subtitleFont,
-                $subtitleBrush,
-                58,
-                92)
-
-            for ($index = 0; $index -lt $cards.Count; $index++) {
-                $column = $index % $columns
-                $row = [Math]::Floor($index / $columns)
-                $card = $cards[$index]
-                $availableWidth = $cellWidth - 48
-                $availableHeight = $cellHeight - 36
-                $ratio = [Math]::Min(
-                    $availableWidth / $card.Width,
-                    $availableHeight / $card.Height)
-                $width = [int]($card.Width * $ratio)
-                $height = [int]($card.Height * $ratio)
-                $x = ($column * $cellWidth) + [int](($cellWidth - $width) / 2)
-                $y = $headerHeight + ($row * $cellHeight) + [int](($cellHeight - $height) / 2)
-                $graphics.DrawImage($card, $x, $y, $width, $height)
-            }
-        }
-        finally {
-            $subtitleBrush.Dispose()
-            $titleBrush.Dispose()
-            $subtitleFont.Dispose()
-            $titleFont.Dispose()
-        }
+    $representative = New-BarBitmap "LabelBoxes" "Dark" | Select-Object -Last 1
+    if ($representative -is [Management.Automation.PSObject]) {
+        $representative = $representative.PSObject.BaseObject
     }
-    finally {
-        $graphics.Dispose()
-    }
-
     try {
-        $overview.Save(
-            (Join-Path $outputDirectory "overview.png"),
+        $representative.Save(
+            (Join-Path $projectRoot "docs\compact-bar.png"),
             [Drawing.Imaging.ImageFormat]::Png)
     }
     finally {
-        $overview.Dispose()
+        if ($representative -is [IDisposable]) {
+            ([IDisposable]$representative).Dispose()
+        }
     }
 }
 finally {
@@ -223,4 +177,5 @@ finally {
     }
 }
 
-Write-Host "Theme previews generated in $outputDirectory"
+Write-Host "Style previews generated in $outputDirectory"
+Write-Host "Representative image generated at $(Join-Path $projectRoot 'docs\compact-bar.png')"
