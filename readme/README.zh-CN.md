@@ -1,18 +1,77 @@
-# Codex Usage Monitor
-
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
-
 <p align="center">
-  <img src="Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor 图标" width="128">
+  <img src="../Resources/CodexUsageMonitor.ico" alt="Codex Usage Monitor 图标" width="96">
 </p>
 
-一款适用于 Windows 10/11 的托盘程序，可同时显示 Codex 使用限额以及当前 CPU 和 RAM 使用率。
+<h1 align="center">Codex Usage Monitor</h1>
 
-![Codex Usage Monitor Compact Bar](docs/compact-bar.png)
+<p align="center">
+  <strong>随时一眼查看 Codex 限额与系统负载。</strong><br>
+  一款轻量的 Windows 托盘监视器，显示 5 小时、每周、CPU 和内存使用率。
+</p>
 
-Compact Bar 采用两列布局：第一列从上到下是 `5H` 和 `WK`，第二列是 `CPU` 和 `RAM`。每项可显示百分比、FillBar 或两者。将其拖到桌面任意位置后，位置会自动保存。
+<p align="center">
+  <a href="../README.md">English</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja.md">日本語</a>
+</p>
 
-## 安装前准备
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 10 和 11">
+  <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 8">
+  <img src="https://img.shields.io/badge/UI-WinForms-5C2D91?style=flat-square" alt="WinForms">
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">快速开始</a> ·
+  <a href="#features">主要功能</a> ·
+  <a href="#styles">样式</a> ·
+  <a href="#settings">设置</a> ·
+  <a href="#privacy">隐私</a> ·
+  <a href="#troubleshooting">故障排除</a>
+</p>
+
+<p align="center">
+  <img src="../docs/compact-bar.png" alt="Codex Usage Monitor Compact Bar">
+</p>
+
+<p align="center"><sub>左侧显示 5H·WK · 右侧显示 CPU·RAM · 可拖动到任意位置</sub></p>
+
+---
+
+<a id="features"></a>
+
+## ✨ 一览
+
+| | 功能 | 提供内容 |
+|---|---|---|
+| 📊 | **Codex 限额** | 5 小时及每周限额的剩余或已用百分比 |
+| 🖥️ | **系统使用率** | 独立刷新的 CPU 和内存使用率 |
+| 🎨 | **10 种样式 × 2 种主题** | 每种 Compact Bar 样式均支持黑色和白色 |
+| 💾 | **3 个预设** | 即时保存并恢复偏好的外观 |
+| 🌍 | **4 种语言** | 英语、韩语、简体中文和日语 |
+| 🔒 | **本地且私密** | 使用 `codex app-server`，不抓取网页或访问认证文件 |
+
+Compact Bar 分为两列：第一列显示 `5H` 和 `WK`，第二列显示 `CPU` 和 `RAM`。每项可显示百分比、FillBar 或两者。
+
+<a id="styles"></a>
+
+## 🎨 样式图库
+
+| | |
+|---|---|
+| **深色极简**<br><img src="../docs/themes/dark-minimal.png" alt="深色极简样式" width="400"> | **标签框**<br><img src="../docs/themes/label-boxes.png" alt="标签框样式" width="400"> |
+| **霓虹光效**<br><img src="../docs/themes/neon-glow.png" alt="霓虹光效样式" width="400"> | **浅色**<br><img src="../docs/themes/light.png" alt="浅色样式" width="400"> |
+| **卡片**<br><img src="../docs/themes/cards.png" alt="卡片样式" width="400"> | **圆形仪表**<br><img src="../docs/themes/circular-gauges.png" alt="圆形仪表样式" width="400"> |
+| **紧凑条**<br><img src="../docs/themes/compact-rows.png" alt="紧凑条样式" width="400"> | **圆角胶囊**<br><img src="../docs/themes/rounded-capsules.png" alt="圆角胶囊样式" width="400"> |
+| **渐变**<br><img src="../docs/themes/gradient.png" alt="渐变样式" width="400"> | **极简图标 + 文本**<br><img src="../docs/themes/minimal-icons.png" alt="极简图标加文本样式" width="400"> |
+
+<a id="quick-start"></a>
+
+## 🚀 快速开始
+
+### 准备要求
 
 需要以下环境：
 
@@ -28,7 +87,7 @@ codex login
 codex login status
 ```
 
-## 快速安装
+### 安装
 
 1. 在 GitHub 中选择 **Code → Download ZIP**，然后解压；也可以克隆仓库。
 2. 打开解压后的 `codex-usage-monitor` 文件夹。
@@ -48,7 +107,10 @@ codex login status
 
 首次安装时，界面语言默认为英语，预设 1 会预先设置为标签框 / 黑色 / 背景 Alpha `0`。现有的 `settings.json` 不会被覆盖。
 
-## 手动构建
+<details>
+<summary><strong>手动构建</strong></summary>
+
+<br>
 
 ```powershell
 dotnet build
@@ -62,7 +124,11 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 输出：`bin\Release\net8.0-windows\win-x64\publish\CodexUsageMonitor.exe`
 
-## 运行与操作
+</details>
+
+<a id="controls"></a>
+
+## 🖱️ 运行与操作
 
 程序在通知区域运行，不会显示为普通任务栏窗口。
 
@@ -74,7 +140,9 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 如果 Compact Bar 不可见，请右键单击托盘图标并启用 **显示 Compact Bar**。
 
-## 设置指南
+<a id="settings"></a>
+
+## ⚙️ 设置指南
 
 ### 常规设置
 
@@ -107,11 +175,15 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 **背景**只控制带圆角的 Compact Bar 背景。颜色选择器支持 RGBA 数值、Alpha 滑块以及六位 RGB Hex。即使将背景 Alpha 设为 `0`，也只会隐藏背景，文字和图表仍然可见。
 
-## 数据与隐私
+<a id="privacy"></a>
+
+## 🔒 数据与隐私
 
 程序不会抓取网页，也不会直接读取认证文件。它启动本地 `codex app-server`，并调用官方 JSON-RPC 方法 `account/rateLimits/read` 和 `account/usage/read`。程序不会保存 API 密钥。
 
-## 故障排除
+<a id="troubleshooting"></a>
+
+## 🧰 故障排除
 
 ### 无法获取 Codex 使用量
 
@@ -124,3 +196,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 ### 重新安装失败
 
 请先从托盘菜单退出 Codex Usage Monitor，再运行 `install.cmd`，以便替换正在使用的程序文件。
+
+## 📄 许可证
+
+本项目基于 [MIT License](../LICENSE) 发布。
