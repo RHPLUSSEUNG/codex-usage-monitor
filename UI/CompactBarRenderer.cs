@@ -525,7 +525,7 @@ internal static class CompactBarTheme
             CompactBarStyle.CompactRows => Color.FromArgb(23, 25, 30),
             CompactBarStyle.RoundedCapsules => Color.FromArgb(27, 29, 41),
             CompactBarStyle.Gradient => Color.FromArgb(39, 75, 90),
-            CompactBarStyle.MinimalIcons => Color.FromArgb(245, 245, 246),
+            CompactBarStyle.MinimalIcons => Color.FromArgb(24, 26, 31),
             _ => Color.FromArgb(22, 24, 28)
         };
         int alpha = style switch
