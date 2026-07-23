@@ -28,6 +28,12 @@ public enum CompactBarStyle
     MinimalIcons = 9
 }
 
+public enum ThemeVariant
+{
+    Dark,
+    Light
+}
+
 public enum AppLanguage
 {
     English,
@@ -47,6 +53,7 @@ public sealed class MetricSettings
 public sealed class CompactBarPreset
 {
     public CompactBarStyle Style { get; set; } = CompactBarStyle.LabelBoxes;
+    public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
     public string BackgroundColor { get; set; } = "#FF16181C";
     public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
     public MetricSettings FiveHour { get; set; } = new();
@@ -57,6 +64,7 @@ public sealed class CompactBarPreset
     public static CompactBarPreset Capture(AppSettings settings) => new()
     {
         Style = settings.CompactBarStyle,
+        ThemeVariant = settings.ThemeVariant,
         BackgroundColor = settings.BackgroundColor,
         PercentageMode = settings.PercentageMode,
         FiveHour = AppSettings.CopyMetric(settings.FiveHour),
@@ -68,6 +76,7 @@ public sealed class CompactBarPreset
     public CompactBarPreset Copy() => new()
     {
         Style = Style,
+        ThemeVariant = ThemeVariant,
         BackgroundColor = BackgroundColor,
         PercentageMode = PercentageMode,
         FiveHour = AppSettings.CopyMetric(FiveHour),
@@ -79,6 +88,7 @@ public sealed class CompactBarPreset
     public void ApplyTo(AppSettings settings)
     {
         settings.CompactBarStyle = Style;
+        settings.ThemeVariant = ThemeVariant;
         settings.BackgroundColor = BackgroundColor;
         settings.PercentageMode = PercentageMode;
         AppSettings.CopyMetricInto(FiveHour, settings.FiveHour);
@@ -92,6 +102,7 @@ public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Korean;
     public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
+    public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
     public bool ShowCompactBar { get; set; } = true;
     public string BackgroundColor { get; set; } = "#FF16181C";
     public int WindowPositionX { get; set; } = -1;
@@ -126,6 +137,7 @@ public sealed class AppSettings
     {
         Language = Language,
         CompactBarStyle = CompactBarStyle,
+        ThemeVariant = ThemeVariant,
         ShowCompactBar = ShowCompactBar,
         BackgroundColor = BackgroundColor,
         WindowPositionX = WindowPositionX,

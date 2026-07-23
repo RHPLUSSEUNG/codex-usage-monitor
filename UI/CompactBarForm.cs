@@ -100,6 +100,8 @@ public sealed class CompactBarForm : Form
 
     public void Preview(AppSettings settings)
     {
+        settings.WindowPositionX = _settings.WindowPositionX;
+        settings.WindowPositionY = _settings.WindowPositionY;
         _settings = settings;
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled

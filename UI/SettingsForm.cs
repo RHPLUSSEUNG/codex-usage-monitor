@@ -30,14 +30,16 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _startWithWindows = new() { AutoSize = true };
     private readonly ComboBox _language = NewCombo();
     private readonly ComboBox _compactBarStyle = NewCombo();
+    private readonly ComboBox _themeVariant = NewCombo();
     private readonly ComboBox _percentageMode = NewCombo();
-    private readonly NumericUpDown _refreshSeconds = new() { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
+    private readonly NumericUpDown _refreshSeconds = new SettingsNumericUpDown { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
     private readonly TextBox _codexPath = new() { Width = 280 };
     private readonly System.Windows.Forms.Timer _previewTimer = new() { Interval = 33 };
     private AppSettings? _pendingPreview;
 
     public AppSettings Result => _draft;
     public event Action<AppSettings>? PreviewChanged;
+    public event Action<int, CompactBarPreset>? PresetSaved;
 
     public SettingsForm(AppSettings settings)
     {
@@ -85,6 +87,7 @@ public sealed class SettingsForm : Form
 
         _language.Items.AddRange(["English", "한국어", "中文", "日本語"]);
         _compactBarStyle.Items.AddRange(StyleNames());
+        _themeVariant.Items.AddRange([T("DarkTheme"), T("LightTheme")]);
         _percentageMode.Items.AddRange([T("RemainingPercent"), T("UsedPercent")]);
         var behavior = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 12, 0, 8), Dock = DockStyle.Top };
         AddBehaviorRow(behavior, "Language", _language, 0);
@@ -99,6 +102,7 @@ public sealed class SettingsForm : Form
 
         var styleLayout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = new Padding(0, 4, 0, 10) };
         AddBehaviorRow(styleLayout, "CompactBarStyle", _compactBarStyle, 0);
+        AddBehaviorRow(styleLayout, "ThemeVariant", _themeVariant, 1);
         appearanceContent.Controls.Add(styleLayout, 0, 0);
         appearanceContent.Controls.Add(CreateBackgroundGroup(), 0, 1);
 
@@ -122,6 +126,7 @@ public sealed class SettingsForm : Form
         _startWithWindows.Checked = settings.StartWithWindows;
         _language.SelectedIndex = (int)settings.Language;
         _compactBarStyle.SelectedIndex = StyleIndex(settings.CompactBarStyle);
+        _themeVariant.SelectedIndex = settings.ThemeVariant == ThemeVariant.Light ? 1 : 0;
         _percentageMode.SelectedIndex = settings.PercentageMode == PercentageMode.Remaining ? 0 : 1;
         _refreshSeconds.Value = Math.Clamp(settings.RefreshIntervalSeconds, 30, 1800);
         _codexPath.Text = settings.CodexExecutable;
@@ -145,7 +150,16 @@ public sealed class SettingsForm : Form
             if (_loadingControls || _updatingLanguage || _compactBarStyle.SelectedIndex < 0)
                 return;
             _draft.CompactBarStyle = StyleValues[_compactBarStyle.SelectedIndex];
-            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(_draft.CompactBarStyle);
+            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(_draft.CompactBarStyle, _draft.ThemeVariant);
+            RefreshControlsFromDraft();
+            RaisePreview();
+        };
+        _themeVariant.SelectedIndexChanged += (_, _) =>
+        {
+            if (_loadingControls || _updatingLanguage || _themeVariant.SelectedIndex < 0)
+                return;
+            _draft.ThemeVariant = _themeVariant.SelectedIndex == 1 ? ThemeVariant.Light : ThemeVariant.Dark;
+            _draft.BackgroundColor = CompactBarTheme.DefaultBackground(_draft.CompactBarStyle, _draft.ThemeVariant);
             RefreshControlsFromDraft();
             RaisePreview();
         };
@@ -362,6 +376,7 @@ public sealed class SettingsForm : Form
             Text = T("SettingsTitle");
             ApplyLocalizedText(this);
             ReplaceItems(_compactBarStyle, StyleNames());
+            ReplaceItems(_themeVariant, T("DarkTheme"), T("LightTheme"));
             ReplaceItems(_percentageMode, T("RemainingPercent"), T("UsedPercent"));
             foreach (ComboBox presentation in _presentationCombos)
                 ReplaceItems(presentation, T("PercentOnly"), T("BarOnly"), T("PercentAndBar"));
@@ -405,8 +420,10 @@ public sealed class SettingsForm : Form
     private void SavePreset(int slot)
     {
         SyncGeneralControlsToDraft();
-        SetPreset(slot, CompactBarPreset.Capture(_draft));
+        CompactBarPreset preset = CompactBarPreset.Capture(_draft);
+        SetPreset(slot, preset);
         RefreshPresetButtons();
+        PresetSaved?.Invoke(slot, preset.Copy());
     }
 
     private void LoadPreset(int slot)
@@ -449,6 +466,7 @@ public sealed class SettingsForm : Form
         {
             _showCompactBar.Checked = _draft.ShowCompactBar;
             _compactBarStyle.SelectedIndex = StyleIndex(_draft.CompactBarStyle);
+            _themeVariant.SelectedIndex = _draft.ThemeVariant == ThemeVariant.Light ? 1 : 0;
             _percentageMode.SelectedIndex = _draft.PercentageMode == PercentageMode.Remaining ? 0 : 1;
             foreach (Action refresh in _refreshDraftEditors)
                 refresh();
@@ -464,6 +482,7 @@ public sealed class SettingsForm : Form
         _draft.ShowCompactBar = _showCompactBar.Checked;
         if (_compactBarStyle.SelectedIndex >= 0)
             _draft.CompactBarStyle = StyleValues[_compactBarStyle.SelectedIndex];
+        _draft.ThemeVariant = _themeVariant.SelectedIndex == 1 ? ThemeVariant.Light : ThemeVariant.Dark;
         _draft.PercentageMode = _percentageMode.SelectedIndex == 0
             ? PercentageMode.Remaining
             : PercentageMode.Used;
@@ -530,6 +549,15 @@ public sealed class SettingsForm : Form
             int currentY = -scrollHost.AutoScrollPosition.Y;
             int nextY = Math.Max(0, currentY - Math.Sign(e.Delta) * lines * 18);
             scrollHost.AutoScrollPosition = new Point(-scrollHost.AutoScrollPosition.X, nextY);
+        }
+    }
+
+    private sealed class SettingsNumericUpDown : NumericUpDown
+    {
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            if (e is HandledMouseEventArgs handled)
+                handled.Handled = true;
         }
     }
 }

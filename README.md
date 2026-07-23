@@ -86,9 +86,9 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 | Refresh interval | Sets Codex quota refresh frequency from 30 to 1,800 seconds. CPU and RAM refresh separately. |
 | Codex executable | Usually leave this as `codex`. If startup fails, enter the full path returned by `where.exe codex`. |
 
-Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, background, display basis, metric visibility, presentation modes, and colors. Press **Save slot** to capture the current appearance and **Load** to apply it.
+Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, Black/White color theme, background, display basis, metric visibility, presentation modes, and colors. **Save slot** writes the preset immediately, independently of the main Save button; press **Load** to apply it.
 
-Settings are organized into **General**, **Appearance**, and **Metrics** tabs. The three preset slots stay visible above every tab. Selecting a style also applies its matching default background color and opacity; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
+Settings are organized into **General**, **Appearance**, and **Metrics** tabs. The three preset slots stay visible above every tab. Every style supports Black and White variants. Selecting a style or color theme applies its matching default background color and opacity; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
 
 ### Compact Bar and metrics
 
@@ -103,7 +103,7 @@ Each `5H`, `WK`, `CPU`, and `RAM` section provides:
 | Fill color | Controls the filled part of the bar. |
 | Track color | Controls the unfilled track. |
 
-The **Rectangle background** setting controls only the Compact Bar background. The color picker supports RGBA channels, an Alpha slider, and a six-digit RGB Hex field. Setting background Alpha to `0` makes only the background transparent; text and graphs remain visible.
+The **Background** setting controls only the rounded Compact Bar background. The color picker supports RGBA channels, an Alpha slider, and a six-digit RGB Hex field. Setting background Alpha to `0` makes only the background transparent; text and graphs remain visible.
 
 ## Data and privacy
 

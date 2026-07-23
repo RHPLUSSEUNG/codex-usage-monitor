@@ -189,6 +189,16 @@ public sealed class UsageMonitorContext : ApplicationContext
     {
         using var form = new SettingsForm(_settings);
         form.PreviewChanged += preview => _compactBar.Preview(preview);
+        form.PresetSaved += (slot, preset) =>
+        {
+            if (slot == 0)
+                _settings.Preset1 = preset;
+            else if (slot == 1)
+                _settings.Preset2 = preset;
+            else
+                _settings.Preset3 = preset;
+            SettingsStore.Save(_settings);
+        };
         _compactBar.BeginPreview();
         DialogResult result = DialogResult.Cancel;
         try
@@ -208,6 +218,8 @@ public sealed class UsageMonitorContext : ApplicationContext
             form.Result.CodexExecutable,
             StringComparison.OrdinalIgnoreCase);
 
+        form.Result.WindowPositionX = _settings.WindowPositionX;
+        form.Result.WindowPositionY = _settings.WindowPositionY;
         _settings = form.Result;
         Localization.CurrentLanguage = _settings.Language;
         _compactBar.ApplyLanguage();
