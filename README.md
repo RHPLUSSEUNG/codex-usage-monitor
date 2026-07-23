@@ -46,6 +46,8 @@ Settings:    %LOCALAPPDATA%\CodexUsageMonitor\settings.json
 
 To update, download the new source, exit the running app from its tray menu, and run `install.cmd` again. Existing settings remain compatible.
 
+On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
+
 ## Manual build
 
 ```powershell

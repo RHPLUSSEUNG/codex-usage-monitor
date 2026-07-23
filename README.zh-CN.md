@@ -46,6 +46,8 @@ codex login status
 
 更新时，请下载新源码，在托盘菜单中退出旧版本，然后再次运行 `install.cmd`。现有设置会保留。
 
+首次安装时，界面语言默认为英语，预设 1 会预先设置为标签框 / 黑色 / 背景 Alpha `0`。现有的 `settings.json` 不会被覆盖。
+
 ## 手动构建
 
 ```powershell

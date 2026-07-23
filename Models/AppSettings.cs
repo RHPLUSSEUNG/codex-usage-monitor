@@ -100,11 +100,11 @@ public sealed class CompactBarPreset
 
 public sealed class AppSettings
 {
-    public AppLanguage Language { get; set; } = AppLanguage.Korean;
+    public AppLanguage Language { get; set; } = AppLanguage.English;
     public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
     public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
     public bool ShowCompactBar { get; set; } = true;
-    public string BackgroundColor { get; set; } = "#FF16181C";
+    public string BackgroundColor { get; set; } = "#0016181C";
     public int WindowPositionX { get; set; } = -1;
     public int WindowPositionY { get; set; } = -1;
     public bool StartWithWindows { get; set; }
@@ -129,9 +129,20 @@ public sealed class AppSettings
         Enabled = true,
         FillColor = "#D48BFF"
     };
-    public CompactBarPreset? Preset1 { get; set; }
+    public CompactBarPreset? Preset1 { get; set; } = CreateInitialPreset();
     public CompactBarPreset? Preset2 { get; set; }
     public CompactBarPreset? Preset3 { get; set; }
+
+    private static CompactBarPreset CreateInitialPreset() => new()
+    {
+        Style = CompactBarStyle.LabelBoxes,
+        ThemeVariant = ThemeVariant.Dark,
+        BackgroundColor = "#0016181C",
+        FiveHour = new MetricSettings(),
+        Weekly = new MetricSettings { FillColor = "#77A8FF" },
+        Cpu = new MetricSettings { FillColor = "#F2C66D" },
+        Memory = new MetricSettings { FillColor = "#D48BFF" }
+    };
 
     public AppSettings Copy() => new()
     {
