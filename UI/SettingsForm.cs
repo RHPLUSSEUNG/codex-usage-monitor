@@ -12,6 +12,7 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _showCompactBar = new() { AutoSize = true };
     private readonly CheckBox _startWithWindows = new() { AutoSize = true };
     private readonly ComboBox _language = NewCombo();
+    private readonly ComboBox _compactBarStyle = NewCombo();
     private readonly ComboBox _percentageMode = NewCombo();
     private readonly NumericUpDown _refreshSeconds = new() { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
     private readonly TextBox _codexPath = new() { Width = 280 };
@@ -53,12 +54,14 @@ public sealed class SettingsForm : Form
         content.Controls.Add(general);
 
         _language.Items.AddRange(["English", "한국어", "中文", "日本語"]);
+        _compactBarStyle.Items.AddRange([T("ClassicStyle"), T("LabelBoxStyle")]);
         _percentageMode.Items.AddRange([T("RemainingPercent"), T("UsedPercent")]);
         var behavior = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 12, 0, 8) };
         AddBehaviorRow(behavior, "Language", _language, 0);
-        AddBehaviorRow(behavior, "DisplayBasis", _percentageMode, 1);
-        AddBehaviorRow(behavior, "RefreshSeconds", _refreshSeconds, 2);
-        AddBehaviorRow(behavior, "CodexExecutable", _codexPath, 3);
+        AddBehaviorRow(behavior, "CompactBarStyle", _compactBarStyle, 1);
+        AddBehaviorRow(behavior, "DisplayBasis", _percentageMode, 2);
+        AddBehaviorRow(behavior, "RefreshSeconds", _refreshSeconds, 3);
+        AddBehaviorRow(behavior, "CodexExecutable", _codexPath, 4);
         content.Controls.Add(behavior);
 
         content.Controls.Add(CreateBackgroundGroup(), 0, 2);
@@ -84,6 +87,7 @@ public sealed class SettingsForm : Form
         _showCompactBar.Checked = settings.ShowCompactBar;
         _startWithWindows.Checked = settings.StartWithWindows;
         _language.SelectedIndex = (int)settings.Language;
+        _compactBarStyle.SelectedIndex = (int)settings.CompactBarStyle;
         _percentageMode.SelectedIndex = settings.PercentageMode == PercentageMode.Remaining ? 0 : 1;
         _refreshSeconds.Value = Math.Clamp(settings.RefreshIntervalSeconds, 30, 1800);
         _codexPath.Text = settings.CodexExecutable;
@@ -180,6 +184,7 @@ public sealed class SettingsForm : Form
         _draft.ShowCompactBar = _showCompactBar.Checked;
         _draft.StartWithWindows = _startWithWindows.Checked;
         _draft.Language = (AppLanguage)Math.Max(0, _language.SelectedIndex);
+        _draft.CompactBarStyle = (CompactBarStyle)Math.Max(0, _compactBarStyle.SelectedIndex);
         _draft.PercentageMode = _percentageMode.SelectedIndex == 0 ? PercentageMode.Remaining : PercentageMode.Used;
         _draft.RefreshIntervalSeconds = (int)_refreshSeconds.Value;
         _draft.CodexExecutable = string.IsNullOrWhiteSpace(_codexPath.Text) ? "codex" : _codexPath.Text.Trim();
@@ -203,6 +208,7 @@ public sealed class SettingsForm : Form
         {
             Text = T("SettingsTitle");
             ApplyLocalizedText(this);
+            ReplaceItems(_compactBarStyle, T("ClassicStyle"), T("LabelBoxStyle"));
             ReplaceItems(_percentageMode, T("RemainingPercent"), T("UsedPercent"));
             foreach (ComboBox presentation in _presentationCombos)
                 ReplaceItems(presentation, T("PercentOnly"), T("BarOnly"), T("PercentAndBar"));

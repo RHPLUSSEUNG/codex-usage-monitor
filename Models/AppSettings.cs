@@ -13,6 +13,12 @@ public enum PercentageMode
     Used
 }
 
+public enum CompactBarStyle
+{
+    Classic,
+    LabelBoxes
+}
+
 public enum AppLanguage
 {
     English,
@@ -32,6 +38,7 @@ public sealed class MetricSettings
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Korean;
+    public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
     public bool ShowCompactBar { get; set; } = true;
     public string BackgroundColor { get; set; } = "#FF16181C";
     public int WindowPositionX { get; set; } = -1;
@@ -62,6 +69,7 @@ public sealed class AppSettings
     public AppSettings Copy() => new()
     {
         Language = Language,
+        CompactBarStyle = CompactBarStyle,
         ShowCompactBar = ShowCompactBar,
         BackgroundColor = BackgroundColor,
         WindowPositionX = WindowPositionX,

@@ -243,7 +243,7 @@ public sealed class CompactBarForm : Form
         DrawMetric(graphics, bounds, title, percent, settings, scale);
     }
 
-    private static void DrawMetric(
+    private void DrawMetric(
         Graphics graphics,
         Rectangle bounds,
         string title,
@@ -257,6 +257,21 @@ public sealed class CompactBarForm : Form
         using var textBrush = new SolidBrush(Color.White);
         float textX = bounds.X + 5f * scale;
         float textY = bounds.Y + 2f * scale;
+
+        if (_settings.CompactBarStyle == CompactBarStyle.LabelBoxes)
+        {
+            DrawLabelBoxMetric(
+                graphics,
+                bounds,
+                title,
+                percent,
+                percentText,
+                settings,
+                boldFont,
+                textBrush,
+                scale);
+            return;
+        }
 
         if (settings.Presentation == MetricPresentation.PercentOnly)
         {
@@ -298,12 +313,93 @@ public sealed class CompactBarForm : Form
         graphics.FillPath(fillBrush, fillPath);
     }
 
-    private static int MetricWidth(MetricSettings settings, float scale) => settings.Presentation switch
+    private static void DrawLabelBoxMetric(
+        Graphics graphics,
+        Rectangle bounds,
+        string title,
+        double? percent,
+        string percentText,
+        MetricSettings settings,
+        Font boldFont,
+        Brush valueBrush,
+        float scale)
     {
-        MetricPresentation.PercentOnly => Scale(94, scale),
-        MetricPresentation.BarOnly => Scale(124, scale),
-        _ => Scale(152, scale)
-    };
+        Color fillColor = HexColor.ParseOrDefault(settings.FillColor, Color.FromArgb(98, 214, 167));
+        Color labelColor = Color.FromArgb(255, fillColor.R, fillColor.G, fillColor.B);
+        Color labelBackground = Color.FromArgb(
+            Math.Clamp(fillColor.A / 4, 24, 64),
+            fillColor.R,
+            fillColor.G,
+            fillColor.B);
+        var labelBounds = new Rectangle(
+            bounds.X + Scale(1, scale),
+            bounds.Y + Scale(1, scale),
+            Scale(38, scale),
+            Math.Max(Scale(16, scale), bounds.Height - Scale(2, scale)));
+
+        using (var labelBackgroundBrush = new SolidBrush(labelBackground))
+        using (GraphicsPath labelPath = RoundedRectangle(labelBounds, Scale(4, scale)))
+            graphics.FillPath(labelBackgroundBrush, labelPath);
+
+        using var labelBrush = new SolidBrush(labelColor);
+        using var labelFormat = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        graphics.DrawString(title, boldFont, labelBrush, labelBounds, labelFormat);
+
+        int contentX = labelBounds.Right + Scale(5, scale);
+        float textY = bounds.Y + 2f * scale;
+        if (settings.Presentation == MetricPresentation.PercentOnly)
+        {
+            graphics.DrawString(percentText, boldFont, valueBrush, contentX, textY);
+            return;
+        }
+
+        int valueWidth = 0;
+        if (settings.Presentation == MetricPresentation.PercentAndBar)
+        {
+            SizeF valueSize = graphics.MeasureString(percentText, boldFont);
+            valueWidth = (int)Math.Ceiling(valueSize.Width) + Scale(5, scale);
+            graphics.DrawString(percentText, boldFont, valueBrush, bounds.Right - valueSize.Width - 3f * scale, textY);
+        }
+
+        var track = new Rectangle(
+            contentX,
+            bounds.Y + Scale(7, scale),
+            Math.Max(Scale(8, scale), bounds.Right - contentX - valueWidth - Scale(4, scale)),
+            Scale(6, scale));
+        Color trackColor = HexColor.ParseOrDefault(settings.TrackColor, Color.FromArgb(58, 61, 69));
+        using (var trackBrush = new SolidBrush(trackColor))
+        using (GraphicsPath trackPath = RoundedRectangle(track, Scale(3, scale)))
+            graphics.FillPath(trackBrush, trackPath);
+
+        int fillWidth = percent is null
+            ? 0
+            : (int)Math.Round(track.Width * Math.Clamp(percent.Value, 0d, 100d) / 100d);
+        if (fillWidth <= 0)
+            return;
+
+        var fill = new Rectangle(track.X, track.Y, Math.Min(track.Width, Math.Max(fillWidth, Scale(5, scale))), track.Height);
+        using var fillBrush = new SolidBrush(fillColor);
+        using GraphicsPath fillPath = RoundedRectangle(fill, Scale(3, scale));
+        graphics.FillPath(fillBrush, fillPath);
+    }
+
+    private int MetricWidth(MetricSettings settings, float scale)
+    {
+        int width = settings.Presentation switch
+        {
+            MetricPresentation.PercentOnly => 94,
+            MetricPresentation.BarOnly => 124,
+            _ => 152
+        };
+        if (_settings.CompactBarStyle == CompactBarStyle.LabelBoxes)
+            width += 6;
+        return Scale(width, scale);
+    }
 
     private static int Scale(int value, float scale) => Math.Max(1, (int)Math.Round(value * scale));
 

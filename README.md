@@ -79,6 +79,7 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 | Setting | Description |
 |---|---|
 | Show Compact Bar | Shows or hides the floating 2×2 monitor. |
+| Compact Bar style | Selects **Classic** or **Label boxes**. Label boxes use each metric's fill color while keeping the bar compact. |
 | Start with Windows | Adds or removes the app from Windows startup. |
 | Language | Changes the settings UI between English, Korean, Simplified Chinese, and Japanese. The open settings dialog updates immediately; save to apply it to the whole app. |
 | Display basis | Shows either remaining quota percentage or used quota percentage. CPU and RAM always show current usage. |
