@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$env:DOTNET_CLI_UI_LANGUAGE = "en-US"
 
 $projectDirectory = $PSScriptRoot
 $publishedExecutable = Join-Path $projectDirectory "bin\Release\net8.0-windows\win-x64\publish\CodexUsageMonitor.exe"
@@ -19,4 +20,4 @@ $shortcut.IconLocation = "$installedExecutable,0"
 $shortcut.Save()
 
 Start-Process -FilePath $installedExecutable
-Write-Host "설치 완료: 시작 메뉴에서 Codex Usage Monitor를 실행할 수 있습니다."
+Write-Host "Installation complete. You can launch Codex Usage Monitor from the Start menu."

@@ -6,14 +6,20 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:DOTNET_CLI_UI_LANGUAGE = "en-US"
 Add-Type -AssemblyName System.Drawing
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
+$projectPath = Join-Path $projectRoot "CodexUsageMonitor.csproj"
 $assemblyPath = Join-Path $projectRoot "bin\$Configuration\net8.0-windows\CodexUsageMonitor.dll"
 $outputDirectory = Join-Path $projectRoot "docs\themes"
 
+& dotnet build $projectPath --configuration $Configuration --no-incremental
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to build CodexUsageMonitor before generating previews."
+}
 if (-not (Test-Path $assemblyPath)) {
-    dotnet build $projectRoot --configuration $Configuration
+    throw "Renderer assembly was not created at $assemblyPath"
 }
 
 $assembly = [Reflection.Assembly]::LoadFrom($assemblyPath)
