@@ -103,7 +103,11 @@ Shortcut:    Start menu\Programs\Codex Usage Monitor
 Settings:    %LOCALAPPDATA%\CodexUsageMonitor\settings.json
 ```
 
-To update, download the new source, exit the running app from its tray menu, and run `install.cmd` again. Existing settings remain compatible.
+The installed app checks stable GitHub Releases at startup and every six hours. When a new version is available, a Windows notification and **Update to v…** tray-menu item appear. Selecting it downloads the release, verifies its SHA-256 checksum, replaces the installed app, and restarts it automatically. The settings file is kept.
+
+You can also select **Check for updates** from the tray menu at any time. Automatic installation is available only from the installed path shown above; source and debug builds are not overwritten.
+
+Versions earlier than v1.1.0 do not include the updater and require one manual installation of v1.1.0 or later.
 
 On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
 

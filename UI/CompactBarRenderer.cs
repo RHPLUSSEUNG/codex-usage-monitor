@@ -1,4 +1,5 @@
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using CodexUsageMonitor.Models;
 
 namespace CodexUsageMonitor.UI;
@@ -37,6 +38,8 @@ internal static class CompactBarRenderer
     {
         MetricVisual[] metrics = Metrics(settings, snapshot, systemUsage);
         bool lightTheme = settings.ThemeVariant == ThemeVariant.Light;
+        graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        graphics.TextContrast = 0;
         DrawBackground(graphics, size, settings, metrics, scale);
 
         switch (settings.CompactBarStyle)
@@ -127,7 +130,10 @@ internal static class CompactBarRenderer
         float scale)
     {
         Color configured = HexColor.ParseOrDefault(settings.BackgroundColor, Color.FromArgb(255, 22, 24, 28));
-        int alpha = configured.A;
+        // UpdateLayeredWindow lets fully transparent pixels pass mouse input
+        // through to windows behind the bar. Alpha 1 remains visually
+        // transparent while keeping the complete Compact Bar draggable.
+        int alpha = Math.Max(1, (int)configured.A);
         Rectangle area = new(0, 0, Math.Max(1, size.Width - 1), Math.Max(1, size.Height - 1));
         int radius = S(8, scale);
         using GraphicsPath backgroundPath = Rounded(area, radius);
@@ -216,8 +222,8 @@ internal static class CompactBarRenderer
             graphics.FillPath(cellBrush, cellPath);
         }
 
-        using var font = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
-        using var boldFont = new Font(font, FontStyle.Bold);
+        using var font = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+        using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
         using var textBrush = new SolidBrush(textColor);
         using var titleBrush = new SolidBrush(titleColor);
         string percentText = PercentText(metric.Percent);
@@ -244,13 +250,23 @@ internal static class CompactBarRenderer
                 DrawIcon(graphics, metric.Icon, new Rectangle(contentX, bounds.Y + S(6, scale), S(13, scale), S(13, scale)), titleColor, scale);
                 contentX += S(18, scale);
             }
-            graphics.DrawString(metric.Title, style == LinearStyle.Neon ? boldFont : font, titleBrush, contentX, bounds.Y + S(2, scale));
+            graphics.DrawString(
+                metric.Title,
+                style == LinearStyle.Neon ? boldFont : font,
+                titleBrush,
+                contentX,
+                bounds.Y + S(1, scale));
             contentX += S(style == LinearStyle.Cards ? 31 : 34, scale);
         }
 
         if (metric.Settings.Presentation == MetricPresentation.PercentOnly)
         {
-            graphics.DrawString(percentText, boldFont, textBrush, contentX + S(3, scale), bounds.Y + S(2, scale));
+            graphics.DrawString(
+                percentText,
+                boldFont,
+                textBrush,
+                contentX + S(3, scale),
+                bounds.Y + S(1, scale));
             return;
         }
 
@@ -259,7 +275,12 @@ internal static class CompactBarRenderer
         {
             SizeF valueSize = graphics.MeasureString(percentText, boldFont);
             valueWidth = (int)Math.Ceiling(valueSize.Width) + S(4, scale);
-            graphics.DrawString(percentText, boldFont, textBrush, bounds.Right - valueSize.Width - S(3, scale), bounds.Y + S(2, scale));
+            graphics.DrawString(
+                percentText,
+                boldFont,
+                textBrush,
+                bounds.Right - valueSize.Width - S(3, scale),
+                bounds.Y + S(1, scale));
         }
 
         var track = new Rectangle(
@@ -286,7 +307,7 @@ internal static class CompactBarRenderer
                 titleHeight + S(1, scale),
                 diameter,
                 diameter);
-            using var font = new Font("Segoe UI", 8f, FontStyle.Regular, GraphicsUnit.Point);
+            using var font = new Font("Segoe UI", 8.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", diameter < S(34, scale) ? 7.5f : 9f, FontStyle.Bold, GraphicsUnit.Point);
             using var titleBrush = new SolidBrush(Color.FromArgb(255, color.R, color.G, color.B));
             Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
@@ -314,11 +335,11 @@ internal static class CompactBarRenderer
             if (lightTheme)
                 track = Mix(track, Color.White, 0.72f);
             Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
-            using var font = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
-            using var boldFont = new Font(font, FontStyle.Bold);
+            using var font = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+            using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var textBrush = new SolidBrush(textColor);
             DrawIcon(graphics, metric.Icon, new Rectangle(S(6, scale), y + S(3, scale), S(14, scale), S(14, scale)), textColor, scale);
-            graphics.DrawString(metric.Title, font, textBrush, S(27, scale), y + S(1, scale));
+            graphics.DrawString(metric.Title, font, textBrush, S(27, scale), y);
 
             int trackX = S(74, scale);
             int valueWidth = metric.Settings.Presentation == MetricPresentation.BarOnly ? 0 : S(42, scale);
@@ -328,7 +349,7 @@ internal static class CompactBarRenderer
                 DrawTrack(graphics, trackBounds, metric.Percent, track, color, false, scale);
             }
             if (metric.Settings.Presentation != MetricPresentation.BarOnly)
-                graphics.DrawString(PercentText(metric.Percent), boldFont, textBrush, S(207, scale), y + S(1, scale));
+                graphics.DrawString(PercentText(metric.Percent), boldFont, textBrush, S(207, scale), y);
             row++;
         }
     }
@@ -340,14 +361,14 @@ internal static class CompactBarRenderer
         {
             int x = S(5 + index * 74, scale);
             Color color = MetricColor(metric, Color.CornflowerBlue);
-            using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
-            using var boldFont = new Font(font, FontStyle.Bold);
+            using var font = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
+            using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
             using var titleBrush = new SolidBrush(textColor);
             using var valueBrush = new SolidBrush(color);
             DrawIcon(graphics, metric.Icon, new Rectangle(x, S(7, scale), S(14, scale), S(14, scale)), color, scale);
-            graphics.DrawString(metric.Title, font, titleBrush, x + S(19, scale), S(5, scale));
-            graphics.DrawString(PercentText(metric.Percent), boldFont, valueBrush, x + S(18, scale), S(25, scale));
+            graphics.DrawString(metric.Title, font, titleBrush, x + S(19, scale), S(4, scale));
+            graphics.DrawString(PercentText(metric.Percent), boldFont, valueBrush, x + S(18, scale), S(24, scale));
             if (index > 0)
             {
                 using var divider = new Pen(lightTheme ? Color.FromArgb(55, 30, 34, 42) : Color.FromArgb(65, 255, 255, 255), S(1, scale));
@@ -430,7 +451,12 @@ internal static class CompactBarRenderer
         }
     }
 
-    private static void DrawCenteredText(Graphics graphics, string text, Font font, Brush brush, Rectangle bounds)
+    private static void DrawCenteredText(
+        Graphics graphics,
+        string text,
+        Font font,
+        SolidBrush brush,
+        Rectangle bounds)
     {
         using var format = new StringFormat
         {

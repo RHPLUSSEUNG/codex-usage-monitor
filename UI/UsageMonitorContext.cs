@@ -11,18 +11,28 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly ToolStripMenuItem _refreshMenu = new();
     private readonly ToolStripMenuItem _showBarMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
+    private readonly ToolStripMenuItem _updateMenu = new();
     private readonly ToolStripMenuItem _exitMenu = new();
     private readonly NotifyIcon _trayIcon;
     private readonly CompactBarHost _compactBar;
     private readonly Control _uiDispatcher = new();
     private readonly System.Windows.Forms.Timer _usageTimer;
     private readonly System.Windows.Forms.Timer _systemTimer;
+    private readonly System.Windows.Forms.Timer _updateTimer;
     private readonly SystemUsageMonitor _systemMonitor = new();
+    private readonly UpdateService _updateService = new();
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
     private AppSettings _settings;
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemSnapshot = SystemUsageSnapshot.Empty;
     private CodexAppServerClient _client;
+    private UpdateRelease? _availableUpdate;
+    private Version? _notifiedUpdateVersion;
+    private SettingsForm? _settingsForm;
     private bool _refreshing;
+    private bool _checkingUpdate;
+    private bool _installingUpdate;
+    private bool _exiting;
 
     public UsageMonitorContext()
     {
@@ -45,11 +55,13 @@ public sealed class UsageMonitorContext : ApplicationContext
         _refreshMenu.Click += async (_, _) => await RefreshAsync();
         _showBarMenu.Click += (_, _) => ToggleCompactBar();
         _settingsMenu.Click += (_, _) => ShowSettings();
+        _updateMenu.Click += async (_, _) => await HandleUpdateMenuAsync();
         _exitMenu.Click += (_, _) => Exit();
         menu.Items.Add(_statusMenu);
         menu.Items.Add(_refreshMenu);
         menu.Items.Add(_showBarMenu);
         menu.Items.Add(_settingsMenu);
+        menu.Items.Add(_updateMenu);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitMenu);
         ApplyLanguage();
@@ -67,16 +79,28 @@ public sealed class UsageMonitorContext : ApplicationContext
                 ShowStatus();
         };
         _trayIcon.DoubleClick += (_, _) => ShowSettings();
+        _trayIcon.BalloonTipClicked += async (_, _) =>
+        {
+            if (_availableUpdate is not null)
+                await InstallUpdateAsync();
+        };
 
         _usageTimer = new System.Windows.Forms.Timer();
         _usageTimer.Tick += async (_, _) => await RefreshAsync();
         _systemTimer = new System.Windows.Forms.Timer { Interval = 1000 };
         _systemTimer.Tick += (_, _) => RefreshSystemUsage();
+        _updateTimer = new System.Windows.Forms.Timer
+        {
+            Interval = (int)TimeSpan.FromHours(6).TotalMilliseconds
+        };
+        _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync(showResult: false);
         _systemSnapshot = _systemMonitor.Sample();
         _systemTimer.Start();
+        _updateTimer.Start();
         ApplySettings(startTimer: true);
 
         _ = RefreshAsync();
+        _ = CheckForUpdatesAsync(showResult: false);
     }
 
     private async Task RefreshAsync()
@@ -188,7 +212,14 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void ShowSettings()
     {
+        if (_settingsForm is { IsDisposed: false } existingForm)
+        {
+            ActivateExistingWindow(existingForm);
+            return;
+        }
+
         using var form = new SettingsForm(_settings);
+        _settingsForm = form;
         form.PreviewChanged += preview => _compactBar.Preview(preview);
         form.PresetSaved += (slot, preset) =>
         {
@@ -209,6 +240,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         finally
         {
             _compactBar.EndPreview(result == DialogResult.OK ? form.Result : _settings);
+            _settingsForm = null;
         }
 
         if (result != DialogResult.OK)
@@ -261,19 +293,143 @@ public sealed class UsageMonitorContext : ApplicationContext
         _showBarMenu.Text = Localization.Text("ShowCompactBar");
         _showBarMenu.Checked = _settings.ShowCompactBar;
         _settingsMenu.Text = Localization.Text("Settings");
+        UpdateUpdateMenu();
         _exitMenu.Text = Localization.Text("Exit");
+    }
+
+    private async Task HandleUpdateMenuAsync()
+    {
+        if (_availableUpdate is null)
+            await CheckForUpdatesAsync(showResult: true);
+        else
+            await InstallUpdateAsync();
+    }
+
+    private async Task CheckForUpdatesAsync(bool showResult)
+    {
+        if (_checkingUpdate || _installingUpdate || _exiting)
+            return;
+
+        _checkingUpdate = true;
+        UpdateUpdateMenu();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                _lifetimeCancellation.Token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            UpdateRelease? release = await _updateService.CheckAsync(timeout.Token);
+            if (_exiting)
+                return;
+
+            _availableUpdate = release;
+            if (release is null)
+            {
+                if (showResult)
+                {
+                    MessageBox.Show(
+                        Localization.Text("UpToDateMessage"),
+                        Localization.Text("UpToDateTitle"),
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                return;
+            }
+
+            if (_notifiedUpdateVersion != release.Version)
+            {
+                _notifiedUpdateVersion = release.Version;
+                _trayIcon.BalloonTipTitle = Localization.Text("UpdateAvailableTitle");
+                _trayIcon.BalloonTipText =
+                    Localization.Format("UpdateAvailableMessage", release.Version.ToString(3));
+                _trayIcon.ShowBalloonTip(10000);
+            }
+        }
+        catch (OperationCanceledException) when (_exiting || _lifetimeCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            if (showResult && !_exiting)
+            {
+                MessageBox.Show(
+                    $"{Localization.Text("UpdateCheckFailed")}{Environment.NewLine}{exception.Message}",
+                    Localization.Text("UpdateCheckFailed"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        finally
+        {
+            _checkingUpdate = false;
+            if (!_exiting)
+                UpdateUpdateMenu();
+        }
+    }
+
+    private async Task InstallUpdateAsync()
+    {
+        if (_availableUpdate is null || _installingUpdate || _exiting)
+            return;
+
+        _installingUpdate = true;
+        UpdateUpdateMenu();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                _lifetimeCancellation.Token);
+            timeout.CancelAfter(TimeSpan.FromMinutes(10));
+            string updaterPath = await _updateService.PrepareAsync(_availableUpdate, timeout.Token);
+            UpdateService.LaunchInstaller(updaterPath);
+            Exit();
+        }
+        catch (Exception exception)
+        {
+            _installingUpdate = false;
+            if (!_exiting)
+            {
+                UpdateUpdateMenu();
+                MessageBox.Show(
+                    $"{Localization.Text("UpdateInstallFailed")}{Environment.NewLine}{exception.Message}",
+                    Localization.Text("UpdateInstallFailed"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private void UpdateUpdateMenu()
+    {
+        _updateMenu.Enabled = !_checkingUpdate && !_installingUpdate;
+        _updateMenu.Text = _installingUpdate
+            ? Localization.Text("DownloadingUpdate")
+            : _checkingUpdate
+                ? Localization.Text("CheckingForUpdates")
+                : _availableUpdate is null
+                    ? Localization.Text("CheckForUpdates")
+                    : Localization.Format(
+                        "UpdateToVersion",
+                        _availableUpdate.Version.ToString(3));
     }
 
     private void Exit()
     {
+        if (_exiting)
+            return;
+        _exiting = true;
+        _lifetimeCancellation.Cancel();
+        _settingsForm?.Close();
         _usageTimer.Stop();
         _systemTimer.Stop();
+        _updateTimer.Stop();
         _trayIcon.Visible = false;
         _compactBar.Dispose();
         _client.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _updateService.Dispose();
         _trayIcon.Dispose();
         _usageTimer.Dispose();
         _systemTimer.Dispose();
+        _updateTimer.Dispose();
+        _lifetimeCancellation.Dispose();
         _uiDispatcher.Dispose();
         ExitThread();
     }
@@ -291,6 +447,18 @@ public sealed class UsageMonitorContext : ApplicationContext
         return HexColor.ParseOrDefault(html, fallback);
     }
 
+    private static void ActivateExistingWindow(Form form)
+    {
+        if (form.WindowState == FormWindowState.Minimized)
+            form.WindowState = FormWindowState.Normal;
+
+        IntPtr target = GetLastActivePopup(form.Handle);
+        if (target == IntPtr.Zero)
+            target = form.Handle;
+        ShowWindow(target, SwRestore);
+        SetForegroundWindow(target);
+    }
+
     private void PostToUi(Action action)
     {
         if (_uiDispatcher.IsDisposed || !_uiDispatcher.IsHandleCreated)
@@ -300,6 +468,19 @@ public sealed class UsageMonitorContext : ApplicationContext
         else
             action();
     }
+
+    private const int SwRestore = 9;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetLastActivePopup(IntPtr window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr window, int command);
 }
 
 internal static class TrayIconFactory
