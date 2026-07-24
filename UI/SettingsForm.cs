@@ -327,7 +327,7 @@ public sealed class SettingsForm : Form
                 UpdateButton();
                 RaisePreview();
             };
-            if (dialog.ShowDialog() != DialogResult.OK)
+            if (dialog.ShowDialog(this) != DialogResult.OK)
             {
                 selected = original;
                 setter(HexColor.Format(selected, includeAlpha: true));
