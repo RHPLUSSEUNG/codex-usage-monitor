@@ -130,7 +130,10 @@ internal static class CompactBarRenderer
         float scale)
     {
         Color configured = HexColor.ParseOrDefault(settings.BackgroundColor, Color.FromArgb(255, 22, 24, 28));
-        int alpha = configured.A;
+        // UpdateLayeredWindow lets fully transparent pixels pass mouse input
+        // through to windows behind the bar. Alpha 1 remains visually
+        // transparent while keeping the complete Compact Bar draggable.
+        int alpha = Math.Max(1, (int)configured.A);
         Rectangle area = new(0, 0, Math.Max(1, size.Width - 1), Math.Max(1, size.Height - 1));
         int radius = S(8, scale);
         using GraphicsPath backgroundPath = Rounded(area, radius);

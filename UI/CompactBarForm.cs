@@ -127,27 +127,25 @@ public sealed class CompactBarForm : Form
 
     private void RenderAtStoredPosition(bool updateZOrder = true)
     {
-        Size size = CalculateWindowSize();
-        Rectangle virtualScreen = SystemInformation.VirtualScreen;
         bool hasStoredPosition = _settings.WindowPositionX != -1 || _settings.WindowPositionY != -1;
-        int defaultX = virtualScreen.Left + Math.Max(0, (virtualScreen.Width - size.Width) / 2);
-        int defaultY = virtualScreen.Top + Math.Max(0, (virtualScreen.Height - size.Height) / 2);
+        Point anchor = hasStoredPosition
+            ? new Point(_settings.WindowPositionX, _settings.WindowPositionY)
+            : PhysicalCursorPosition();
+        float scale = ScaleForPoint(anchor, out uint dpi);
+        Size size = CalculateWindowSize(scale, anchor);
+        Rectangle targetScreen = Screen.FromPoint(anchor).WorkingArea;
+        int defaultX = targetScreen.Left + Math.Max(0, (targetScreen.Width - size.Width) / 2);
+        int defaultY = targetScreen.Top + Math.Max(0, (targetScreen.Height - size.Height) / 2);
         int x = hasStoredPosition ? _settings.WindowPositionX : defaultX;
         int y = hasStoredPosition ? _settings.WindowPositionY : defaultY;
-        RenderLayeredWindow(new Point(x, y), size, updateZOrder);
+        RenderLayeredWindow(new Point(x, y), size, updateZOrder, scale, dpi);
     }
 
-    private Size CalculateWindowSize()
-    {
-        float scale = DeviceDpi / 96f;
-        return CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale));
-    }
+    private Size CalculateWindowSize(float scale, Point location) =>
+        CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale, location));
 
-    private int TaskbarHeight(float scale)
+    private static int TaskbarHeight(float scale, Point location)
     {
-        Point location = _settings.WindowPositionX != -1 || _settings.WindowPositionY != -1
-            ? new Point(_settings.WindowPositionX, _settings.WindowPositionY)
-            : Cursor.Position;
         Screen screen = Screen.FromPoint(location);
         Rectangle bounds = screen.Bounds;
         Rectangle working = screen.WorkingArea;
@@ -159,16 +157,21 @@ public sealed class CompactBarForm : Form
             : Math.Max(1, (int)Math.Round(48 * scale));
     }
 
-    private void RenderLayeredWindow(Point location, Size size, bool updateZOrder)
+    private void RenderLayeredWindow(
+        Point location,
+        Size size,
+        bool updateZOrder,
+        float scale,
+        uint dpi)
     {
         using var bitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppArgb);
-        bitmap.SetResolution(DeviceDpi, DeviceDpi);
+        bitmap.SetResolution(dpi, dpi);
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             graphics.Clear(Color.Transparent);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             graphics.CompositingMode = CompositingMode.SourceOver;
-            DrawContent(graphics, size);
+            DrawContent(graphics, size, scale);
         }
 
         IntPtr screenDc = GetDC(IntPtr.Zero);
@@ -209,9 +212,8 @@ public sealed class CompactBarForm : Form
             SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
     }
 
-    private void DrawContent(Graphics graphics, Size size)
+    private void DrawContent(Graphics graphics, Size size, float scale)
     {
-        float scale = DeviceDpi / 96f;
         CompactBarRenderer.Draw(graphics, size, _settings, _snapshot, _systemUsage, scale);
     }
 
@@ -409,7 +411,7 @@ public sealed class CompactBarForm : Form
         if (args.Button != MouseButtons.Left)
             return;
         _dragging = true;
-        _dragCursorStart = Cursor.Position;
+        _dragCursorStart = PhysicalCursorPosition();
         _dragWindowStart = GetWindowRect(Handle, out NativeRect rectangle)
             ? new Point(rectangle.Left, rectangle.Top)
             : Location;
@@ -421,7 +423,7 @@ public sealed class CompactBarForm : Form
         if (!_dragging)
             return;
 
-        Point cursor = Cursor.Position;
+        Point cursor = PhysicalCursorPosition();
         int x = _dragWindowStart.X + cursor.X - _dragCursorStart.X;
         int y = _dragWindowStart.Y + cursor.Y - _dragCursorStart.Y;
         SetWindowPos(Handle, HwndTopMost, x, y, 0, 0, SwpNoActivate | SwpNoSize | SwpShowWindow);
@@ -446,11 +448,53 @@ public sealed class CompactBarForm : Form
     protected override void WndProc(ref Message message)
     {
         const int wmDisplayChange = 0x007E;
+        const int wmDpiChanged = 0x02E0;
         const int wmSettingChange = 0x001A;
+
+        if (message.Msg == wmDpiChanged)
+        {
+            uint dpi = unchecked((ushort)(long)message.WParam);
+            base.WndProc(ref message);
+            if (_dragging && IsHandleCreated && GetWindowRect(Handle, out NativeRect rectangle))
+            {
+                float scale = Math.Max(1f, dpi) / 96f;
+                var location = new Point(rectangle.Left, rectangle.Top);
+                Size size = CalculateWindowSize(scale, location);
+                RenderLayeredWindow(location, size, updateZOrder: false, scale, dpi);
+            }
+            else if (IsHandleCreated)
+            {
+                BeginInvoke(PositionWindow);
+            }
+            return;
+        }
+
         base.WndProc(ref message);
         if (message.Msg is wmDisplayChange or wmSettingChange && IsHandleCreated)
             BeginInvoke(PositionWindow);
     }
+
+    private float ScaleForPoint(Point point, out uint dpi)
+    {
+        IntPtr monitor = MonitorFromPoint(new NativePoint(point.X, point.Y), MonitorDefaultToNearest);
+        if (monitor != IntPtr.Zero
+            && GetDpiForMonitor(monitor, MonitorDpiType.Effective, out uint dpiX, out _) == 0
+            && dpiX > 0)
+        {
+            dpi = dpiX;
+            return dpi / 96f;
+        }
+
+        dpi = GetDpiForWindow(Handle);
+        if (dpi == 0)
+            dpi = (uint)Math.Max(96, DeviceDpi);
+        return dpi / 96f;
+    }
+
+    private static Point PhysicalCursorPosition() =>
+        GetPhysicalCursorPos(out NativePoint point)
+            ? new Point(point.X, point.Y)
+            : Cursor.Position;
 
     private const byte AcSrcOver = 0;
     private const byte AcSrcAlpha = 1;
@@ -458,6 +502,7 @@ public sealed class CompactBarForm : Form
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
+    private const uint MonitorDefaultToNearest = 0x00000002;
     private static readonly IntPtr HwndTopMost = new(-1);
 
     [DllImport("user32.dll")]
@@ -494,6 +539,22 @@ public sealed class CompactBarForm : Form
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(IntPtr window, out NativeRect rectangle);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetPhysicalCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(
+        IntPtr monitor,
+        MonitorDpiType dpiType,
+        out uint dpiX,
+        out uint dpiY);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -548,5 +609,10 @@ public sealed class CompactBarForm : Form
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    private enum MonitorDpiType
+    {
+        Effective = 0
     }
 }
