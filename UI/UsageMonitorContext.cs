@@ -22,6 +22,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemSnapshot = SystemUsageSnapshot.Empty;
     private CodexAppServerClient _client;
+    private SettingsForm? _settingsForm;
     private bool _refreshing;
 
     public UsageMonitorContext()
@@ -188,7 +189,14 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void ShowSettings()
     {
+        if (_settingsForm is { IsDisposed: false } existingForm)
+        {
+            ActivateExistingWindow(existingForm);
+            return;
+        }
+
         using var form = new SettingsForm(_settings);
+        _settingsForm = form;
         form.PreviewChanged += preview => _compactBar.Preview(preview);
         form.PresetSaved += (slot, preset) =>
         {
@@ -209,6 +217,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         finally
         {
             _compactBar.EndPreview(result == DialogResult.OK ? form.Result : _settings);
+            _settingsForm = null;
         }
 
         if (result != DialogResult.OK)
@@ -266,6 +275,7 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void Exit()
     {
+        _settingsForm?.Close();
         _usageTimer.Stop();
         _systemTimer.Stop();
         _trayIcon.Visible = false;
@@ -291,6 +301,18 @@ public sealed class UsageMonitorContext : ApplicationContext
         return HexColor.ParseOrDefault(html, fallback);
     }
 
+    private static void ActivateExistingWindow(Form form)
+    {
+        if (form.WindowState == FormWindowState.Minimized)
+            form.WindowState = FormWindowState.Normal;
+
+        IntPtr target = GetLastActivePopup(form.Handle);
+        if (target == IntPtr.Zero)
+            target = form.Handle;
+        ShowWindow(target, SwRestore);
+        SetForegroundWindow(target);
+    }
+
     private void PostToUi(Action action)
     {
         if (_uiDispatcher.IsDisposed || !_uiDispatcher.IsHandleCreated)
@@ -300,6 +322,19 @@ public sealed class UsageMonitorContext : ApplicationContext
         else
             action();
     }
+
+    private const int SwRestore = 9;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetLastActivePopup(IntPtr window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr window, int command);
 }
 
 internal static class TrayIconFactory
