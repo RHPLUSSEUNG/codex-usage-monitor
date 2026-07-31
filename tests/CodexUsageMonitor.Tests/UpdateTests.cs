@@ -84,6 +84,51 @@ public sealed class UpdateTests
     }
 
     [Fact]
+    public async Task Health_monitor_retries_while_signal_file_is_locked()
+    {
+        using var directory = new TemporaryDirectory();
+        string transactionId = Guid.NewGuid().ToString("N");
+        string healthPath = System.IO.Path.Combine(directory.Path, "healthy.signal");
+        using Process process = StartLongRunningProcess();
+        using var signalLocked = new ManualResetEventSlim();
+        Task writer = Task.Run(
+            async () =>
+            {
+                await using var stream = new FileStream(
+                    healthPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None);
+                await using var writer = new StreamWriter(stream);
+                await writer.WriteAsync(transactionId);
+                await writer.FlushAsync(TestContext.Current.CancellationToken);
+                signalLocked.Set();
+                await Task.Delay(500, TestContext.Current.CancellationToken);
+            },
+            TestContext.Current.CancellationToken);
+
+        try
+        {
+            Assert.True(signalLocked.Wait(
+                TimeSpan.FromSeconds(3),
+                TestContext.Current.CancellationToken));
+            UpdateInstaller.WaitForHealthyStartup(
+                process,
+                healthPath,
+                transactionId,
+                TimeSpan.FromSeconds(5),
+                TimeSpan.FromMilliseconds(100));
+            await writer;
+            Assert.False(process.HasExited);
+        }
+        finally
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+    }
+
+    [Fact]
     public void Health_monitor_rejects_process_that_exits_before_signal()
     {
         using Process process = Process.Start(
