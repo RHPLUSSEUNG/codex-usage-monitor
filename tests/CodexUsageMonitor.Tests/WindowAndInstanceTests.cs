@@ -7,6 +7,17 @@ namespace CodexUsageMonitor.Tests;
 public sealed class WindowAndInstanceTests
 {
     [Fact]
+    public void Target_screen_point_uses_window_center_instead_of_top_left()
+    {
+        var location = new Point(1800, 100);
+        var size = new Size(400, 60);
+
+        Point result = CompactBarForm.WindowCenter(location, size);
+
+        Assert.Equal(new Point(2000, 130), result);
+    }
+
+    [Fact]
     public void Clamp_keeps_normal_window_fully_inside_working_area()
     {
         var workingArea = new Rectangle(0, 0, 1920, 1080);

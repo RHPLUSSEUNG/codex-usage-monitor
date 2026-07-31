@@ -147,7 +147,18 @@ public sealed class CompactBarForm : Form
             : PhysicalCursorPosition();
         float scale = ScaleForPoint(anchor, out uint dpi);
         Size size = CalculateWindowSize(scale, anchor);
-        Rectangle targetScreen = Screen.FromPoint(anchor).WorkingArea;
+        Point targetScreenPoint = hasStoredPosition
+            ? WindowCenter(anchor, size)
+            : anchor;
+        float targetScale = ScaleForPoint(targetScreenPoint, out uint targetDpi);
+        if (targetDpi != dpi)
+        {
+            scale = targetScale;
+            dpi = targetDpi;
+            size = CalculateWindowSize(scale, targetScreenPoint);
+            targetScreenPoint = WindowCenter(anchor, size);
+        }
+        Rectangle targetScreen = Screen.FromPoint(targetScreenPoint).WorkingArea;
         int defaultX = targetScreen.Left + Math.Max(0, (targetScreen.Width - size.Width) / 2);
         int defaultY = targetScreen.Top + Math.Max(0, (targetScreen.Height - size.Height) / 2);
         var requested = new Point(
@@ -162,6 +173,11 @@ public sealed class CompactBarForm : Form
         if (positionChanged)
             PositionChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    internal static Point WindowCenter(Point location, Size size) =>
+        new(
+            location.X + size.Width / 2,
+            location.Y + size.Height / 2);
 
     internal static Point ClampToWorkingArea(
         Point location,
