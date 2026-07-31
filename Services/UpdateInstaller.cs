@@ -222,7 +222,7 @@ internal static class UpdateInstaller
 
             if (File.Exists(healthFilePath))
             {
-                string signal = File.ReadAllText(healthFilePath).Trim();
+                string? signal = TryReadHealthSignal(healthFilePath);
                 if (string.Equals(signal, transactionId, StringComparison.Ordinal))
                 {
                     Thread.Sleep(gracePeriod);
@@ -237,6 +237,19 @@ internal static class UpdateInstaller
         }
 
         throw new TimeoutException("The updated application did not report a healthy startup in time.");
+    }
+
+    private static string? TryReadHealthSignal(string healthFilePath)
+    {
+        try
+        {
+            return File.ReadAllText(healthFilePath).Trim();
+        }
+        catch (IOException)
+        {
+            // The new process may still be writing the signal with an exclusive file lock.
+            return null;
+        }
     }
 
     private static void CopyDirectory(string source, string destination)
