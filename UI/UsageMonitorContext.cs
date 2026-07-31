@@ -601,6 +601,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (_exiting)
             return;
         _exiting = true;
+        AppLog.Info("Application shutdown started.");
         _lifetimeCancellation.Cancel();
         _settingsForm?.Close();
         _usageTimer.Stop();
@@ -616,6 +617,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _updateTimer.Dispose();
         _lifetimeCancellation.Dispose();
         _uiDispatcher.Dispose();
+        AppLog.Info("Application shutdown completed.");
         ExitThread();
     }
 
