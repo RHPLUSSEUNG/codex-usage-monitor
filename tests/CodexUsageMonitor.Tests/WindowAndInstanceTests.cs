@@ -7,7 +7,7 @@ namespace CodexUsageMonitor.Tests;
 public sealed class WindowAndInstanceTests
 {
     [Fact]
-    public void Clamp_keeps_minimum_part_of_window_visible()
+    public void Clamp_keeps_normal_window_fully_inside_working_area()
     {
         var workingArea = new Rectangle(0, 0, 1920, 1080);
         var size = new Size(400, 60);
@@ -17,7 +17,21 @@ public sealed class WindowAndInstanceTests
             size,
             workingArea);
 
-        Assert.Equal(new Point(-368, 1048), result);
+        Assert.Equal(new Point(0, 1020), result);
+    }
+
+    [Fact]
+    public void Clamp_keeps_minimum_part_visible_when_window_exceeds_working_area()
+    {
+        var workingArea = new Rectangle(100, 200, 300, 40);
+        var size = new Size(500, 80);
+
+        Point result = CompactBarForm.ClampToWorkingArea(
+            new Point(-5000, 5000),
+            size,
+            workingArea);
+
+        Assert.Equal(new Point(-368, 208), result);
     }
 
     [Fact]

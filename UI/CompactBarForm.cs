@@ -175,10 +175,20 @@ public sealed class CompactBarForm : Form
         int visibleY = Math.Min(
             Math.Max(1, minimumVisible),
             Math.Max(1, Math.Min(size.Height, workingArea.Height)));
-        int minimumX = workingArea.Left - size.Width + visibleX;
-        int maximumX = workingArea.Right - visibleX;
-        int minimumY = workingArea.Top - size.Height + visibleY;
-        int maximumY = workingArea.Bottom - visibleY;
+        bool fitsHorizontally = size.Width <= workingArea.Width;
+        bool fitsVertically = size.Height <= workingArea.Height;
+        int minimumX = fitsHorizontally
+            ? workingArea.Left
+            : workingArea.Left - size.Width + visibleX;
+        int maximumX = fitsHorizontally
+            ? workingArea.Right - size.Width
+            : workingArea.Right - visibleX;
+        int minimumY = fitsVertically
+            ? workingArea.Top
+            : workingArea.Top - size.Height + visibleY;
+        int maximumY = fitsVertically
+            ? workingArea.Bottom - size.Height
+            : workingArea.Bottom - visibleY;
         return new Point(
             Math.Clamp(location.X, minimumX, maximumX),
             Math.Clamp(location.Y, minimumY, maximumY));
