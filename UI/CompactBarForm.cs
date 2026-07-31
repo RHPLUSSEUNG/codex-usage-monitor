@@ -147,13 +147,25 @@ public sealed class CompactBarForm : Form
             : PhysicalCursorPosition();
         float scale = ScaleForPoint(anchor, out uint dpi);
         Size size = CalculateWindowSize(scale, anchor);
-        Rectangle targetScreen = Screen.FromPoint(anchor).WorkingArea;
-        int defaultX = targetScreen.Left + Math.Max(0, (targetScreen.Width - size.Width) / 2);
-        int defaultY = targetScreen.Top + Math.Max(0, (targetScreen.Height - size.Height) / 2);
+        Point targetScreenPoint = hasStoredPosition
+            ? WindowCenter(anchor, size)
+            : anchor;
+        float targetScale = ScaleForPoint(targetScreenPoint, out uint targetDpi);
+        if (targetDpi != dpi)
+        {
+            scale = targetScale;
+            dpi = targetDpi;
+            size = CalculateWindowSize(scale, targetScreenPoint);
+            targetScreenPoint = WindowCenter(anchor, size);
+        }
+        Screen targetScreen = Screen.FromPoint(targetScreenPoint);
+        Rectangle defaultArea = targetScreen.WorkingArea;
+        int defaultX = defaultArea.Left + Math.Max(0, (defaultArea.Width - size.Width) / 2);
+        int defaultY = defaultArea.Top + Math.Max(0, (defaultArea.Height - size.Height) / 2);
         var requested = new Point(
             hasStoredPosition ? _settings.WindowPositionX : defaultX,
             hasStoredPosition ? _settings.WindowPositionY : defaultY);
-        Point location = ClampToWorkingArea(requested, size, targetScreen);
+        Point location = ClampToScreenArea(requested, size, targetScreen.Bounds);
         bool positionChanged = _settings.WindowPositionX != location.X
                                || _settings.WindowPositionY != location.Y;
         _settings.WindowPositionX = location.X;
@@ -163,25 +175,61 @@ public sealed class CompactBarForm : Form
             PositionChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    internal static Point ClampToWorkingArea(
+    internal static Point WindowCenter(Point location, Size size) =>
+        new(
+            location.X + size.Width / 2,
+            location.Y + size.Height / 2);
+
+    internal static Point ClampToScreenArea(
         Point location,
         Size size,
-        Rectangle workingArea,
+        Rectangle screenArea,
         int minimumVisible = 32)
     {
         int visibleX = Math.Min(
             Math.Max(1, minimumVisible),
-            Math.Max(1, Math.Min(size.Width, workingArea.Width)));
+            Math.Max(1, Math.Min(size.Width, screenArea.Width)));
         int visibleY = Math.Min(
             Math.Max(1, minimumVisible),
-            Math.Max(1, Math.Min(size.Height, workingArea.Height)));
-        int minimumX = workingArea.Left - size.Width + visibleX;
-        int maximumX = workingArea.Right - visibleX;
-        int minimumY = workingArea.Top - size.Height + visibleY;
-        int maximumY = workingArea.Bottom - visibleY;
+            Math.Max(1, Math.Min(size.Height, screenArea.Height)));
+        int minimumX = screenArea.Left - size.Width + visibleX;
+        int maximumX = screenArea.Right - visibleX;
+        int minimumY = screenArea.Top - size.Height + visibleY;
+        int maximumY = screenArea.Bottom - visibleY;
         return new Point(
             Math.Clamp(location.X, minimumX, maximumX),
             Math.Clamp(location.Y, minimumY, maximumY));
+    }
+
+    internal static Point ExtendDragAtScreenEdge(
+        Point location,
+        Size size,
+        Point cursor,
+        Rectangle screenArea,
+        int minimumVisible = 32,
+        int edgeTolerance = 1)
+    {
+        int visibleX = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Width, screenArea.Width)));
+        int visibleY = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Height, screenArea.Height)));
+        int tolerance = Math.Max(0, edgeTolerance);
+        int x = location.X;
+        int y = location.Y;
+
+        if (cursor.X <= screenArea.Left + tolerance)
+            x = screenArea.Left - size.Width + visibleX;
+        else if (cursor.X >= screenArea.Right - 1 - tolerance)
+            x = screenArea.Right - visibleX;
+
+        if (cursor.Y <= screenArea.Top + tolerance)
+            y = screenArea.Top - size.Height + visibleY;
+        else if (cursor.Y >= screenArea.Bottom - 1 - tolerance)
+            y = screenArea.Bottom - visibleY;
+
+        return new Point(x, y);
     }
 
     private Size CalculateWindowSize(float scale, Point location) =>
@@ -469,6 +517,18 @@ public sealed class CompactBarForm : Form
         Point cursor = PhysicalCursorPosition();
         int x = _dragWindowStart.X + cursor.X - _dragCursorStart.X;
         int y = _dragWindowStart.Y + cursor.Y - _dragCursorStart.Y;
+        if (GetWindowRect(Handle, out NativeRect rectangle))
+        {
+            Point extended = ExtendDragAtScreenEdge(
+                new Point(x, y),
+                new Size(
+                    Math.Max(1, rectangle.Right - rectangle.Left),
+                    Math.Max(1, rectangle.Bottom - rectangle.Top)),
+                cursor,
+                Screen.FromPoint(cursor).Bounds);
+            x = extended.X;
+            y = extended.Y;
+        }
         SetWindowPos(Handle, HwndTopMost, x, y, 0, 0, SwpNoActivate | SwpNoSize | SwpShowWindow);
     }
 
@@ -481,8 +541,18 @@ public sealed class CompactBarForm : Form
         _dragging = false;
         if (GetWindowRect(Handle, out NativeRect rectangle))
         {
-            _settings.WindowPositionX = rectangle.Left;
-            _settings.WindowPositionY = rectangle.Top;
+            Point cursor = PhysicalCursorPosition();
+            var location = new Point(rectangle.Left, rectangle.Top);
+            var size = new Size(
+                Math.Max(1, rectangle.Right - rectangle.Left),
+                Math.Max(1, rectangle.Bottom - rectangle.Top));
+            Point extended = ExtendDragAtScreenEdge(
+                location,
+                size,
+                cursor,
+                Screen.FromPoint(cursor).Bounds);
+            _settings.WindowPositionX = extended.X;
+            _settings.WindowPositionY = extended.Y;
         }
         PositionChanged?.Invoke(this, EventArgs.Empty);
         RenderAtStoredPosition();
