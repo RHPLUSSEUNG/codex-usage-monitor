@@ -1,0 +1,48 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-package:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: tests/CodexUsageMonitor.Tests/CodexUsageMonitor.Tests.csproj
+
+      - name: Restore
+        run: dotnet restore .\tests\CodexUsageMonitor.Tests\CodexUsageMonitor.Tests.csproj
+
+      - name: Build
+        run: dotnet build .\CodexUsageMonitor.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test .\tests\CodexUsageMonitor.Tests\CodexUsageMonitor.Tests.csproj -c Release --no-restore
+
+      - name: Publish
+        shell: pwsh
+        run: .\build.ps1
+
+      - name: Package and checksum
+        shell: pwsh
+        run: .\tools\PackageRelease.ps1 -SkipBuild
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodexUsageMonitor-windows
+          path: |
+            artifacts/*.zip
+            artifacts/*.sha256
+          if-no-files-found: error

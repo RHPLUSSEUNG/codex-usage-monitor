@@ -48,6 +48,7 @@
 |---|---|---|
 | 📊 | **Codex quota** | Live 5-hour and weekly remaining or used percentages |
 | 🖥️ | **System usage** | CPU and RAM usage updated independently |
+| 🔔 | **Quota alerts** | One-time 20%, 10%, and 5% remaining notifications with quiet hours |
 | 🎨 | **10 styles × 2 themes** | Ten Compact Bar styles, each in Black and White |
 | 💾 | **3 presets** | Instantly save and restore your preferred appearance |
 | 🌍 | **4 languages** | English, Korean, Simplified Chinese, and Japanese |
@@ -103,7 +104,7 @@ Shortcut:    Start menu\Programs\Codex Usage Monitor
 Settings:    %LOCALAPPDATA%\CodexUsageMonitor\settings.json
 ```
 
-The installed app checks stable GitHub Releases at startup and every six hours. When a new version is available, a Windows notification and **Update to v…** tray-menu item appear. Selecting it downloads the release, verifies its SHA-256 checksum, replaces the installed app, and restarts it automatically. The settings file is kept.
+The installed app checks stable GitHub Releases at startup and every six hours. When a new version is available, a Windows notification and **Update to v…** tray-menu item appear. Selecting it downloads the release, verifies its SHA-256 checksum, replaces the installed app, and restarts it automatically. The checksum verifies download integrity; it is not a publisher signature. The settings file is kept.
 
 You can also select **Check for updates** from the tray menu at any time. Automatic installation is available only from the installed path shown above; source and debug builds are not overwritten.
 
@@ -139,8 +140,9 @@ The app runs in the notification area rather than as a normal taskbar window.
 - Left-click the tray icon: show detailed usage status
 - Right-click the tray icon: status, refresh, Compact Bar toggle, settings, or exit
 - Double-click the tray icon or Compact Bar: open settings
-- Right-click the Compact Bar: refresh or settings
+- Right-click the Compact Bar: refresh, settings, or reset its position
 - Drag the Compact Bar: move it and save the new position
+- Right-click the tray icon: reset an off-screen bar or copy diagnostic information
 
 If the Compact Bar is hidden, right-click the tray icon and enable **Show Compact Bar**.
 
@@ -158,11 +160,15 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 | Language | Changes the settings UI between English, Korean, Simplified Chinese, and Japanese. The open settings dialog updates immediately; save to apply it to the whole app. |
 | Display basis | Shows either remaining quota percentage or used quota percentage. CPU and RAM always show current usage. |
 | Refresh interval | Sets Codex quota refresh frequency from 30 to 1,800 seconds. CPU and RAM refresh separately. |
+| Quota threshold notifications | Notifies once when 5-hour or weekly remaining quota enters the 20%, 10%, or 5% band. Resets with the quota window. |
+| Quiet hours | Defers threshold notifications during the configured local-time range. |
 | Codex executable | Usually leave this as `codex`. If startup fails, enter the full path returned by `where.exe codex`. |
 
 Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, Black/White color theme, background, display basis, metric visibility, presentation modes, and colors. **Save slot** writes the preset immediately, independently of the main Save button; press **Load** to apply it.
 
 Settings are organized into **General**, **Appearance**, and **Metrics** tabs. The three preset slots stay visible above every tab. Every style supports Black and White variants. Selecting a style or color theme applies its matching default background color and opacity; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
+
+Settings are written atomically through a validated temporary file. The previous valid file is kept as `settings.json.bak`; if the primary JSON is damaged, the backup is restored and a tray notification explains the recovery. The `SettingsVersion` field is reserved for compatible migrations.
 
 ### Compact Bar and metrics
 
@@ -195,7 +201,11 @@ Run `codex login status`. If necessary, run `codex login` again. In Settings, re
 
 ### Compact Bar is missing
 
-Check the notification area, then enable **Show Compact Bar** from the tray menu. After changing monitors or display scaling, toggle the bar off and on once.
+Check the notification area, then enable **Show Compact Bar** from the tray menu. The app automatically keeps part of the bar inside an active monitor after display changes; select **Reset position** if needed.
+
+### Collect diagnostics
+
+Select **Copy diagnostics** from the tray menu. The copied report includes the app version, app-server state, last refresh/error, Windows/DPI/display information, and the settings and log paths.
 
 ### Reinstallation fails
 

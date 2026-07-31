@@ -11,6 +11,8 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly ToolStripMenuItem _refreshMenu = new();
     private readonly ToolStripMenuItem _showBarMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
+    private readonly ToolStripMenuItem _resetPositionMenu = new();
+    private readonly ToolStripMenuItem _copyDiagnosticsMenu = new();
     private readonly ToolStripMenuItem _updateMenu = new();
     private readonly ToolStripMenuItem _exitMenu = new();
     private readonly NotifyIcon _trayIcon;
@@ -21,7 +23,9 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _updateTimer;
     private readonly SystemUsageMonitor _systemMonitor = new();
     private readonly UpdateService _updateService = new();
+    private readonly QuotaNotificationTracker _quotaNotifications = new();
     private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private readonly Action? _startupReady;
     private AppSettings _settings;
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemSnapshot = SystemUsageSnapshot.Empty;
@@ -33,10 +37,14 @@ public sealed class UsageMonitorContext : ApplicationContext
     private bool _checkingUpdate;
     private bool _installingUpdate;
     private bool _exiting;
+    private bool _startupReadySignaled;
+    private DateTimeOffset? _lastSuccessfulRefresh;
 
-    public UsageMonitorContext()
+    public UsageMonitorContext(Action? startupReady = null)
     {
-        _settings = SettingsStore.Load();
+        _startupReady = startupReady;
+        SettingsLoadResult settingsLoad = SettingsStore.LoadWithResult();
+        _settings = settingsLoad.Settings;
         Localization.CurrentLanguage = _settings.Language;
         _client = new CodexAppServerClient(_settings.CodexExecutable);
         _uiDispatcher.CreateControl();
@@ -55,12 +63,16 @@ public sealed class UsageMonitorContext : ApplicationContext
         _refreshMenu.Click += async (_, _) => await RefreshAsync();
         _showBarMenu.Click += (_, _) => ToggleCompactBar();
         _settingsMenu.Click += (_, _) => ShowSettings();
+        _resetPositionMenu.Click += (_, _) => _compactBar.ResetPosition();
+        _copyDiagnosticsMenu.Click += (_, _) => CopyDiagnostics();
         _updateMenu.Click += async (_, _) => await HandleUpdateMenuAsync();
         _exitMenu.Click += (_, _) => Exit();
         menu.Items.Add(_statusMenu);
         menu.Items.Add(_refreshMenu);
         menu.Items.Add(_showBarMenu);
         menu.Items.Add(_settingsMenu);
+        menu.Items.Add(_resetPositionMenu);
+        menu.Items.Add(_copyDiagnosticsMenu);
         menu.Items.Add(_updateMenu);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitMenu);
@@ -98,6 +110,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _systemTimer.Start();
         _updateTimer.Start();
         ApplySettings(startTimer: true);
+        ShowSettingsRecovery(settingsLoad);
 
         _ = RefreshAsync();
         _ = CheckForUpdatesAsync(showResult: false);
@@ -112,11 +125,32 @@ public sealed class UsageMonitorContext : ApplicationContext
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             _snapshot = await _client.GetUsageAsync(timeout.Token);
+            if (string.IsNullOrWhiteSpace(_snapshot.Error))
+            {
+                _lastSuccessfulRefresh = _snapshot.UpdatedAt;
+                ShowQuotaAlerts();
+            }
             UpdateDisplay();
         }
         finally
         {
             _refreshing = false;
+            SignalStartupReady();
+        }
+    }
+
+    private void SignalStartupReady()
+    {
+        if (_startupReadySignaled)
+            return;
+        _startupReadySignaled = true;
+        try
+        {
+            _startupReady?.Invoke();
+        }
+        catch (Exception exception)
+        {
+            AppLog.Error("Could not write the post-update health signal.", exception);
         }
     }
 
@@ -146,9 +180,19 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void RefreshSystemUsage()
     {
-        _systemSnapshot = _systemMonitor.Sample();
+        SystemUsageSnapshot next = _systemMonitor.Sample();
+        if (RoundedSystemPercent(_systemSnapshot.CpuPercent) == RoundedSystemPercent(next.CpuPercent)
+            && RoundedSystemPercent(_systemSnapshot.MemoryPercent) == RoundedSystemPercent(next.MemoryPercent))
+        {
+            return;
+        }
+
+        _systemSnapshot = next;
         _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
     }
+
+    private static int RoundedSystemPercent(double? value) =>
+        value is null ? -1 : (int)Math.Round(value.Value);
 
     private string FormatShort(QuotaWindow? window)
     {
@@ -183,6 +227,26 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
 
         MessageBox.Show(message, Localization.Text("UsageTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void ShowQuotaAlerts()
+    {
+        IReadOnlyList<QuotaThresholdAlert> alerts = _quotaNotifications.Evaluate(
+            _snapshot,
+            _settings,
+            DateTimeOffset.Now);
+        if (alerts.Count == 0)
+            return;
+
+        _trayIcon.BalloonTipTitle = Localization.Text("QuotaAlertTitle");
+        _trayIcon.BalloonTipText = string.Join(
+            Environment.NewLine,
+            alerts.Select(alert => Localization.Format(
+                "QuotaAlertMessage",
+                Localization.Text(alert.MetricKey),
+                alert.RemainingPercent,
+                alert.Threshold)));
+        _trayIcon.ShowBalloonTip(10000);
     }
 
     private static string FormatSystemPercent(double? value) =>
@@ -293,8 +357,77 @@ public sealed class UsageMonitorContext : ApplicationContext
         _showBarMenu.Text = Localization.Text("ShowCompactBar");
         _showBarMenu.Checked = _settings.ShowCompactBar;
         _settingsMenu.Text = Localization.Text("Settings");
+        _resetPositionMenu.Text = Localization.Text("ResetPosition");
+        _copyDiagnosticsMenu.Text = Localization.Text("CopyDiagnostics");
         UpdateUpdateMenu();
         _exitMenu.Text = Localization.Text("Exit");
+    }
+
+    private void ShowSettingsRecovery(SettingsLoadResult result)
+    {
+        string? title = null;
+        string? message = null;
+        if (result.Status == SettingsLoadStatus.RecoveredFromBackup)
+        {
+            title = Localization.Text("SettingsRecoveredTitle");
+            message = Localization.Text("SettingsRecoveredMessage");
+        }
+        else if (result.Status == SettingsLoadStatus.DefaultsAfterCorruption)
+        {
+            title = Localization.Text("SettingsDefaultsTitle");
+            message = Localization.Text("SettingsDefaultsMessage");
+        }
+
+        if (title is null || message is null)
+            return;
+        if (!string.IsNullOrWhiteSpace(result.Detail))
+            AppLog.Warning(message + Environment.NewLine + result.Detail);
+        _trayIcon.BalloonTipTitle = title;
+        _trayIcon.BalloonTipText = message;
+        _trayIcon.ShowBalloonTip(10000);
+    }
+
+    private void CopyDiagnostics()
+    {
+        try
+        {
+            AppServerDiagnosticInfo server = _client.GetDiagnosticInfo();
+            string displays = string.Join(
+                "; ",
+                Screen.AllScreens.Select(
+                    (screen, index) =>
+                        $"{index + 1}: bounds={screen.Bounds}, working={screen.WorkingArea}, primary={screen.Primary}"));
+            string diagnostics = string.Join(Environment.NewLine, new[]
+            {
+                $"App version: {UpdateService.CurrentVersion}",
+                $"Executable: {Environment.ProcessPath}",
+                $"Codex executable: {_settings.CodexExecutable}",
+                $"App-server status: {(server.IsRunning ? "Running" : "Stopped")}",
+                $"App-server failures: {server.ConsecutiveFailures}",
+                $"App-server next retry: {server.NextStartAttempt?.ToString("O") ?? "None"}",
+                $"Last successful refresh: {_lastSuccessfulRefresh?.ToString("O") ?? "None"}",
+                $"Last error: {_snapshot.Error ?? server.LastError ?? "None"}",
+                $"Windows: {Environment.OSVersion}",
+                $"Process architecture: {RuntimeInformation.ProcessArchitecture}",
+                $"UI DPI: {_uiDispatcher.DeviceDpi}",
+                $"Displays: {displays}",
+                $"Settings: {SettingsStore.SettingsPath}",
+                $"Log: {AppLog.LogPath}"
+            });
+            Clipboard.SetText(diagnostics);
+            _trayIcon.BalloonTipTitle = Localization.Text("DiagnosticsCopiedTitle");
+            _trayIcon.BalloonTipText = Localization.Text("DiagnosticsCopiedMessage");
+            _trayIcon.ShowBalloonTip(5000);
+        }
+        catch (Exception exception)
+        {
+            AppLog.Error("Could not copy diagnostics.", exception);
+            MessageBox.Show(
+                $"{Localization.Text("DiagnosticsCopyFailed")}{Environment.NewLine}{exception.Message}",
+                Localization.Text("DiagnosticsCopyFailed"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private async Task HandleUpdateMenuAsync()
@@ -446,6 +579,8 @@ public sealed class UsageMonitorContext : ApplicationContext
     {
         return HexColor.ParseOrDefault(html, fallback);
     }
+
+    internal void ActivateSettings() => PostToUi(ShowSettings);
 
     private static void ActivateExistingWindow(Form form)
     {
