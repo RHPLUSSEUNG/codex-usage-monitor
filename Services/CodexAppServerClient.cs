@@ -545,18 +545,28 @@ public sealed class CodexAppServerClient : IAsyncDisposable
             .Where(task => task is not null)
             .Cast<Task>()
             .ToArray();
-        if (readers.Length > 0)
-        {
-            try
-            {
-                await Task.WhenAll(readers).WaitAsync(TimeSpan.FromSeconds(2));
-            }
-            catch
-            {
-                // The process streams are already closed; reader shutdown is best effort.
-            }
-        }
+        await WaitForReaderShutdownAsync(readers, TimeSpan.FromSeconds(2))
+            .ConfigureAwait(false);
         _startLock.Dispose();
         _writeLock.Dispose();
+    }
+
+    internal static async Task WaitForReaderShutdownAsync(
+        IReadOnlyCollection<Task> readers,
+        TimeSpan timeout)
+    {
+        if (readers.Count == 0)
+            return;
+
+        try
+        {
+            await Task.WhenAll(readers)
+                .WaitAsync(timeout)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // The process streams are already closed; reader shutdown is best effort.
+        }
     }
 }

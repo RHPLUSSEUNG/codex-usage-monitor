@@ -7,25 +7,65 @@ namespace CodexUsageMonitor.Tests;
 public sealed class WindowAndInstanceTests
 {
     [Fact]
-    public void Clamp_keeps_minimum_part_of_window_visible()
+    public void Target_screen_point_uses_window_center_instead_of_top_left()
     {
-        var workingArea = new Rectangle(0, 0, 1920, 1080);
+        var location = new Point(1800, 100);
         var size = new Size(400, 60);
 
-        Point result = CompactBarForm.ClampToWorkingArea(
+        Point result = CompactBarForm.WindowCenter(location, size);
+
+        Assert.Equal(new Point(2000, 130), result);
+    }
+
+    [Fact]
+    public void Clamp_keeps_minimum_part_of_window_inside_screen()
+    {
+        var screenArea = new Rectangle(0, 0, 1920, 1080);
+        var size = new Size(400, 60);
+
+        Point result = CompactBarForm.ClampToScreenArea(
             new Point(-5000, 5000),
             size,
-            workingArea);
+            screenArea);
 
         Assert.Equal(new Point(-368, 1048), result);
     }
 
     [Fact]
-    public void Clamp_preserves_position_already_in_working_area()
+    public void Clamp_allows_bar_below_taskbar_boundary()
+    {
+        var screenArea = new Rectangle(0, 0, 1536, 864);
+        var size = new Size(400, 80);
+
+        Point result = CompactBarForm.ClampToScreenArea(
+            new Point(200, 832),
+            size,
+            screenArea);
+
+        Assert.Equal(new Point(200, 832), result);
+    }
+
+    [Fact]
+    public void Edge_release_moves_bar_past_cursor_limit()
+    {
+        var screenArea = new Rectangle(0, 0, 1920, 1080);
+        var size = new Size(420, 60);
+
+        Point result = CompactBarForm.ExtendDragAtScreenEdge(
+            new Point(100, 1020),
+            size,
+            new Point(300, 1079),
+            screenArea);
+
+        Assert.Equal(new Point(100, 1048), result);
+    }
+
+    [Fact]
+    public void Clamp_preserves_position_already_inside_screen()
     {
         var position = new Point(100, 200);
 
-        Point result = CompactBarForm.ClampToWorkingArea(
+        Point result = CompactBarForm.ClampToScreenArea(
             position,
             new Size(400, 60),
             new Rectangle(0, 0, 1920, 1080));

@@ -6,6 +6,37 @@ namespace CodexUsageMonitor.Tests;
 public sealed class AppServerTests
 {
     [Fact]
+    public async Task Reader_shutdown_does_not_require_captured_ui_context()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        await Task.Run(
+                async () =>
+                {
+                    SynchronizationContext? previous = SynchronizationContext.Current;
+                    var blockedContext = new NonPumpingSynchronizationContext();
+                    var reader = new TaskCompletionSource(
+                        TaskCreationOptions.RunContinuationsAsynchronously);
+                    try
+                    {
+                        SynchronizationContext.SetSynchronizationContext(blockedContext);
+                        Task wait = CodexAppServerClient.WaitForReaderShutdownAsync(
+                            [reader.Task],
+                            TimeSpan.FromSeconds(2));
+                        reader.SetResult();
+
+                        await wait.ConfigureAwait(false);
+                        Assert.Equal(0, blockedContext.PostCount);
+                    }
+                    finally
+                    {
+                        SynchronizationContext.SetSynchronizationContext(previous);
+                    }
+                },
+                cancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(3), cancellationToken);
+    }
+
+    [Fact]
     public void Output_parser_ignores_one_non_json_line_and_resets_after_json()
     {
         var parser = new AppServerOutputParser();
@@ -60,5 +91,15 @@ public sealed class AppServerTests
         Assert.Equal(300, snapshot.FiveHour?.WindowDurationMinutes);
         Assert.Equal(60, snapshot.Weekly?.UsedPercent);
         Assert.Equal(10080, snapshot.Weekly?.WindowDurationMinutes);
+    }
+
+    private sealed class NonPumpingSynchronizationContext : SynchronizationContext
+    {
+        public int PostCount { get; private set; }
+
+        public override void Post(SendOrPostCallback callback, object? state)
+        {
+            PostCount++;
+        }
     }
 }
