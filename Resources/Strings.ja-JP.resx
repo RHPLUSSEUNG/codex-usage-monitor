@@ -292,6 +292,24 @@
   <data name="Exit" xml:space="preserve">
     <value>終了</value>
   </data>
+  <data name="Uninstall" xml:space="preserve">
+    <value>アンインストール</value>
+  </data>
+  <data name="UninstallTitle" xml:space="preserve">
+    <value>Codex Usage Monitor のアンインストール</value>
+  </data>
+  <data name="UninstallConfirm" xml:space="preserve">
+    <value>このコンピューターから Codex Usage Monitor を削除しますか？</value>
+  </data>
+  <data name="UninstallDeleteSettings" xml:space="preserve">
+    <value>保存した設定、プリセット、ログも削除しますか？今後の再インストール用に残す場合は「いいえ」を選択してください。</value>
+  </data>
+  <data name="UninstallUnavailable" xml:space="preserve">
+    <value>アンインストールはインストール済みアプリでのみ使用できます。</value>
+  </data>
+  <data name="UninstallFailed" xml:space="preserve">
+    <value>アンインストールを開始できませんでした。</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>残り</value>
   </data>

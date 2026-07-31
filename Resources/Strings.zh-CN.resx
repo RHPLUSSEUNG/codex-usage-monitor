@@ -292,6 +292,24 @@
   <data name="Exit" xml:space="preserve">
     <value>退出</value>
   </data>
+  <data name="Uninstall" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="UninstallTitle" xml:space="preserve">
+    <value>卸载 Codex Usage Monitor</value>
+  </data>
+  <data name="UninstallConfirm" xml:space="preserve">
+    <value>要从此计算机卸载 Codex Usage Monitor 吗？</value>
+  </data>
+  <data name="UninstallDeleteSettings" xml:space="preserve">
+    <value>是否同时删除已保存的设置、预设和日志？若要留待以后重新安装使用，请选择“否”。</value>
+  </data>
+  <data name="UninstallUnavailable" xml:space="preserve">
+    <value>卸载功能仅适用于已安装的应用程序。</value>
+  </data>
+  <data name="UninstallFailed" xml:space="preserve">
+    <value>无法启动卸载。</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>剩余</value>
   </data>

@@ -292,6 +292,24 @@
   <data name="Exit" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="Uninstall" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="UninstallTitle" xml:space="preserve">
+    <value>Uninstall Codex Usage Monitor</value>
+  </data>
+  <data name="UninstallConfirm" xml:space="preserve">
+    <value>Remove Codex Usage Monitor from this computer?</value>
+  </data>
+  <data name="UninstallDeleteSettings" xml:space="preserve">
+    <value>Also delete saved settings, presets, and logs? Choose No to keep them for a future installation.</value>
+  </data>
+  <data name="UninstallUnavailable" xml:space="preserve">
+    <value>Uninstall is available only for the installed application.</value>
+  </data>
+  <data name="UninstallFailed" xml:space="preserve">
+    <value>Could not start uninstall.</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>remaining</value>
   </data>

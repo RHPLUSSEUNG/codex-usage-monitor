@@ -201,6 +201,37 @@ public sealed class CompactBarForm : Form
             Math.Clamp(location.Y, minimumY, maximumY));
     }
 
+    internal static Point ExtendDragAtScreenEdge(
+        Point location,
+        Size size,
+        Point cursor,
+        Rectangle screenArea,
+        int minimumVisible = 32,
+        int edgeTolerance = 1)
+    {
+        int visibleX = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Width, screenArea.Width)));
+        int visibleY = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Height, screenArea.Height)));
+        int tolerance = Math.Max(0, edgeTolerance);
+        int x = location.X;
+        int y = location.Y;
+
+        if (cursor.X <= screenArea.Left + tolerance)
+            x = screenArea.Left - size.Width + visibleX;
+        else if (cursor.X >= screenArea.Right - 1 - tolerance)
+            x = screenArea.Right - visibleX;
+
+        if (cursor.Y <= screenArea.Top + tolerance)
+            y = screenArea.Top - size.Height + visibleY;
+        else if (cursor.Y >= screenArea.Bottom - 1 - tolerance)
+            y = screenArea.Bottom - visibleY;
+
+        return new Point(x, y);
+    }
+
     private Size CalculateWindowSize(float scale, Point location) =>
         CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale, location));
 
@@ -486,6 +517,18 @@ public sealed class CompactBarForm : Form
         Point cursor = PhysicalCursorPosition();
         int x = _dragWindowStart.X + cursor.X - _dragCursorStart.X;
         int y = _dragWindowStart.Y + cursor.Y - _dragCursorStart.Y;
+        if (GetWindowRect(Handle, out NativeRect rectangle))
+        {
+            Point extended = ExtendDragAtScreenEdge(
+                new Point(x, y),
+                new Size(
+                    Math.Max(1, rectangle.Right - rectangle.Left),
+                    Math.Max(1, rectangle.Bottom - rectangle.Top)),
+                cursor,
+                Screen.FromPoint(cursor).Bounds);
+            x = extended.X;
+            y = extended.Y;
+        }
         SetWindowPos(Handle, HwndTopMost, x, y, 0, 0, SwpNoActivate | SwpNoSize | SwpShowWindow);
     }
 
@@ -498,8 +541,18 @@ public sealed class CompactBarForm : Form
         _dragging = false;
         if (GetWindowRect(Handle, out NativeRect rectangle))
         {
-            _settings.WindowPositionX = rectangle.Left;
-            _settings.WindowPositionY = rectangle.Top;
+            Point cursor = PhysicalCursorPosition();
+            var location = new Point(rectangle.Left, rectangle.Top);
+            var size = new Size(
+                Math.Max(1, rectangle.Right - rectangle.Left),
+                Math.Max(1, rectangle.Bottom - rectangle.Top));
+            Point extended = ExtendDragAtScreenEdge(
+                location,
+                size,
+                cursor,
+                Screen.FromPoint(cursor).Bounds);
+            _settings.WindowPositionX = extended.X;
+            _settings.WindowPositionY = extended.Y;
         }
         PositionChanged?.Invoke(this, EventArgs.Empty);
         RenderAtStoredPosition();

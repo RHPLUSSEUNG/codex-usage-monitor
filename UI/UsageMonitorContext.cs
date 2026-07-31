@@ -14,6 +14,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly ToolStripMenuItem _resetPositionMenu = new();
     private readonly ToolStripMenuItem _copyDiagnosticsMenu = new();
     private readonly ToolStripMenuItem _updateMenu = new();
+    private readonly ToolStripMenuItem _uninstallMenu = new();
     private readonly ToolStripMenuItem _exitMenu = new();
     private readonly NotifyIcon _trayIcon;
     private readonly CompactBarHost _compactBar;
@@ -66,6 +67,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _resetPositionMenu.Click += (_, _) => _compactBar.ResetPosition();
         _copyDiagnosticsMenu.Click += (_, _) => CopyDiagnostics();
         _updateMenu.Click += async (_, _) => await HandleUpdateMenuAsync();
+        _uninstallMenu.Click += (_, _) => Uninstall();
         _exitMenu.Click += (_, _) => Exit();
         menu.Items.Add(_statusMenu);
         menu.Items.Add(_refreshMenu);
@@ -75,6 +77,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         menu.Items.Add(_copyDiagnosticsMenu);
         menu.Items.Add(_updateMenu);
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(_uninstallMenu);
         menu.Items.Add(_exitMenu);
         ApplyLanguage();
 
@@ -359,6 +362,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _settingsMenu.Text = Localization.Text("Settings");
         _resetPositionMenu.Text = Localization.Text("ResetPosition");
         _copyDiagnosticsMenu.Text = Localization.Text("CopyDiagnostics");
+        _uninstallMenu.Text = Localization.Text("Uninstall");
         UpdateUpdateMenu();
         _exitMenu.Text = Localization.Text("Exit");
     }
@@ -533,6 +537,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private void UpdateUpdateMenu()
     {
         _updateMenu.Enabled = !_checkingUpdate && !_installingUpdate;
+        _uninstallMenu.Enabled = !_installingUpdate;
         _updateMenu.Text = _installingUpdate
             ? Localization.Text("DownloadingUpdate")
             : _checkingUpdate
@@ -542,6 +547,53 @@ public sealed class UsageMonitorContext : ApplicationContext
                     : Localization.Format(
                         "UpdateToVersion",
                         _availableUpdate.Version.ToString(3));
+    }
+
+    private void Uninstall()
+    {
+        if (!UninstallService.IsInstalledApplication())
+        {
+            MessageBox.Show(
+                Localization.Text("UninstallUnavailable"),
+                Localization.Text("UninstallTitle"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        if (MessageBox.Show(
+                Localization.Text("UninstallConfirm"),
+                Localization.Text("UninstallTitle"),
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        DialogResult settingsChoice = MessageBox.Show(
+            Localization.Text("UninstallDeleteSettings"),
+            Localization.Text("UninstallTitle"),
+            MessageBoxButtons.YesNoCancel,
+            MessageBoxIcon.Question,
+            MessageBoxDefaultButton.Button2);
+        if (settingsChoice == DialogResult.Cancel)
+            return;
+
+        try
+        {
+            UninstallService.Launch(deleteSettings: settingsChoice == DialogResult.Yes);
+            Exit();
+        }
+        catch (Exception exception)
+        {
+            AppLog.Error("Could not start uninstall.", exception);
+            MessageBox.Show(
+                $"{Localization.Text("UninstallFailed")}{Environment.NewLine}{exception.Message}",
+                Localization.Text("UninstallTitle"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
     }
 
     private void Exit()

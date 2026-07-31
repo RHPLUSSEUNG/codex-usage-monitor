@@ -112,6 +112,8 @@ Versions earlier than v1.1.0 do not include the updater and require one manual i
 
 On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
 
+To remove the installed app, open its tray menu and select **Uninstall**. The confirmation dialog lets you keep or delete settings, presets, and logs. Uninstall also removes the Start menu shortcut and Windows startup entry.
+
 <details>
 <summary><strong>Build manually</strong></summary>
 

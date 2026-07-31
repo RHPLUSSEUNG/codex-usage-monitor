@@ -46,6 +46,21 @@ public sealed class WindowAndInstanceTests
     }
 
     [Fact]
+    public void Edge_release_moves_bar_past_cursor_limit()
+    {
+        var screenArea = new Rectangle(0, 0, 1920, 1080);
+        var size = new Size(420, 60);
+
+        Point result = CompactBarForm.ExtendDragAtScreenEdge(
+            new Point(100, 1020),
+            size,
+            new Point(300, 1079),
+            screenArea);
+
+        Assert.Equal(new Point(100, 1048), result);
+    }
+
+    [Fact]
     public void Clamp_preserves_position_already_inside_screen()
     {
         var position = new Point(100, 200);
