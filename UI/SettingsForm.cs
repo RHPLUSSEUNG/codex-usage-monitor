@@ -28,11 +28,15 @@ public sealed class SettingsForm : Form
     private bool _loadingControls;
     private readonly CheckBox _showCompactBar = new() { AutoSize = true };
     private readonly CheckBox _startWithWindows = new() { AutoSize = true };
+    private readonly CheckBox _quotaNotifications = new() { AutoSize = true };
+    private readonly CheckBox _quietHours = new() { AutoSize = true };
     private readonly ComboBox _language = NewCombo();
     private readonly ComboBox _compactBarStyle = NewCombo();
     private readonly ComboBox _themeVariant = NewCombo();
     private readonly ComboBox _percentageMode = NewCombo();
     private readonly NumericUpDown _refreshSeconds = new SettingsNumericUpDown { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
+    private readonly NumericUpDown _quietHoursStart = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
+    private readonly NumericUpDown _quietHoursEnd = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
     private readonly TextBox _codexPath = new() { Width = 280 };
     private readonly System.Windows.Forms.Timer _previewTimer = new() { Interval = 33 };
     private AppSettings? _pendingPreview;
@@ -80,9 +84,13 @@ public sealed class SettingsForm : Form
 
         SetLocalizationKey(_showCompactBar, "ShowCompactBar");
         SetLocalizationKey(_startWithWindows, "StartWithWindows");
+        SetLocalizationKey(_quotaNotifications, "QuotaNotifications");
+        SetLocalizationKey(_quietHours, "QuietHours");
         var general = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Dock = DockStyle.Top };
         general.Controls.Add(_showCompactBar);
         general.Controls.Add(_startWithWindows);
+        general.Controls.Add(_quotaNotifications);
+        general.Controls.Add(_quietHours);
         generalContent.Controls.Add(general, 0, 0);
 
         _language.Items.AddRange(["English", "한국어", "中文", "日本語"]);
@@ -94,6 +102,8 @@ public sealed class SettingsForm : Form
         AddBehaviorRow(behavior, "DisplayBasis", _percentageMode, 1);
         AddBehaviorRow(behavior, "RefreshSeconds", _refreshSeconds, 2);
         AddBehaviorRow(behavior, "CodexExecutable", _codexPath, 3);
+        AddBehaviorRow(behavior, "QuietHoursStart", _quietHoursStart, 4);
+        AddBehaviorRow(behavior, "QuietHoursEnd", _quietHoursEnd, 5);
         generalContent.Controls.Add(behavior, 0, 1);
 
         var note = new Label { AutoSize = true, MaximumSize = new Size(490, 0), ForeColor = Color.DimGray };
@@ -124,11 +134,16 @@ public sealed class SettingsForm : Form
 
         _showCompactBar.Checked = settings.ShowCompactBar;
         _startWithWindows.Checked = settings.StartWithWindows;
+        _quotaNotifications.Checked = settings.EnableQuotaNotifications;
+        _quietHours.Checked = settings.QuietHoursEnabled;
         _language.SelectedIndex = (int)settings.Language;
         _compactBarStyle.SelectedIndex = StyleIndex(settings.CompactBarStyle);
         _themeVariant.SelectedIndex = settings.ThemeVariant == ThemeVariant.Light ? 1 : 0;
         _percentageMode.SelectedIndex = settings.PercentageMode == PercentageMode.Remaining ? 0 : 1;
         _refreshSeconds.Value = Math.Clamp(settings.RefreshIntervalSeconds, 30, 1800);
+        _quietHoursStart.Value = Math.Clamp(settings.QuietHoursStart, 0, 23);
+        _quietHoursEnd.Value = Math.Clamp(settings.QuietHoursEnd, 0, 23);
+        UpdateQuietHoursControls();
         _codexPath.Text = settings.CodexExecutable;
         save.Click += (_, _) => SaveAndClose();
         _language.SelectedIndexChanged += (_, _) => ChangeLanguage();
@@ -145,6 +160,7 @@ public sealed class SettingsForm : Form
             _draft.ShowCompactBar = _showCompactBar.Checked;
             RaisePreview();
         };
+        _quietHours.CheckedChanged += (_, _) => UpdateQuietHoursControls();
         _compactBarStyle.SelectedIndexChanged += (_, _) =>
         {
             if (_loadingControls || _updatingLanguage || _compactBarStyle.SelectedIndex < 0)
@@ -354,6 +370,10 @@ public sealed class SettingsForm : Form
         _draft.StartWithWindows = _startWithWindows.Checked;
         _draft.Language = (AppLanguage)Math.Max(0, _language.SelectedIndex);
         _draft.RefreshIntervalSeconds = (int)_refreshSeconds.Value;
+        _draft.EnableQuotaNotifications = _quotaNotifications.Checked;
+        _draft.QuietHoursEnabled = _quietHours.Checked;
+        _draft.QuietHoursStart = (int)_quietHoursStart.Value;
+        _draft.QuietHoursEnd = (int)_quietHoursEnd.Value;
         _draft.CodexExecutable = string.IsNullOrWhiteSpace(_codexPath.Text) ? "codex" : _codexPath.Text.Trim();
         DialogResult = DialogResult.OK;
         Close();
@@ -486,6 +506,12 @@ public sealed class SettingsForm : Form
         _draft.PercentageMode = _percentageMode.SelectedIndex == 0
             ? PercentageMode.Remaining
             : PercentageMode.Used;
+    }
+
+    private void UpdateQuietHoursControls()
+    {
+        _quietHoursStart.Enabled = _quietHours.Checked;
+        _quietHoursEnd.Enabled = _quietHours.Checked;
     }
 
     private void RaisePreview()

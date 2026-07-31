@@ -43,15 +43,18 @@ internal sealed class UpdateService : IDisposable
 
         await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        JsonElement root = document.RootElement;
+        return ParseRelease(document.RootElement, CurrentVersion);
+    }
 
+    internal static UpdateRelease? ParseRelease(JsonElement root, Version currentVersion)
+    {
         string tagName = root.GetProperty("tag_name").GetString()
             ?? throw new InvalidDataException("The release tag is missing.");
         if (!TryParseVersion(tagName, out Version? releaseVersion))
             throw new InvalidDataException($"The release tag '{tagName}' is not a valid version.");
         if (releaseVersion is null)
             throw new InvalidDataException($"The release tag '{tagName}' is invalid.");
-        if (releaseVersion <= CurrentVersion)
+        if (releaseVersion <= currentVersion)
             return null;
 
         string packageName = $"{ProductName}-{tagName}-win-x64.zip";
@@ -122,6 +125,8 @@ internal sealed class UpdateService : IDisposable
         startInfo.ArgumentList.Add(packagePath);
         startInfo.ArgumentList.Add("--target");
         startInfo.ArgumentList.Add(InstalledExecutablePath);
+        startInfo.ArgumentList.Add("--transaction-id");
+        startInfo.ArgumentList.Add(Guid.NewGuid().ToString("N"));
         _ = Process.Start(startInfo)
             ?? throw new InvalidOperationException("The update installer could not be started.");
     }

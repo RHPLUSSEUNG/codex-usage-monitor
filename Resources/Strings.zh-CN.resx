@@ -1,0 +1,346 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Codex Usage Monitor 设置</value>
+  </data>
+  <data name="ShowCompactBar" xml:space="preserve">
+    <value>显示 Compact Bar</value>
+  </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>Windows 启动时自动运行</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="CompactBarStyle" xml:space="preserve">
+    <value>Compact Bar 样式</value>
+  </data>
+  <data name="ThemeVariant" xml:space="preserve">
+    <value>颜色主题</value>
+  </data>
+  <data name="DarkTheme" xml:space="preserve">
+    <value>黑色</value>
+  </data>
+  <data name="LightTheme" xml:space="preserve">
+    <value>白色</value>
+  </data>
+  <data name="DarkMinimalStyle" xml:space="preserve">
+    <value>深色极简</value>
+  </data>
+  <data name="LabelBoxStyle" xml:space="preserve">
+    <value>标签框</value>
+  </data>
+  <data name="NeonGlowStyle" xml:space="preserve">
+    <value>霓虹光效</value>
+  </data>
+  <data name="LightStyle" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="CardsStyle" xml:space="preserve">
+    <value>卡片</value>
+  </data>
+  <data name="CircularGaugesStyle" xml:space="preserve">
+    <value>圆形仪表</value>
+  </data>
+  <data name="CompactRowsStyle" xml:space="preserve">
+    <value>紧凑条</value>
+  </data>
+  <data name="RoundedCapsulesStyle" xml:space="preserve">
+    <value>圆角胶囊</value>
+  </data>
+  <data name="GradientStyle" xml:space="preserve">
+    <value>渐变</value>
+  </data>
+  <data name="MinimalIconsStyle" xml:space="preserve">
+    <value>极简图标 + 文本</value>
+  </data>
+  <data name="Presets" xml:space="preserve">
+    <value>预设</value>
+  </data>
+  <data name="GeneralTab" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="AppearanceTab" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="MetricsTab" xml:space="preserve">
+    <value>指标</value>
+  </data>
+  <data name="Preset1" xml:space="preserve">
+    <value>预设 1</value>
+  </data>
+  <data name="Preset2" xml:space="preserve">
+    <value>预设 2</value>
+  </data>
+  <data name="Preset3" xml:space="preserve">
+    <value>预设 3</value>
+  </data>
+  <data name="LoadPreset" xml:space="preserve">
+    <value>加载</value>
+  </data>
+  <data name="SavePreset" xml:space="preserve">
+    <value>保存槽位</value>
+  </data>
+  <data name="RemainingPercent" xml:space="preserve">
+    <value>剩余百分比</value>
+  </data>
+  <data name="UsedPercent" xml:space="preserve">
+    <value>已用百分比</value>
+  </data>
+  <data name="DisplayBasis" xml:space="preserve">
+    <value>显示基准</value>
+  </data>
+  <data name="RefreshSeconds" xml:space="preserve">
+    <value>刷新间隔（秒）</value>
+  </data>
+  <data name="QuotaNotifications" xml:space="preserve">
+    <value>限额阈值通知</value>
+  </data>
+  <data name="QuietHours" xml:space="preserve">
+    <value>启用免打扰时段</value>
+  </data>
+  <data name="QuietHoursStart" xml:space="preserve">
+    <value>免打扰开始时间</value>
+  </data>
+  <data name="QuietHoursEnd" xml:space="preserve">
+    <value>免打扰结束时间</value>
+  </data>
+  <data name="CodexExecutable" xml:space="preserve">
+    <value>Codex 可执行文件</value>
+  </data>
+  <data name="FiveHourLimit" xml:space="preserve">
+    <value>5 小时限额</value>
+  </data>
+  <data name="WeeklyLimit" xml:space="preserve">
+    <value>每周限额</value>
+  </data>
+  <data name="CpuUsage" xml:space="preserve">
+    <value>CPU 使用率</value>
+  </data>
+  <data name="MemoryUsage" xml:space="preserve">
+    <value>内存使用率</value>
+  </data>
+  <data name="SettingsNote" xml:space="preserve">
+    <value>可将 Compact Bar 拖到屏幕上的任意位置。颜色控件支持 RGB 和 Alpha 透明度。CPU 和 RAM 始终显示当前使用率。</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="PercentOnly" xml:space="preserve">
+    <value>仅百分比（隐藏进度条）</value>
+  </data>
+  <data name="BarOnly" xml:space="preserve">
+    <value>仅 FillBar</value>
+  </data>
+  <data name="PercentAndBar" xml:space="preserve">
+    <value>百分比 + FillBar</value>
+  </data>
+  <data name="Presentation" xml:space="preserve">
+    <value>显示方式</value>
+  </data>
+  <data name="FillColor" xml:space="preserve">
+    <value>填充颜色</value>
+  </data>
+  <data name="TrackColor" xml:space="preserve">
+    <value>轨道颜色</value>
+  </data>
+  <data name="RectangleBackground" xml:space="preserve">
+    <value>背景</value>
+  </data>
+  <data name="ChooseColor" xml:space="preserve">
+    <value>选择颜色 · A {0}</value>
+  </data>
+  <data name="ColorPickerTitle" xml:space="preserve">
+    <value>选择颜色</value>
+  </data>
+  <data name="Opacity" xml:space="preserve">
+    <value>透明度</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="HexError" xml:space="preserve">
+    <value>请以 RRGGBB 格式输入 Hex 颜色。</value>
+  </data>
+  <data name="ColorFormatError" xml:space="preserve">
+    <value>颜色格式错误</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>查看状态</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="ResetPosition" xml:space="preserve">
+    <value>重置位置</value>
+  </data>
+  <data name="CopyDiagnostics" xml:space="preserve">
+    <value>复制诊断信息</value>
+  </data>
+  <data name="DiagnosticsCopiedTitle" xml:space="preserve">
+    <value>诊断信息已复制</value>
+  </data>
+  <data name="DiagnosticsCopiedMessage" xml:space="preserve">
+    <value>诊断信息已复制到剪贴板。</value>
+  </data>
+  <data name="DiagnosticsCopyFailed" xml:space="preserve">
+    <value>无法复制诊断信息。</value>
+  </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="CheckingForUpdates" xml:space="preserve">
+    <value>正在检查更新…</value>
+  </data>
+  <data name="UpdateToVersion" xml:space="preserve">
+    <value>更新到 v{0}</value>
+  </data>
+  <data name="DownloadingUpdate" xml:space="preserve">
+    <value>正在下载更新…</value>
+  </data>
+  <data name="UpdateAvailableTitle" xml:space="preserve">
+    <value>有可用更新</value>
+  </data>
+  <data name="UpdateAvailableMessage" xml:space="preserve">
+    <value>版本 {0} 已发布。请在托盘菜单中选择“更新到 v{0}”进行安装。</value>
+  </data>
+  <data name="UpToDateTitle" xml:space="preserve">
+    <value>没有更新</value>
+  </data>
+  <data name="UpToDateMessage" xml:space="preserve">
+    <value>Codex Usage Monitor 已是最新版本。</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>无法检查更新。</value>
+  </data>
+  <data name="UpdateInstallFailed" xml:space="preserve">
+    <value>无法安装更新。</value>
+  </data>
+  <data name="QuotaAlertTitle" xml:space="preserve">
+    <value>Codex 限额即将用尽</value>
+  </data>
+  <data name="QuotaAlertMessage" xml:space="preserve">
+    <value>{0}：剩余 {1:0}%（已进入 {2}% 阈值）</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Remaining" xml:space="preserve">
+    <value>剩余</value>
+  </data>
+  <data name="Used" xml:space="preserve">
+    <value>已用</value>
+  </data>
+  <data name="FiveHour" xml:space="preserve">
+    <value>5 小时</value>
+  </data>
+  <data name="Weekly" xml:space="preserve">
+    <value>每周</value>
+  </data>
+  <data name="LoginHint" xml:space="preserve">
+    <value>请确认已安装 Codex CLI 并已登录 ChatGPT。</value>
+  </data>
+  <data name="TodayTokens" xml:space="preserve">
+    <value>今日令牌数</value>
+  </data>
+  <data name="LifetimeTokens" xml:space="preserve">
+    <value>累计令牌数</value>
+  </data>
+  <data name="LastUpdated" xml:space="preserve">
+    <value>最后更新</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>无法获取</value>
+  </data>
+  <data name="ResetUnknown" xml:space="preserve">
+    <value>重置时间未知</value>
+  </data>
+  <data name="ResetAt" xml:space="preserve">
+    <value>{0} 重置</value>
+  </data>
+  <data name="UsageTitle" xml:space="preserve">
+    <value>Codex 使用量</value>
+  </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>设置保存错误</value>
+  </data>
+  <data name="SettingsRecoveredTitle" xml:space="preserve">
+    <value>设置已恢复</value>
+  </data>
+  <data name="SettingsRecoveredMessage" xml:space="preserve">
+    <value>设置文件损坏或丢失，已从备份加载并恢复。</value>
+  </data>
+  <data name="SettingsDefaultsTitle" xml:space="preserve">
+    <value>设置已重置</value>
+  </data>
+  <data name="SettingsDefaultsMessage" xml:space="preserve">
+    <value>无法读取设置文件及其备份，已加载默认值；损坏文件会保留以供诊断。</value>
+  </data>
+</root>
