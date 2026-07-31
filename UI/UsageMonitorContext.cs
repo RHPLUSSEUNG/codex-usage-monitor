@@ -12,9 +12,6 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly ToolStripMenuItem _showBarMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
     private readonly ToolStripMenuItem _resetPositionMenu = new();
-    private readonly ToolStripMenuItem _copyDiagnosticsMenu = new();
-    private readonly ToolStripMenuItem _updateMenu = new();
-    private readonly ToolStripMenuItem _uninstallMenu = new();
     private readonly ToolStripMenuItem _exitMenu = new();
     private readonly NotifyIcon _trayIcon;
     private readonly CompactBarHost _compactBar;
@@ -65,19 +62,13 @@ public sealed class UsageMonitorContext : ApplicationContext
         _showBarMenu.Click += (_, _) => ToggleCompactBar();
         _settingsMenu.Click += (_, _) => ShowSettings();
         _resetPositionMenu.Click += (_, _) => _compactBar.ResetPosition();
-        _copyDiagnosticsMenu.Click += (_, _) => CopyDiagnostics();
-        _updateMenu.Click += async (_, _) => await HandleUpdateMenuAsync();
-        _uninstallMenu.Click += (_, _) => Uninstall();
         _exitMenu.Click += (_, _) => Exit();
         menu.Items.Add(_statusMenu);
         menu.Items.Add(_refreshMenu);
         menu.Items.Add(_showBarMenu);
         menu.Items.Add(_settingsMenu);
         menu.Items.Add(_resetPositionMenu);
-        menu.Items.Add(_copyDiagnosticsMenu);
-        menu.Items.Add(_updateMenu);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_uninstallMenu);
         menu.Items.Add(_exitMenu);
         ApplyLanguage();
 
@@ -288,6 +279,9 @@ public sealed class UsageMonitorContext : ApplicationContext
         using var form = new SettingsForm(_settings);
         _settingsForm = form;
         form.PreviewChanged += preview => _compactBar.Preview(preview);
+        form.DiagnosticsRequested += (_, _) => CopyDiagnostics();
+        form.UpdateRequested += async (_, _) => await HandleSettingsUpdateAsync();
+        form.UninstallRequested += (_, _) => Uninstall();
         form.PresetSaved += (slot, preset) =>
         {
             if (slot == 0)
@@ -298,6 +292,7 @@ public sealed class UsageMonitorContext : ApplicationContext
                 _settings.Preset3 = preset;
             SettingsStore.Save(_settings);
         };
+        UpdateSettingsManagementState(form);
         _compactBar.BeginPreview();
         DialogResult result = DialogResult.Cancel;
         try
@@ -361,9 +356,6 @@ public sealed class UsageMonitorContext : ApplicationContext
         _showBarMenu.Checked = _settings.ShowCompactBar;
         _settingsMenu.Text = Localization.Text("Settings");
         _resetPositionMenu.Text = Localization.Text("ResetPosition");
-        _copyDiagnosticsMenu.Text = Localization.Text("CopyDiagnostics");
-        _uninstallMenu.Text = Localization.Text("Uninstall");
-        UpdateUpdateMenu();
         _exitMenu.Text = Localization.Text("Exit");
     }
 
@@ -419,9 +411,7 @@ public sealed class UsageMonitorContext : ApplicationContext
                 $"Log: {AppLog.LogPath}"
             });
             Clipboard.SetText(diagnostics);
-            _trayIcon.BalloonTipTitle = Localization.Text("DiagnosticsCopiedTitle");
-            _trayIcon.BalloonTipText = Localization.Text("DiagnosticsCopiedMessage");
-            _trayIcon.ShowBalloonTip(5000);
+            _settingsForm?.ShowManagementMessage("DiagnosticsCopiedMessage");
         }
         catch (Exception exception)
         {
@@ -434,7 +424,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
     }
 
-    private async Task HandleUpdateMenuAsync()
+    private async Task HandleSettingsUpdateAsync()
     {
         if (_availableUpdate is null)
             await CheckForUpdatesAsync(showResult: true);
@@ -448,7 +438,7 @@ public sealed class UsageMonitorContext : ApplicationContext
             return;
 
         _checkingUpdate = true;
-        UpdateUpdateMenu();
+        UpdateSettingsManagementState();
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
@@ -499,7 +489,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         {
             _checkingUpdate = false;
             if (!_exiting)
-                UpdateUpdateMenu();
+                UpdateSettingsManagementState();
         }
     }
 
@@ -509,7 +499,7 @@ public sealed class UsageMonitorContext : ApplicationContext
             return;
 
         _installingUpdate = true;
-        UpdateUpdateMenu();
+        UpdateSettingsManagementState();
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
@@ -524,7 +514,7 @@ public sealed class UsageMonitorContext : ApplicationContext
             _installingUpdate = false;
             if (!_exiting)
             {
-                UpdateUpdateMenu();
+                UpdateSettingsManagementState();
                 MessageBox.Show(
                     $"{Localization.Text("UpdateInstallFailed")}{Environment.NewLine}{exception.Message}",
                     Localization.Text("UpdateInstallFailed"),
@@ -534,19 +524,13 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
     }
 
-    private void UpdateUpdateMenu()
+    private void UpdateSettingsManagementState(SettingsForm? form = null)
     {
-        _updateMenu.Enabled = !_checkingUpdate && !_installingUpdate;
-        _uninstallMenu.Enabled = !_installingUpdate;
-        _updateMenu.Text = _installingUpdate
-            ? Localization.Text("DownloadingUpdate")
-            : _checkingUpdate
-                ? Localization.Text("CheckingForUpdates")
-                : _availableUpdate is null
-                    ? Localization.Text("CheckForUpdates")
-                    : Localization.Format(
-                        "UpdateToVersion",
-                        _availableUpdate.Version.ToString(3));
+        (form ?? _settingsForm)?.SetManagementState(
+            _checkingUpdate,
+            _installingUpdate,
+            _availableUpdate?.Version,
+            UninstallService.IsInstalledApplication());
     }
 
     private void Uninstall()

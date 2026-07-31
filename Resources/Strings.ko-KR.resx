@@ -310,6 +310,36 @@
   <data name="UninstallFailed" xml:space="preserve">
     <value>제거를 시작할 수 없습니다.</value>
   </data>
+  <data name="AboutTab" xml:space="preserve">
+    <value>정보</value>
+  </data>
+  <data name="About" xml:space="preserve">
+    <value>프로그램 정보</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Codex 사용량과 CPU 및 메모리 사용률을 표시하는 Windows용 컴팩트 모니터입니다.</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>버전: {0}</value>
+  </data>
+  <data name="CurrentVersionLabel" xml:space="preserve">
+    <value>현재 버전: {0}</value>
+  </data>
+  <data name="AuthorLabel" xml:space="preserve">
+    <value>저작자: {0}</value>
+  </data>
+  <data name="Repository" xml:space="preserve">
+    <value>GitHub 저장소</value>
+  </data>
+  <data name="LicenseLabel" xml:space="preserve">
+    <value>라이선스: {0}</value>
+  </data>
+  <data name="ManagementActions" xml:space="preserve">
+    <value>프로그램 관리</value>
+  </data>
+  <data name="UpdateAvailableInline" xml:space="preserve">
+    <value>버전 {0}을 사용할 수 있습니다.</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>남음</value>
   </data>

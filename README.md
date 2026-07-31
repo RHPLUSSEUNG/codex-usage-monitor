@@ -104,15 +104,15 @@ Shortcut:    Start menu\Programs\Codex Usage Monitor
 Settings:    %LOCALAPPDATA%\CodexUsageMonitor\settings.json
 ```
 
-The installed app checks stable GitHub Releases at startup and every six hours. When a new version is available, a Windows notification and **Update to v…** tray-menu item appear. Selecting it downloads the release, verifies its SHA-256 checksum, replaces the installed app, and restarts it automatically. The checksum verifies download integrity; it is not a publisher signature. The settings file is kept.
+The installed app checks stable GitHub Releases at startup and every six hours. When a new version is available, a Windows notification appears. Open **Settings → About** and select **Update to v…** to download the release, verify its SHA-256 checksum, replace the installed app, and restart it automatically. The checksum verifies download integrity; it is not a publisher signature. The settings file is kept.
 
-You can also select **Check for updates** from the tray menu at any time. Automatic installation is available only from the installed path shown above; source and debug builds are not overwritten.
+You can also select **Check for updates** from **Settings → About** at any time. Automatic installation is available only from the installed path shown above; source and debug builds are not overwritten.
 
 Versions earlier than v1.1.0 do not include the updater and require one manual installation of v1.1.0 or later.
 
 On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
 
-To remove the installed app, open its tray menu and select **Uninstall**. The confirmation dialog lets you keep or delete settings, presets, and logs. Uninstall also removes the Start menu shortcut and Windows startup entry.
+To remove the installed app, open **Settings → About** and select **Uninstall**. The confirmation dialog lets you keep or delete settings, presets, and logs. Uninstall also removes the Start menu shortcut and Windows startup entry.
 
 <details>
 <summary><strong>Build manually</strong></summary>
@@ -144,7 +144,7 @@ The app runs in the notification area rather than as a normal taskbar window.
 - Double-click the tray icon or Compact Bar: open settings
 - Right-click the Compact Bar: refresh, settings, or reset its position
 - Drag the Compact Bar: move it and save the new position
-- Right-click the tray icon: reset an off-screen bar or copy diagnostic information
+- Open **Settings → About**: version, author, repository, diagnostics, updates, and uninstall
 
 If the Compact Bar is hidden, right-click the tray icon and enable **Show Compact Bar**.
 
@@ -207,7 +207,7 @@ Check the notification area, then enable **Show Compact Bar** from the tray menu
 
 ### Collect diagnostics
 
-Select **Copy diagnostics** from the tray menu. The copied report includes the app version, app-server state, last refresh/error, Windows/DPI/display information, and the settings and log paths.
+Select **Copy diagnostics** under **Settings → About**. The copied report includes the app version, app-server state, last refresh/error, Windows/DPI/display information, and the settings and log paths.
 
 ### Reinstallation fails
 

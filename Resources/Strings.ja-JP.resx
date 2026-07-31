@@ -310,6 +310,36 @@
   <data name="UninstallFailed" xml:space="preserve">
     <value>アンインストールを開始できませんでした。</value>
   </data>
+  <data name="AboutTab" xml:space="preserve">
+    <value>情報</value>
+  </data>
+  <data name="About" xml:space="preserve">
+    <value>アプリ情報</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Codex の使用量、CPU、メモリ使用率を表示する Windows 用コンパクトモニターです。</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>バージョン：{0}</value>
+  </data>
+  <data name="CurrentVersionLabel" xml:space="preserve">
+    <value>現在のバージョン：{0}</value>
+  </data>
+  <data name="AuthorLabel" xml:space="preserve">
+    <value>作者：{0}</value>
+  </data>
+  <data name="Repository" xml:space="preserve">
+    <value>GitHub リポジトリ</value>
+  </data>
+  <data name="LicenseLabel" xml:space="preserve">
+    <value>ライセンス：{0}</value>
+  </data>
+  <data name="ManagementActions" xml:space="preserve">
+    <value>アプリ管理</value>
+  </data>
+  <data name="UpdateAvailableInline" xml:space="preserve">
+    <value>バージョン {0} を利用できます。</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>残り</value>
   </data>

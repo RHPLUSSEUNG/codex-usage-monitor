@@ -310,6 +310,36 @@
   <data name="UninstallFailed" xml:space="preserve">
     <value>Could not start uninstall.</value>
   </data>
+  <data name="AboutTab" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="About" xml:space="preserve">
+    <value>Application information</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>A compact Windows monitor for Codex quota, CPU, and memory usage.</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>Version: {0}</value>
+  </data>
+  <data name="CurrentVersionLabel" xml:space="preserve">
+    <value>Current version: {0}</value>
+  </data>
+  <data name="AuthorLabel" xml:space="preserve">
+    <value>Author: {0}</value>
+  </data>
+  <data name="Repository" xml:space="preserve">
+    <value>GitHub repository</value>
+  </data>
+  <data name="LicenseLabel" xml:space="preserve">
+    <value>License: {0}</value>
+  </data>
+  <data name="ManagementActions" xml:space="preserve">
+    <value>App management</value>
+  </data>
+  <data name="UpdateAvailableInline" xml:space="preserve">
+    <value>Version {0} is available.</value>
+  </data>
   <data name="Remaining" xml:space="preserve">
     <value>remaining</value>
   </data>

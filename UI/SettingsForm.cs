@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using CodexUsageMonitor.Models;
+using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.UI;
 
@@ -38,12 +40,28 @@ public sealed class SettingsForm : Form
     private readonly NumericUpDown _quietHoursStart = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
     private readonly NumericUpDown _quietHoursEnd = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
     private readonly TextBox _codexPath = new() { Width = 280 };
+    private readonly Label _aboutDescription = new() { AutoSize = true, MaximumSize = new Size(460, 0) };
+    private readonly Label _versionLabel = new() { AutoSize = true };
+    private readonly Label _authorLabel = new() { AutoSize = true };
+    private readonly Label _licenseLabel = new() { AutoSize = true };
+    private readonly LinkLabel _repositoryLink = new() { AutoSize = true };
+    private readonly Button _diagnosticsButton = new() { AutoSize = true };
+    private readonly Button _updateButton = new() { AutoSize = true };
+    private readonly Button _uninstallButton = new() { AutoSize = true };
+    private readonly Label _managementStatus = new() { AutoSize = true, MaximumSize = new Size(460, 0), ForeColor = Color.DimGray };
     private readonly System.Windows.Forms.Timer _previewTimer = new() { Interval = 33 };
     private AppSettings? _pendingPreview;
+    private bool _checkingUpdate;
+    private bool _installingUpdate;
+    private Version? _availableUpdateVersion;
+    private bool _canUninstall;
 
     public AppSettings Result => _draft;
     public event Action<AppSettings>? PreviewChanged;
     public event Action<int, CompactBarPreset>? PresetSaved;
+    public event EventHandler? DiagnosticsRequested;
+    public event EventHandler? UpdateRequested;
+    public event EventHandler? UninstallRequested;
 
     public SettingsForm(AppSettings settings)
     {
@@ -61,9 +79,11 @@ public sealed class SettingsForm : Form
         var generalTab = CreateTab("GeneralTab");
         var appearanceTab = CreateTab("AppearanceTab");
         var metricsTab = CreateTab("MetricsTab");
+        var aboutTab = CreateTab("AboutTab");
         tabs.TabPages.Add(generalTab);
         tabs.TabPages.Add(appearanceTab);
         tabs.TabPages.Add(metricsTab);
+        tabs.TabPages.Add(aboutTab);
 
         var mainLayout = new TableLayoutPanel
         {
@@ -74,13 +94,16 @@ public sealed class SettingsForm : Form
         };
         mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-        mainLayout.Controls.Add(CreatePresetGroup(), 0, 0);
+        Control presetGroup = CreatePresetGroup();
+        mainLayout.Controls.Add(presetGroup, 0, 0);
         mainLayout.Controls.Add(tabs, 0, 1);
         Controls.Add(mainLayout);
+        tabs.SelectedIndexChanged += (_, _) => presetGroup.Visible = tabs.SelectedTab != aboutTab;
 
         var generalContent = CreateTabContent(generalTab, 3);
         var appearanceContent = CreateTabContent(appearanceTab, 2);
         var metricsContent = CreateTabContent(metricsTab, 4);
+        var aboutContent = CreateTabContent(aboutTab, 2);
 
         SetLocalizationKey(_showCompactBar, "ShowCompactBar");
         SetLocalizationKey(_startWithWindows, "StartWithWindows");
@@ -121,6 +144,9 @@ public sealed class SettingsForm : Form
         metricsContent.Controls.Add(CreateMetricGroup("CpuUsage", _draft.Cpu), 0, 2);
         metricsContent.Controls.Add(CreateMetricGroup("MemoryUsage", _draft.Memory), 0, 3);
 
+        aboutContent.Controls.Add(CreateAboutGroup(), 0, 0);
+        aboutContent.Controls.Add(CreateManagementGroup(), 0, 1);
+
         var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Bottom, AutoSize = true, Padding = new Padding(8) };
         var save = new Button { AutoSize = true };
         var cancel = new Button { DialogResult = DialogResult.Cancel, AutoSize = true };
@@ -148,6 +174,11 @@ public sealed class SettingsForm : Form
         save.Click += (_, _) => SaveAndClose();
         _language.SelectedIndexChanged += (_, _) => ChangeLanguage();
         _previewTimer.Tick += (_, _) => FlushPreview();
+        _repositoryLink.LinkClicked += (_, _) => OpenUrl(
+            "https://github.com/RHPLUSSEUNG/codex-usage-monitor");
+        _diagnosticsButton.Click += (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+        _updateButton.Click += (_, _) => UpdateRequested?.Invoke(this, EventArgs.Empty);
+        _uninstallButton.Click += (_, _) => UninstallRequested?.Invoke(this, EventArgs.Empty);
         FormClosed += (_, _) =>
         {
             _previewTimer.Stop();
@@ -188,6 +219,8 @@ public sealed class SettingsForm : Form
                 : PercentageMode.Used;
             RaisePreview();
         };
+        UpdateAboutText();
+        UpdateManagementControls();
     }
 
     private TabPage CreateTab(string localizationKey)
@@ -282,6 +315,59 @@ public sealed class SettingsForm : Form
     {
         var group = new GroupBox { Text = "Compact Bar", AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
         group.Controls.Add(CreateColorButton("RectangleBackground", () => _draft.BackgroundColor, value => _draft.BackgroundColor = value));
+        return group;
+    }
+
+    private GroupBox CreateAboutGroup()
+    {
+        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
+        SetLocalizationKey(group, "About");
+        var layout = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false
+        };
+        var title = new Label
+        {
+            Text = "Codex Usage Monitor",
+            AutoSize = true,
+            Font = new Font(Font.FontFamily, 14f, FontStyle.Bold)
+        };
+        layout.Controls.Add(title);
+        layout.Controls.Add(_aboutDescription);
+        layout.Controls.Add(_versionLabel);
+        layout.Controls.Add(_authorLabel);
+        layout.Controls.Add(_repositoryLink);
+        layout.Controls.Add(_licenseLabel);
+        group.Controls.Add(layout);
+        return group;
+    }
+
+    private GroupBox CreateManagementGroup()
+    {
+        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
+        SetLocalizationKey(group, "ManagementActions");
+        var layout = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false
+        };
+        var buttons = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true
+        };
+        buttons.Controls.Add(_diagnosticsButton);
+        buttons.Controls.Add(_updateButton);
+        buttons.Controls.Add(_uninstallButton);
+        layout.Controls.Add(buttons);
+        layout.Controls.Add(_managementStatus);
+        group.Controls.Add(layout);
         return group;
     }
 
@@ -402,6 +488,8 @@ public sealed class SettingsForm : Form
                 ReplaceItems(presentation, T("PercentOnly"), T("BarOnly"), T("PercentAndBar"));
             foreach (Action update in _colorButtonLanguageUpdates)
                 update();
+            UpdateAboutText();
+            UpdateManagementControls();
         }
         finally
         {
@@ -436,6 +524,76 @@ public sealed class SettingsForm : Form
     }
 
     private string T(string key) => Localization.Text(_displayLanguage, key);
+
+    public void SetManagementState(
+        bool checkingUpdate,
+        bool installingUpdate,
+        Version? availableUpdateVersion,
+        bool canUninstall)
+    {
+        _checkingUpdate = checkingUpdate;
+        _installingUpdate = installingUpdate;
+        _availableUpdateVersion = availableUpdateVersion;
+        _canUninstall = canUninstall;
+        UpdateManagementControls();
+    }
+
+    public void ShowManagementMessage(string localizationKey)
+    {
+        _managementStatus.Text = T(localizationKey);
+    }
+
+    private void UpdateAboutText()
+    {
+        _aboutDescription.Text = T("AboutDescription");
+        _versionLabel.Text = Localization.Format(
+            _displayLanguage,
+            "VersionLabel",
+            UpdateService.CurrentVersion.ToString(3));
+        _authorLabel.Text = Localization.Format(_displayLanguage, "AuthorLabel", "RHPLUSSEUNG");
+        _repositoryLink.Text = T("Repository");
+        _licenseLabel.Text = Localization.Format(_displayLanguage, "LicenseLabel", "MIT");
+    }
+
+    private void UpdateManagementControls()
+    {
+        _diagnosticsButton.Text = T("CopyDiagnostics");
+        _diagnosticsButton.Enabled = !_installingUpdate;
+        _updateButton.Enabled = !_checkingUpdate && !_installingUpdate;
+        _updateButton.Text = _installingUpdate
+            ? T("DownloadingUpdate")
+            : _checkingUpdate
+                ? T("CheckingForUpdates")
+                : _availableUpdateVersion is null
+                    ? T("CheckForUpdates")
+                    : Localization.Format(
+                        _displayLanguage,
+                        "UpdateToVersion",
+                        _availableUpdateVersion.ToString(3));
+        _uninstallButton.Text = T("Uninstall");
+        _uninstallButton.Enabled = !_installingUpdate && _canUninstall;
+        _managementStatus.Text = _availableUpdateVersion is null
+            ? Localization.Format(
+                _displayLanguage,
+                "CurrentVersionLabel",
+                UpdateService.CurrentVersion.ToString(3))
+            : Localization.Format(
+                _displayLanguage,
+                "UpdateAvailableInline",
+                _availableUpdateVersion.ToString(3));
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try
+        {
+            _ = Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch
+        {
+            // The repository URL remains visible and can still be copied.
+        }
+    }
 
     private void SavePreset(int slot)
     {
