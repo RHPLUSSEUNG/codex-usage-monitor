@@ -158,13 +158,14 @@ public sealed class CompactBarForm : Form
             size = CalculateWindowSize(scale, targetScreenPoint);
             targetScreenPoint = WindowCenter(anchor, size);
         }
-        Rectangle targetScreen = Screen.FromPoint(targetScreenPoint).WorkingArea;
-        int defaultX = targetScreen.Left + Math.Max(0, (targetScreen.Width - size.Width) / 2);
-        int defaultY = targetScreen.Top + Math.Max(0, (targetScreen.Height - size.Height) / 2);
+        Screen targetScreen = Screen.FromPoint(targetScreenPoint);
+        Rectangle defaultArea = targetScreen.WorkingArea;
+        int defaultX = defaultArea.Left + Math.Max(0, (defaultArea.Width - size.Width) / 2);
+        int defaultY = defaultArea.Top + Math.Max(0, (defaultArea.Height - size.Height) / 2);
         var requested = new Point(
             hasStoredPosition ? _settings.WindowPositionX : defaultX,
             hasStoredPosition ? _settings.WindowPositionY : defaultY);
-        Point location = ClampToWorkingArea(requested, size, targetScreen);
+        Point location = ClampToScreenArea(requested, size, targetScreen.Bounds);
         bool positionChanged = _settings.WindowPositionX != location.X
                                || _settings.WindowPositionY != location.Y;
         _settings.WindowPositionX = location.X;
@@ -179,32 +180,22 @@ public sealed class CompactBarForm : Form
             location.X + size.Width / 2,
             location.Y + size.Height / 2);
 
-    internal static Point ClampToWorkingArea(
+    internal static Point ClampToScreenArea(
         Point location,
         Size size,
-        Rectangle workingArea,
+        Rectangle screenArea,
         int minimumVisible = 32)
     {
         int visibleX = Math.Min(
             Math.Max(1, minimumVisible),
-            Math.Max(1, Math.Min(size.Width, workingArea.Width)));
+            Math.Max(1, Math.Min(size.Width, screenArea.Width)));
         int visibleY = Math.Min(
             Math.Max(1, minimumVisible),
-            Math.Max(1, Math.Min(size.Height, workingArea.Height)));
-        bool fitsHorizontally = size.Width <= workingArea.Width;
-        bool fitsVertically = size.Height <= workingArea.Height;
-        int minimumX = fitsHorizontally
-            ? workingArea.Left
-            : workingArea.Left - size.Width + visibleX;
-        int maximumX = fitsHorizontally
-            ? workingArea.Right - size.Width
-            : workingArea.Right - visibleX;
-        int minimumY = fitsVertically
-            ? workingArea.Top
-            : workingArea.Top - size.Height + visibleY;
-        int maximumY = fitsVertically
-            ? workingArea.Bottom - size.Height
-            : workingArea.Bottom - visibleY;
+            Math.Max(1, Math.Min(size.Height, screenArea.Height)));
+        int minimumX = screenArea.Left - size.Width + visibleX;
+        int maximumX = screenArea.Right - visibleX;
+        int minimumY = screenArea.Top - size.Height + visibleY;
+        int maximumY = screenArea.Bottom - visibleY;
         return new Point(
             Math.Clamp(location.X, minimumX, maximumX),
             Math.Clamp(location.Y, minimumY, maximumY));

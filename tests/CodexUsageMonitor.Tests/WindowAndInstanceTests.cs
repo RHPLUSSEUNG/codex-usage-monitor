@@ -18,39 +18,39 @@ public sealed class WindowAndInstanceTests
     }
 
     [Fact]
-    public void Clamp_keeps_normal_window_fully_inside_working_area()
+    public void Clamp_keeps_minimum_part_of_window_inside_screen()
     {
-        var workingArea = new Rectangle(0, 0, 1920, 1080);
+        var screenArea = new Rectangle(0, 0, 1920, 1080);
         var size = new Size(400, 60);
 
-        Point result = CompactBarForm.ClampToWorkingArea(
+        Point result = CompactBarForm.ClampToScreenArea(
             new Point(-5000, 5000),
             size,
-            workingArea);
+            screenArea);
 
-        Assert.Equal(new Point(0, 1020), result);
+        Assert.Equal(new Point(-368, 1048), result);
     }
 
     [Fact]
-    public void Clamp_keeps_minimum_part_visible_when_window_exceeds_working_area()
+    public void Clamp_allows_bar_below_taskbar_boundary()
     {
-        var workingArea = new Rectangle(100, 200, 300, 40);
-        var size = new Size(500, 80);
+        var screenArea = new Rectangle(0, 0, 1536, 864);
+        var size = new Size(400, 80);
 
-        Point result = CompactBarForm.ClampToWorkingArea(
-            new Point(-5000, 5000),
+        Point result = CompactBarForm.ClampToScreenArea(
+            new Point(200, 832),
             size,
-            workingArea);
+            screenArea);
 
-        Assert.Equal(new Point(-368, 208), result);
+        Assert.Equal(new Point(200, 832), result);
     }
 
     [Fact]
-    public void Clamp_preserves_position_already_in_working_area()
+    public void Clamp_preserves_position_already_inside_screen()
     {
         var position = new Point(100, 200);
 
-        Point result = CompactBarForm.ClampToWorkingArea(
+        Point result = CompactBarForm.ClampToScreenArea(
             position,
             new Size(400, 60),
             new Rectangle(0, 0, 1920, 1080));
