@@ -45,6 +45,8 @@ internal sealed class CompactBarHost : IDisposable
 
     public void PositionWindow() => Post(form => form.PositionWindow());
 
+    public void ResetPosition() => Post(form => form.ResetPosition());
+
     public void Close()
     {
         if (_disposed)

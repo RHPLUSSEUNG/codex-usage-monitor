@@ -9,6 +9,7 @@ public sealed class CompactBarForm : Form
 {
     private readonly ToolStripMenuItem _refreshMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
+    private readonly ToolStripMenuItem _resetPositionMenu = new();
     private AppSettings _settings = new();
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemUsage = SystemUsageSnapshot.Empty;
@@ -32,8 +33,10 @@ public sealed class CompactBarForm : Form
         var menu = new ContextMenuStrip();
         _refreshMenu.Click += (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty);
         _settingsMenu.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _resetPositionMenu.Click += (_, _) => ResetPosition();
         menu.Items.Add(_refreshMenu);
         menu.Items.Add(_settingsMenu);
+        menu.Items.Add(_resetPositionMenu);
         ContextMenuStrip = menu;
         ApplyLanguage();
 
@@ -49,6 +52,7 @@ public sealed class CompactBarForm : Form
     {
         _refreshMenu.Text = Localization.Text("Refresh");
         _settingsMenu.Text = Localization.Text("Settings");
+        _resetPositionMenu.Text = Localization.Text("ResetPosition");
     }
 
     public void SuspendRendering() => _renderingSuspended = true;
@@ -125,9 +129,19 @@ public sealed class CompactBarForm : Form
             RenderAtStoredPosition();
     }
 
+    public void ResetPosition()
+    {
+        _settings.WindowPositionX = -1;
+        _settings.WindowPositionY = -1;
+        if (Visible && !_dragging && !_renderingSuspended)
+            RenderAtStoredPosition();
+        else
+            PositionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void RenderAtStoredPosition(bool updateZOrder = true)
     {
-        bool hasStoredPosition = _settings.WindowPositionX != -1 || _settings.WindowPositionY != -1;
+        bool hasStoredPosition = _settings.WindowPositionX != -1 && _settings.WindowPositionY != -1;
         Point anchor = hasStoredPosition
             ? new Point(_settings.WindowPositionX, _settings.WindowPositionY)
             : PhysicalCursorPosition();
@@ -136,9 +150,38 @@ public sealed class CompactBarForm : Form
         Rectangle targetScreen = Screen.FromPoint(anchor).WorkingArea;
         int defaultX = targetScreen.Left + Math.Max(0, (targetScreen.Width - size.Width) / 2);
         int defaultY = targetScreen.Top + Math.Max(0, (targetScreen.Height - size.Height) / 2);
-        int x = hasStoredPosition ? _settings.WindowPositionX : defaultX;
-        int y = hasStoredPosition ? _settings.WindowPositionY : defaultY;
-        RenderLayeredWindow(new Point(x, y), size, updateZOrder, scale, dpi);
+        var requested = new Point(
+            hasStoredPosition ? _settings.WindowPositionX : defaultX,
+            hasStoredPosition ? _settings.WindowPositionY : defaultY);
+        Point location = ClampToWorkingArea(requested, size, targetScreen);
+        bool positionChanged = _settings.WindowPositionX != location.X
+                               || _settings.WindowPositionY != location.Y;
+        _settings.WindowPositionX = location.X;
+        _settings.WindowPositionY = location.Y;
+        RenderLayeredWindow(location, size, updateZOrder, scale, dpi);
+        if (positionChanged)
+            PositionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal static Point ClampToWorkingArea(
+        Point location,
+        Size size,
+        Rectangle workingArea,
+        int minimumVisible = 32)
+    {
+        int visibleX = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Width, workingArea.Width)));
+        int visibleY = Math.Min(
+            Math.Max(1, minimumVisible),
+            Math.Max(1, Math.Min(size.Height, workingArea.Height)));
+        int minimumX = workingArea.Left - size.Width + visibleX;
+        int maximumX = workingArea.Right - visibleX;
+        int minimumY = workingArea.Top - size.Height + visibleY;
+        int maximumY = workingArea.Bottom - visibleY;
+        return new Point(
+            Math.Clamp(location.X, minimumX, maximumX),
+            Math.Clamp(location.Y, minimumY, maximumY));
     }
 
     private Size CalculateWindowSize(float scale, Point location) =>

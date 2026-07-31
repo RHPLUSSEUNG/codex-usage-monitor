@@ -100,6 +100,9 @@ public sealed class CompactBarPreset
 
 public sealed class AppSettings
 {
+    public const int CurrentSettingsVersion = 2;
+
+    public int SettingsVersion { get; set; } = CurrentSettingsVersion;
     public AppLanguage Language { get; set; } = AppLanguage.English;
     public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
     public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
@@ -112,6 +115,10 @@ public sealed class AppSettings
     public bool UseCustomTaskbarPosition { get; set; }
     public int TaskbarPositionPercent { get; set; } = 75;
     public int RefreshIntervalSeconds { get; set; } = 60;
+    public bool EnableQuotaNotifications { get; set; } = true;
+    public bool QuietHoursEnabled { get; set; }
+    public int QuietHoursStart { get; set; } = 22;
+    public int QuietHoursEnd { get; set; } = 8;
     public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
     public string CodexExecutable { get; set; } = "codex";
     public MetricSettings FiveHour { get; set; } = new();
@@ -146,6 +153,7 @@ public sealed class AppSettings
 
     public AppSettings Copy() => new()
     {
+        SettingsVersion = SettingsVersion,
         Language = Language,
         CompactBarStyle = CompactBarStyle,
         ThemeVariant = ThemeVariant,
@@ -158,6 +166,10 @@ public sealed class AppSettings
         UseCustomTaskbarPosition = UseCustomTaskbarPosition,
         TaskbarPositionPercent = TaskbarPositionPercent,
         RefreshIntervalSeconds = RefreshIntervalSeconds,
+        EnableQuotaNotifications = EnableQuotaNotifications,
+        QuietHoursEnabled = QuietHoursEnabled,
+        QuietHoursStart = QuietHoursStart,
+        QuietHoursEnd = QuietHoursEnd,
         PercentageMode = PercentageMode,
         CodexExecutable = CodexExecutable,
         FiveHour = CopyMetric(FiveHour),

@@ -1,0 +1,346 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Codex Usage Monitor Settings</value>
+  </data>
+  <data name="ShowCompactBar" xml:space="preserve">
+    <value>Show Compact Bar</value>
+  </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="CompactBarStyle" xml:space="preserve">
+    <value>Compact Bar style</value>
+  </data>
+  <data name="ThemeVariant" xml:space="preserve">
+    <value>Color theme</value>
+  </data>
+  <data name="DarkTheme" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="LightTheme" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="DarkMinimalStyle" xml:space="preserve">
+    <value>Dark minimal</value>
+  </data>
+  <data name="LabelBoxStyle" xml:space="preserve">
+    <value>Label boxes</value>
+  </data>
+  <data name="NeonGlowStyle" xml:space="preserve">
+    <value>Neon glow</value>
+  </data>
+  <data name="LightStyle" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="CardsStyle" xml:space="preserve">
+    <value>Cards</value>
+  </data>
+  <data name="CircularGaugesStyle" xml:space="preserve">
+    <value>Circular gauges</value>
+  </data>
+  <data name="CompactRowsStyle" xml:space="preserve">
+    <value>Compact rows</value>
+  </data>
+  <data name="RoundedCapsulesStyle" xml:space="preserve">
+    <value>Rounded capsules</value>
+  </data>
+  <data name="GradientStyle" xml:space="preserve">
+    <value>Gradient</value>
+  </data>
+  <data name="MinimalIconsStyle" xml:space="preserve">
+    <value>Minimal icons + text</value>
+  </data>
+  <data name="Presets" xml:space="preserve">
+    <value>Presets</value>
+  </data>
+  <data name="GeneralTab" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="AppearanceTab" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="MetricsTab" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
+  <data name="Preset1" xml:space="preserve">
+    <value>Preset 1</value>
+  </data>
+  <data name="Preset2" xml:space="preserve">
+    <value>Preset 2</value>
+  </data>
+  <data name="Preset3" xml:space="preserve">
+    <value>Preset 3</value>
+  </data>
+  <data name="LoadPreset" xml:space="preserve">
+    <value>Load</value>
+  </data>
+  <data name="SavePreset" xml:space="preserve">
+    <value>Save slot</value>
+  </data>
+  <data name="RemainingPercent" xml:space="preserve">
+    <value>Remaining percentage</value>
+  </data>
+  <data name="UsedPercent" xml:space="preserve">
+    <value>Used percentage</value>
+  </data>
+  <data name="DisplayBasis" xml:space="preserve">
+    <value>Display basis</value>
+  </data>
+  <data name="RefreshSeconds" xml:space="preserve">
+    <value>Refresh interval (sec)</value>
+  </data>
+  <data name="QuotaNotifications" xml:space="preserve">
+    <value>Quota threshold notifications</value>
+  </data>
+  <data name="QuietHours" xml:space="preserve">
+    <value>Use quiet hours</value>
+  </data>
+  <data name="QuietHoursStart" xml:space="preserve">
+    <value>Quiet hours start</value>
+  </data>
+  <data name="QuietHoursEnd" xml:space="preserve">
+    <value>Quiet hours end</value>
+  </data>
+  <data name="CodexExecutable" xml:space="preserve">
+    <value>Codex executable</value>
+  </data>
+  <data name="FiveHourLimit" xml:space="preserve">
+    <value>5-hour limit</value>
+  </data>
+  <data name="WeeklyLimit" xml:space="preserve">
+    <value>Weekly limit</value>
+  </data>
+  <data name="CpuUsage" xml:space="preserve">
+    <value>CPU usage</value>
+  </data>
+  <data name="MemoryUsage" xml:space="preserve">
+    <value>Memory usage</value>
+  </data>
+  <data name="SettingsNote" xml:space="preserve">
+    <value>Drag the Compact Bar anywhere on the screen. Color controls support RGB and alpha transparency. CPU and RAM always show current usage.</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="PercentOnly" xml:space="preserve">
+    <value>Percentage only (hide bar)</value>
+  </data>
+  <data name="BarOnly" xml:space="preserve">
+    <value>Fill bar only</value>
+  </data>
+  <data name="PercentAndBar" xml:space="preserve">
+    <value>Percentage + Fill bar</value>
+  </data>
+  <data name="Presentation" xml:space="preserve">
+    <value>Presentation</value>
+  </data>
+  <data name="FillColor" xml:space="preserve">
+    <value>Fill color</value>
+  </data>
+  <data name="TrackColor" xml:space="preserve">
+    <value>Track color</value>
+  </data>
+  <data name="RectangleBackground" xml:space="preserve">
+    <value>Background</value>
+  </data>
+  <data name="ChooseColor" xml:space="preserve">
+    <value>Choose color · A {0}</value>
+  </data>
+  <data name="ColorPickerTitle" xml:space="preserve">
+    <value>Choose color</value>
+  </data>
+  <data name="Opacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="HexError" xml:space="preserve">
+    <value>Enter the Hex color in RRGGBB format.</value>
+  </data>
+  <data name="ColorFormatError" xml:space="preserve">
+    <value>Color format error</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ResetPosition" xml:space="preserve">
+    <value>Reset position</value>
+  </data>
+  <data name="CopyDiagnostics" xml:space="preserve">
+    <value>Copy diagnostics</value>
+  </data>
+  <data name="DiagnosticsCopiedTitle" xml:space="preserve">
+    <value>Diagnostics copied</value>
+  </data>
+  <data name="DiagnosticsCopiedMessage" xml:space="preserve">
+    <value>Diagnostic information was copied to the clipboard.</value>
+  </data>
+  <data name="DiagnosticsCopyFailed" xml:space="preserve">
+    <value>Could not copy diagnostics.</value>
+  </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="CheckingForUpdates" xml:space="preserve">
+    <value>Checking for updates…</value>
+  </data>
+  <data name="UpdateToVersion" xml:space="preserve">
+    <value>Update to v{0}</value>
+  </data>
+  <data name="DownloadingUpdate" xml:space="preserve">
+    <value>Downloading update…</value>
+  </data>
+  <data name="UpdateAvailableTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="UpdateAvailableMessage" xml:space="preserve">
+    <value>Version {0} is available. Select “Update to v{0}” from the tray menu to install it.</value>
+  </data>
+  <data name="UpToDateTitle" xml:space="preserve">
+    <value>No updates</value>
+  </data>
+  <data name="UpToDateMessage" xml:space="preserve">
+    <value>Codex Usage Monitor is up to date.</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Could not check for updates.</value>
+  </data>
+  <data name="UpdateInstallFailed" xml:space="preserve">
+    <value>Could not install the update.</value>
+  </data>
+  <data name="QuotaAlertTitle" xml:space="preserve">
+    <value>Codex quota is running low</value>
+  </data>
+  <data name="QuotaAlertMessage" xml:space="preserve">
+    <value>{0}: {1:0}% remaining (crossed {2}% threshold)</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Remaining" xml:space="preserve">
+    <value>remaining</value>
+  </data>
+  <data name="Used" xml:space="preserve">
+    <value>used</value>
+  </data>
+  <data name="FiveHour" xml:space="preserve">
+    <value>5-hour</value>
+  </data>
+  <data name="Weekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="LoginHint" xml:space="preserve">
+    <value>Check that Codex CLI is installed and you are signed in to ChatGPT.</value>
+  </data>
+  <data name="TodayTokens" xml:space="preserve">
+    <value>Tokens today</value>
+  </data>
+  <data name="LifetimeTokens" xml:space="preserve">
+    <value>Lifetime tokens</value>
+  </data>
+  <data name="LastUpdated" xml:space="preserve">
+    <value>Last updated</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="ResetUnknown" xml:space="preserve">
+    <value>reset time unknown</value>
+  </data>
+  <data name="ResetAt" xml:space="preserve">
+    <value>resets at {0}</value>
+  </data>
+  <data name="UsageTitle" xml:space="preserve">
+    <value>Codex usage</value>
+  </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>Settings save error</value>
+  </data>
+  <data name="SettingsRecoveredTitle" xml:space="preserve">
+    <value>Settings recovered</value>
+  </data>
+  <data name="SettingsRecoveredMessage" xml:space="preserve">
+    <value>The settings file was damaged or missing. The backup was loaded and restored.</value>
+  </data>
+  <data name="SettingsDefaultsTitle" xml:space="preserve">
+    <value>Settings reset</value>
+  </data>
+  <data name="SettingsDefaultsMessage" xml:space="preserve">
+    <value>The settings file and backup could not be read. Defaults were loaded; the damaged file is preserved for diagnosis.</value>
+  </data>
+</root>

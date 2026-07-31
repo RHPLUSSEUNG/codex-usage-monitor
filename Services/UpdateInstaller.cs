@@ -3,9 +3,12 @@ using System.IO.Compression;
 
 namespace CodexUsageMonitor.Services;
 
+internal sealed record PostUpdateSession(string TransactionId, string HealthFilePath);
+
 internal static class UpdateInstaller
 {
     private const string UpdateArgument = "--apply-update";
+    private const string PostUpdateArgument = "--post-update";
 
     public static string DownloadsDirectory =>
         Path.Combine(
@@ -27,9 +30,12 @@ internal static class UpdateInstaller
             int parentPid = int.Parse(Required(arguments, "--parent-pid"));
             string packagePath = Path.GetFullPath(Required(arguments, "--package"));
             string targetExecutable = Path.GetFullPath(Required(arguments, "--target"));
+            string transactionId = Required(arguments, "--transaction-id");
+            if (!Guid.TryParseExact(transactionId, "N", out _))
+                throw new ArgumentException("The update transaction id is invalid.");
             ValidateTarget(targetExecutable);
             WaitForParent(parentPid);
-            Apply(packagePath, targetExecutable);
+            Apply(packagePath, targetExecutable, transactionId);
             return 0;
         }
         catch (Exception exception)
@@ -64,7 +70,44 @@ internal static class UpdateInstaller
         }
     }
 
-    private static void Apply(string packagePath, string targetExecutable)
+    public static bool TryGetPostUpdate(string[] args, out PostUpdateSession? session)
+    {
+        session = null;
+        int marker = Array.FindIndex(
+            args,
+            argument => string.Equals(
+                argument,
+                PostUpdateArgument,
+                StringComparison.OrdinalIgnoreCase));
+        if (marker < 0 || marker + 2 >= args.Length)
+            return false;
+
+        string transactionId = args[marker + 1];
+        string healthFilePath = Path.GetFullPath(args[marker + 2]);
+        if (!Guid.TryParseExact(transactionId, "N", out _)
+            || !IsPathInside(healthFilePath, DownloadsDirectory))
+            return false;
+
+        session = new PostUpdateSession(transactionId, healthFilePath);
+        return true;
+    }
+
+    public static void SignalHealthy(PostUpdateSession session)
+    {
+        if (!IsPathInside(session.HealthFilePath, DownloadsDirectory))
+            throw new InvalidOperationException("The update health path is invalid.");
+
+        string temporaryPath = session.HealthFilePath + ".tmp";
+        File.WriteAllText(temporaryPath, session.TransactionId);
+        File.Move(temporaryPath, session.HealthFilePath, overwrite: true);
+    }
+
+    internal static void Apply(
+        string packagePath,
+        string targetExecutable,
+        string transactionId,
+        TimeSpan? startupTimeout = null,
+        TimeSpan? survivalGrace = null)
     {
         if (!File.Exists(packagePath))
             throw new FileNotFoundException("The update package was not found.", packagePath);
@@ -85,7 +128,11 @@ internal static class UpdateInstaller
         string payloadDirectory = Path.GetDirectoryName(payloadExecutables[0])!;
         string targetDirectory = Path.GetDirectoryName(targetExecutable)!;
         string backupDirectory = targetDirectory + ".backup-" + Guid.NewGuid().ToString("N");
+        string healthFilePath = Path.Combine(
+            updateDirectory,
+            $"healthy-{transactionId}.signal");
         bool backupCreated = false;
+        Process? updatedProcess = null;
 
         try
         {
@@ -99,8 +146,26 @@ internal static class UpdateInstaller
             if (!File.Exists(targetExecutable))
                 throw new InvalidDataException("The installed executable is missing after the update.");
 
-            _ = Process.Start(new ProcessStartInfo(targetExecutable) { UseShellExecute = true })
+            TryDelete(healthFilePath);
+            var startInfo = new ProcessStartInfo(targetExecutable)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = targetDirectory
+            };
+            startInfo.ArgumentList.Add(PostUpdateArgument);
+            startInfo.ArgumentList.Add(transactionId);
+            startInfo.ArgumentList.Add(healthFilePath);
+            updatedProcess = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("The updated application could not be started.");
+            WaitForHealthyStartup(
+                updatedProcess,
+                healthFilePath,
+                transactionId,
+                startupTimeout,
+                survivalGrace);
+            updatedProcess.Dispose();
+            updatedProcess = null;
 
             if (backupCreated)
             {
@@ -118,6 +183,7 @@ internal static class UpdateInstaller
         {
             try
             {
+                StopProcess(updatedProcess);
                 if (Directory.Exists(targetDirectory))
                     Directory.Delete(targetDirectory, recursive: true);
                 if (backupCreated && Directory.Exists(backupDirectory))
@@ -131,6 +197,46 @@ internal static class UpdateInstaller
             }
             throw;
         }
+        finally
+        {
+            updatedProcess?.Dispose();
+            TryDelete(healthFilePath);
+        }
+    }
+
+    internal static void WaitForHealthyStartup(
+        Process process,
+        string healthFilePath,
+        string transactionId,
+        TimeSpan? startupTimeout = null,
+        TimeSpan? survivalGrace = null)
+    {
+        TimeSpan timeoutLimit = startupTimeout ?? TimeSpan.FromSeconds(60);
+        TimeSpan gracePeriod = survivalGrace ?? TimeSpan.FromSeconds(3);
+        var timeout = Stopwatch.StartNew();
+        while (timeout.Elapsed < timeoutLimit)
+        {
+            if (process.HasExited)
+                throw new InvalidOperationException(
+                    $"The updated application exited with code {process.ExitCode} before becoming healthy.");
+
+            if (File.Exists(healthFilePath))
+            {
+                string signal = File.ReadAllText(healthFilePath).Trim();
+                if (string.Equals(signal, transactionId, StringComparison.Ordinal))
+                {
+                    Thread.Sleep(gracePeriod);
+                    if (process.HasExited)
+                        throw new InvalidOperationException(
+                            $"The updated application exited with code {process.ExitCode} after startup.");
+                    return;
+                }
+            }
+
+            Thread.Sleep(200);
+        }
+
+        throw new TimeoutException("The updated application did not report a healthy startup in time.");
     }
 
     private static void CopyDirectory(string source, string destination)
@@ -170,11 +276,38 @@ internal static class UpdateInstaller
         }
     }
 
+    private static void StopProcess(Process? process)
+    {
+        if (process is null)
+            return;
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
+            }
+        }
+        catch
+        {
+            // Rollback continues even if the failed child is already gone.
+        }
+    }
+
     private static void ValidateTarget(string targetExecutable)
     {
         string expected = Path.GetFullPath(UpdateService.InstalledExecutablePath);
         if (!string.Equals(targetExecutable, expected, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The update target is not the installed application.");
+    }
+
+    private static bool IsPathInside(string path, string directory)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string fullDirectory = Path.GetFullPath(directory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        return fullPath.StartsWith(fullDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private static Dictionary<string, string> ParseArguments(string[] args)
@@ -211,6 +344,19 @@ internal static class UpdateInstaller
         catch
         {
             // There is nowhere else to report errors from the background updater.
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Health signals are temporary and can be cleaned on a later startup.
         }
     }
 }
