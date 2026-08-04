@@ -61,6 +61,17 @@ public sealed class AppServerTests
     }
 
     [Fact]
+    public void App_server_process_uses_utf8_for_all_redirected_streams()
+    {
+        var startInfo = CodexAppServerClient.CreateStartInfo(
+            @"C:\도구\codex.exe");
+
+        Assert.Equal(65001, startInfo.StandardInputEncoding?.CodePage);
+        Assert.Equal(65001, startInfo.StandardOutputEncoding?.CodePage);
+        Assert.Equal(65001, startInfo.StandardErrorEncoding?.CodePage);
+    }
+
+    [Fact]
     public void Rate_limit_parser_classifies_five_hour_and_weekly_windows_by_duration()
     {
         using JsonDocument document = JsonDocument.Parse(

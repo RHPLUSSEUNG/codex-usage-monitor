@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using CodexUsageMonitor.Models;
 
@@ -484,7 +485,7 @@ public sealed class CodexAppServerClient : IAsyncDisposable
             FailPending(new ObjectDisposedException(nameof(CodexAppServerClient)));
     }
 
-    private static ProcessStartInfo CreateStartInfo(string configuredExecutable)
+    internal static ProcessStartInfo CreateStartInfo(string configuredExecutable)
     {
         string executable = ResolveExecutable(configuredExecutable);
         bool isCommandScript = executable.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
@@ -502,6 +503,9 @@ public sealed class CodexAppServerClient : IAsyncDisposable
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardInputEncoding = Encoding.UTF8,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
             CreateNoWindow = true
         };
         return startInfo;
