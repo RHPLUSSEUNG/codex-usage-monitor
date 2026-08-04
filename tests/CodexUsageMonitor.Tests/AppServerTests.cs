@@ -61,7 +61,7 @@ public sealed class AppServerTests
     }
 
     [Fact]
-    public void App_server_process_uses_utf8_for_all_redirected_streams()
+    public void App_server_process_uses_bomless_utf8_for_all_redirected_streams()
     {
         var startInfo = CodexAppServerClient.CreateStartInfo(
             @"C:\도구\codex.exe");
@@ -69,6 +69,9 @@ public sealed class AppServerTests
         Assert.Equal(65001, startInfo.StandardInputEncoding?.CodePage);
         Assert.Equal(65001, startInfo.StandardOutputEncoding?.CodePage);
         Assert.Equal(65001, startInfo.StandardErrorEncoding?.CodePage);
+        Assert.Empty(startInfo.StandardInputEncoding!.GetPreamble());
+        Assert.Empty(startInfo.StandardOutputEncoding!.GetPreamble());
+        Assert.Empty(startInfo.StandardErrorEncoding!.GetPreamble());
     }
 
     [Fact]
