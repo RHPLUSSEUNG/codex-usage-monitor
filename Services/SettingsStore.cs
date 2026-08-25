@@ -186,6 +186,8 @@ public static class SettingsStore
         }
 
         settings.SettingsVersion = AppSettings.CurrentSettingsVersion;
+        NormalizeAppearance(settings);
+        settings.CompactBarScalePercent = Math.Clamp(settings.CompactBarScalePercent, 50, 200);
         settings.FiveHour ??= new MetricSettings();
         settings.Weekly ??= new MetricSettings { FillColor = "#77A8FF" };
         settings.Cpu ??= new MetricSettings { FillColor = "#F2C66D" };
@@ -199,10 +201,58 @@ public static class SettingsStore
     {
         if (preset is null)
             return;
+        NormalizeAppearance(preset);
+        preset.ScalePercent = Math.Clamp(preset.ScalePercent, 50, 200);
         preset.FiveHour ??= new MetricSettings();
         preset.Weekly ??= new MetricSettings { FillColor = "#77A8FF" };
         preset.Cpu ??= new MetricSettings { FillColor = "#F2C66D" };
         preset.Memory ??= new MetricSettings { FillColor = "#D48BFF" };
+    }
+
+    private static void NormalizeAppearance(AppSettings settings)
+    {
+        if (!Enum.IsDefined(settings.CodexPalette))
+            settings.CodexPalette = CodexPalette.Codex;
+        if (settings.ThemeVariant == ThemeVariant.CodexDark)
+        {
+            settings.CodexPalette = CodexPalette.Codex;
+            settings.ThemeVariant = ThemeVariant.Dark;
+        }
+        else if (settings.ThemeVariant == ThemeVariant.CodexLight)
+        {
+            settings.CodexPalette = CodexPalette.Codex;
+            settings.ThemeVariant = ThemeVariant.Light;
+        }
+        else if (settings.ThemeVariant is not ThemeVariant.Dark and not ThemeVariant.Light)
+        {
+            settings.ThemeVariant = ThemeVariant.Dark;
+        }
+
+        if (!CompactBarPaletteCatalog.Supports(settings.CodexPalette, settings.ThemeVariant))
+            settings.ThemeVariant = CompactBarPaletteCatalog.DefaultVariant(settings.CodexPalette);
+    }
+
+    private static void NormalizeAppearance(CompactBarPreset preset)
+    {
+        if (!Enum.IsDefined(preset.CodexPalette))
+            preset.CodexPalette = CodexPalette.Codex;
+        if (preset.ThemeVariant == ThemeVariant.CodexDark)
+        {
+            preset.CodexPalette = CodexPalette.Codex;
+            preset.ThemeVariant = ThemeVariant.Dark;
+        }
+        else if (preset.ThemeVariant == ThemeVariant.CodexLight)
+        {
+            preset.CodexPalette = CodexPalette.Codex;
+            preset.ThemeVariant = ThemeVariant.Light;
+        }
+        else if (preset.ThemeVariant is not ThemeVariant.Dark and not ThemeVariant.Light)
+        {
+            preset.ThemeVariant = ThemeVariant.Dark;
+        }
+
+        if (!CompactBarPaletteCatalog.Supports(preset.CodexPalette, preset.ThemeVariant))
+            preset.ThemeVariant = CompactBarPaletteCatalog.DefaultVariant(preset.CodexPalette);
     }
 
     private static string? TryRestoreBackup(string backupPath, string settingsPath)

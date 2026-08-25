@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Resources;
 using CodexUsageMonitor.Models;
@@ -10,13 +11,16 @@ internal static class Localization
     private static readonly ResourceManager Resources = new(
         "CodexUsageMonitor.Resources.Strings",
         typeof(Localization).Assembly);
+    private static readonly ConcurrentDictionary<(AppLanguage Language, string Key), string> TextCache = new();
 
     public static AppLanguage CurrentLanguage { get; set; } = AppLanguage.Korean;
 
     public static string Text(string key) => Text(CurrentLanguage, key);
 
     public static string Text(AppLanguage language, string key) =>
-        Resources.GetString(key, CultureFor(language)) ?? key;
+        TextCache.GetOrAdd(
+            (language, key),
+            static item => Resources.GetString(item.Key, CultureFor(item.Language)) ?? item.Key);
 
     public static string Format(string key, params object[] args) =>
         Format(CurrentLanguage, key, args);
@@ -49,6 +53,14 @@ internal static class Localization
             createIfNotExists: true,
             tryParents: false);
         return resources?.GetString(key) is not null;
+    }
+
+    internal static void WarmCache()
+    {
+        IReadOnlyList<string> keys = ResourceKeys();
+        foreach (AppLanguage language in Enum.GetValues<AppLanguage>())
+        foreach (string key in keys)
+            _ = Text(language, key);
     }
 
     private static CultureInfo CultureFor(AppLanguage language) => language switch

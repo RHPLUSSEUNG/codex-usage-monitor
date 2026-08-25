@@ -33,7 +33,7 @@ internal sealed class CompactBarHost : IDisposable
 
     public void ApplyLanguage() => Post(form => form.ApplyLanguage());
 
-    public void BeginPreview() => Post(form => form.SuspendRendering());
+    public void BeginPreview() => Post(form => form.BeginPreview());
 
     public void Preview(AppSettings settings) => Post(form => form.Preview(settings.Copy()));
 

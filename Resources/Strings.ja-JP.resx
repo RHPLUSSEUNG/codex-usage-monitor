@@ -74,7 +74,13 @@
     <value>Compact Bar スタイル</value>
   </data>
   <data name="ThemeVariant" xml:space="preserve">
+    <value>カラーモード</value>
+  </data>
+  <data name="CodexPalette" xml:space="preserve">
     <value>カラーテーマ</value>
+  </data>
+  <data name="CompactBarScale" xml:space="preserve">
+    <value>サイズ倍率 (%)</value>
   </data>
   <data name="DarkTheme" xml:space="preserve">
     <value>ブラック</value>
@@ -266,7 +272,7 @@
     <value>更新があります</value>
   </data>
   <data name="UpdateAvailableMessage" xml:space="preserve">
-    <value>バージョン {0} が利用できます。トレイメニューで「v{0} に更新」を選ぶとインストールされます。</value>
+    <value>バージョン {0} が利用できます。「設定 → 情報」を開き、「v{0} に更新」を選ぶとインストールされます。</value>
   </data>
   <data name="UpToDateTitle" xml:space="preserve">
     <value>更新はありません</value>
@@ -391,4 +397,20 @@
   <data name="SettingsDefaultsMessage" xml:space="preserve">
     <value>設定ファイルとバックアップを読み取れなかったため既定値を使用します。破損ファイルは診断用に保持されます。</value>
   </data>
+  <data name="NotificationsSection" xml:space="preserve"><value>通知</value></data>
+  <data name="AdvancedSettings" xml:space="preserve"><value>詳細設定</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>詳細設定を表示</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>詳細設定を隠す</value></data>
+  <data name="ResetTo100Percent" xml:space="preserve"><value>100% に戻す</value></data>
+  <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar の背景</value></data>
+  <data name="UseThemeBackground" xml:space="preserve"><value>テーマ既定の背景を使用</value></data>
+  <data name="DangerZone" xml:space="preserve"><value>アンインストール</value></data>
+  <data name="PresetSavedInline" xml:space="preserve"><value>プリセット {0} をすぐに保存しました。</value></data>
+  <data name="PresetLoadedInline" xml:space="preserve"><value>プリセット {0} を読み込みました。保持するには「保存」を選択してください。</value></data>
+  <data name="ColorWheel" xml:space="preserve"><value>カラーホイール</value></data>
+  <data name="ColorPreview" xml:space="preserve"><value>色のプレビュー</value></data>
+  <data name="CancelOperation" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="UpdateCancelled" xml:space="preserve"><value>更新処理をキャンセルしました。</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>更新の進行状況</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>表示</value></data>
 </root>

@@ -49,7 +49,7 @@
 | 📊 | **Codex quota** | Live 5-hour and weekly remaining or used percentages |
 | 🖥️ | **System usage** | CPU and RAM usage updated independently |
 | 🔔 | **Quota alerts** | One-time 20%, 10%, and 5% remaining notifications with quiet hours |
-| 🎨 | **10 styles × 2 themes** | Ten Compact Bar styles, each in Black and White |
+| 🎨 | **10 styles × 28 color themes** | Black/White color mode with palettes from the Codex app |
 | 💾 | **3 presets** | Instantly save and restore your preferred appearance |
 | 🌍 | **4 languages** | English, Korean, Simplified Chinese, and Japanese |
 | 🔒 | **Local and private** | Uses `codex app-server`; no webpage scraping or auth-file access |
@@ -59,6 +59,8 @@ The Compact Bar uses two columns: `5H` and `WK` in the first column, and `CPU` a
 <a id="styles"></a>
 
 ## 🎨 Style gallery
+
+All previews below use the default **Codex Dark** color theme. Color-theme variants are available in the app but are not duplicated in this gallery.
 
 | | |
 |---|---|
@@ -110,7 +112,7 @@ You can also select **Check for updates** from **Settings → About** at any tim
 
 Versions earlier than v1.1.0 do not include the updater and require one manual installation of v1.1.0 or later.
 
-On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black with background Alpha `0`. Existing `settings.json` files are not overwritten.
+On a first installation, the UI language defaults to English. Preset 1 is preconfigured as Label boxes / Black color mode / Codex color theme with background Alpha `0`. Existing `settings.json` files are not overwritten.
 
 To remove the installed app, open **Settings → About** and select **Uninstall**. The confirmation dialog lets you keep or delete settings, presets, and logs. Uninstall also removes the Start menu shortcut and Windows startup entry.
 
@@ -157,22 +159,24 @@ If the Compact Bar is hidden, right-click the tray icon and enable **Show Compac
 | Setting | Description |
 |---|---|
 | Show Compact Bar | Shows or hides the floating 2×2 monitor. |
-| Compact Bar style | Selects Dark minimal, Label boxes, Neon glow, Light, Cards, Circular gauges, Compact rows, Rounded capsules, Gradient, or Minimal icons + text. |
 | Start with Windows | Adds or removes the app from Windows startup. |
 | Language | Changes the settings UI between English, Korean, Simplified Chinese, and Japanese. The open settings dialog updates immediately; save to apply it to the whole app. |
-| Display basis | Shows either remaining quota percentage or used quota percentage. CPU and RAM always show current usage. |
 | Refresh interval | Sets Codex quota refresh frequency from 30 to 1,800 seconds. CPU and RAM refresh separately. |
 | Quota threshold notifications | Notifies once when 5-hour or weekly remaining quota enters the 20%, 10%, or 5% band. Resets with the quota window. |
 | Quiet hours | Defers threshold notifications during the configured local-time range. |
-| Codex executable | Usually leave this as `codex`. If startup fails, enter the full path returned by `where.exe codex`. |
+| Advanced settings | Contains the Codex executable path. Usually leave it as `codex`; if startup fails, enter the full path returned by `where.exe codex`. |
 
-Changes are previewed on the Compact Bar immediately while Settings remains open. Three preset slots store and restore the style, Black/White color theme, background, display basis, metric visibility, presentation modes, and colors. **Save slot** writes the preset immediately, independently of the main Save button; press **Load** to apply it.
+Changes are previewed on the Compact Bar immediately while Settings remains open. Choose a preset slot from the dropdown, then use **Load** or **Save slot**. Each slot stores and restores the style, color mode, color theme, background, display basis, metric visibility, presentation modes, and colors.
 
-Settings are organized into **General**, **Appearance**, and **Metrics** tabs. The three preset slots stay visible above every tab. Every style supports Black and White variants. Selecting a style or color theme applies its matching default background color and opacity; the background can still be customized afterward. The Circular gauges style automatically uses the current monitor's taskbar height.
+The palette selector includes Absolutely, Ayu, Catppuccin, Codex, Dracula, Everforest, GitHub, Gruvbox, Linear, Lobster, Material, Matrix, Monokai, Night Owl, Nord, Notion, One, Oscurange, Proof, Raycast, Rose Pine, Sentry, Solarized, Temple, Tokyo Night, Vercel, VS Code Plus, and Xcode. The Black/White choices are limited to the variants supplied by each Codex palette.
+
+Settings are organized into **General**, **Display**, and **About** tabs. Display combines presets, appearance, display basis, and all four item controls in one scrollable page. It provides a 50–200% size slider with a 100% reset button. Switching styles preserves colors; selecting a color mode or color theme applies that theme's background, fill, and track colors. The Circular gauges style automatically uses the current monitor's taskbar height. Update checks and downloads show an activity indicator and can be cancelled.
 
 Settings are written atomically through a validated temporary file. The previous valid file is kept as `settings.json.bak`; if the primary JSON is damaged, the backup is restored and a tray notification explains the recovery. The `SettingsVersion` field is reserved for compatible migrations.
 
 ### Compact Bar and metrics
+
+The **Display** tab also controls whether quota percentages show remaining or used amounts. CPU and RAM always show current usage.
 
 Each `5H`, `WK`, `CPU`, and `RAM` section provides:
 
