@@ -30,8 +30,44 @@ public enum CompactBarStyle
 
 public enum ThemeVariant
 {
-    Dark,
-    Light
+    Dark = 0,
+    Light = 1,
+    // Kept for settings.json compatibility. SettingsStore migrates these to
+    // CodexPalette + Dark/Light.
+    CodexDark = 2,
+    CodexLight = 3
+}
+
+public enum CodexPalette
+{
+    Absolutely,
+    Ayu,
+    Catppuccin,
+    Codex,
+    Dracula,
+    Everforest,
+    GitHub,
+    Gruvbox,
+    Linear,
+    Lobster,
+    Material,
+    Matrix,
+    Monokai,
+    NightOwl,
+    Nord,
+    Notion,
+    One,
+    Oscurange,
+    Proof,
+    Raycast,
+    RosePine,
+    Sentry,
+    Solarized,
+    Temple,
+    TokyoNight,
+    Vercel,
+    VSCodePlus,
+    Xcode
 }
 
 public enum AppLanguage
@@ -53,7 +89,9 @@ public sealed class MetricSettings
 public sealed class CompactBarPreset
 {
     public CompactBarStyle Style { get; set; } = CompactBarStyle.LabelBoxes;
+    public CodexPalette CodexPalette { get; set; } = CodexPalette.Codex;
     public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
+    public int ScalePercent { get; set; } = 100;
     public string BackgroundColor { get; set; } = "#FF16181C";
     public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
     public MetricSettings FiveHour { get; set; } = new();
@@ -64,7 +102,9 @@ public sealed class CompactBarPreset
     public static CompactBarPreset Capture(AppSettings settings) => new()
     {
         Style = settings.CompactBarStyle,
+        CodexPalette = settings.CodexPalette,
         ThemeVariant = settings.ThemeVariant,
+        ScalePercent = settings.CompactBarScalePercent,
         BackgroundColor = settings.BackgroundColor,
         PercentageMode = settings.PercentageMode,
         FiveHour = AppSettings.CopyMetric(settings.FiveHour),
@@ -76,7 +116,9 @@ public sealed class CompactBarPreset
     public CompactBarPreset Copy() => new()
     {
         Style = Style,
+        CodexPalette = CodexPalette,
         ThemeVariant = ThemeVariant,
+        ScalePercent = ScalePercent,
         BackgroundColor = BackgroundColor,
         PercentageMode = PercentageMode,
         FiveHour = AppSettings.CopyMetric(FiveHour),
@@ -88,7 +130,9 @@ public sealed class CompactBarPreset
     public void ApplyTo(AppSettings settings)
     {
         settings.CompactBarStyle = Style;
+        settings.CodexPalette = CodexPalette;
         settings.ThemeVariant = ThemeVariant;
+        settings.CompactBarScalePercent = ScalePercent;
         settings.BackgroundColor = BackgroundColor;
         settings.PercentageMode = PercentageMode;
         AppSettings.CopyMetricInto(FiveHour, settings.FiveHour);
@@ -105,7 +149,9 @@ public sealed class AppSettings
     public int SettingsVersion { get; set; } = CurrentSettingsVersion;
     public AppLanguage Language { get; set; } = AppLanguage.English;
     public CompactBarStyle CompactBarStyle { get; set; } = CompactBarStyle.LabelBoxes;
+    public CodexPalette CodexPalette { get; set; } = CodexPalette.Codex;
     public ThemeVariant ThemeVariant { get; set; } = ThemeVariant.Dark;
+    public int CompactBarScalePercent { get; set; } = 100;
     public bool ShowCompactBar { get; set; } = true;
     public string BackgroundColor { get; set; } = "#0016181C";
     public int WindowPositionX { get; set; } = -1;
@@ -143,6 +189,7 @@ public sealed class AppSettings
     private static CompactBarPreset CreateInitialPreset() => new()
     {
         Style = CompactBarStyle.LabelBoxes,
+        CodexPalette = CodexPalette.Codex,
         ThemeVariant = ThemeVariant.Dark,
         BackgroundColor = "#0016181C",
         FiveHour = new MetricSettings(),
@@ -156,7 +203,9 @@ public sealed class AppSettings
         SettingsVersion = SettingsVersion,
         Language = Language,
         CompactBarStyle = CompactBarStyle,
+        CodexPalette = CodexPalette,
         ThemeVariant = ThemeVariant,
+        CompactBarScalePercent = CompactBarScalePercent,
         ShowCompactBar = ShowCompactBar,
         BackgroundColor = BackgroundColor,
         WindowPositionX = WindowPositionX,

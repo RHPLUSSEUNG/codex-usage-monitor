@@ -55,7 +55,22 @@ public sealed class CompactBarForm : Form
         _resetPositionMenu.Text = Localization.Text("ResetPosition");
     }
 
-    public void SuspendRendering() => _renderingSuspended = true;
+    public void BeginPreview()
+    {
+        _renderingSuspended = false;
+        bool anyMetricEnabled = _settings.FiveHour.Enabled
+                                || _settings.Weekly.Enabled
+                                || _settings.Cpu.Enabled
+                                || _settings.Memory.Enabled;
+        if (_settings.ShowCompactBar && anyMetricEnabled)
+        {
+            if (!Visible)
+                Show();
+            if (!_dragging)
+                RenderAtStoredPosition(updateZOrder: true);
+        }
+        _renderingSuspended = true;
+    }
 
     public void ResumeRendering()
     {
@@ -120,7 +135,7 @@ public sealed class CompactBarForm : Form
         if (!Visible)
             Show();
         if (!_dragging)
-            RenderAtStoredPosition(updateZOrder: false);
+            RenderAtStoredPosition(updateZOrder: true);
     }
 
     public void PositionWindow()
@@ -232,8 +247,25 @@ public sealed class CompactBarForm : Form
         return new Point(x, y);
     }
 
-    private Size CalculateWindowSize(float scale, Point location) =>
-        CompactBarRenderer.CalculateSize(_settings, scale, TaskbarHeight(scale, location));
+    private Size CalculateWindowSize(float scale, Point location)
+    {
+        Size baseSize = CompactBarRenderer.CalculateSize(
+            _settings,
+            scale,
+            TaskbarHeight(scale, location));
+        return ScaleSize(baseSize, _settings.CompactBarScalePercent);
+    }
+
+    internal static float UserScale(int scalePercent) =>
+        Math.Clamp(scalePercent, 50, 200) / 100f;
+
+    internal static Size ScaleSize(Size size, int scalePercent)
+    {
+        float userScale = UserScale(scalePercent);
+        return new Size(
+            Math.Max(1, (int)Math.Round(size.Width * userScale)),
+            Math.Max(1, (int)Math.Round(size.Height * userScale)));
+    }
 
     private static int TaskbarHeight(float scale, Point location)
     {
@@ -305,7 +337,18 @@ public sealed class CompactBarForm : Form
 
     private void DrawContent(Graphics graphics, Size size, float scale)
     {
-        CompactBarRenderer.Draw(graphics, size, _settings, _snapshot, _systemUsage, scale);
+        float userScale = UserScale(_settings.CompactBarScalePercent);
+        graphics.ScaleTransform(userScale, userScale);
+        var logicalSize = new Size(
+            Math.Max(1, (int)Math.Round(size.Width / userScale)),
+            Math.Max(1, (int)Math.Round(size.Height / userScale)));
+        CompactBarRenderer.Draw(
+            graphics,
+            logicalSize,
+            _settings,
+            _snapshot,
+            _systemUsage,
+            scale);
     }
 
     private void DrawQuotaMetric(
