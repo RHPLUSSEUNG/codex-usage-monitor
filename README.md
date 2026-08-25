@@ -60,7 +60,7 @@ The Compact Bar uses two columns: `5H` and `WK` in the first column, and `CPU` a
 
 ## 🎨 Style gallery
 
-All previews below use the default **Codex Dark** color theme. Color-theme variants are available in the app but are not duplicated in this gallery.
+All previews below use the default **Codex Light** color theme. Color-theme variants are available in the app but are not duplicated in this gallery.
 
 | | |
 |---|---|

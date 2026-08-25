@@ -106,7 +106,7 @@ function New-BarBitmap([string]$styleName, [string]$variantName) {
 function New-StyleCard([hashtable]$style) {
     $bitmap = $null
     try {
-        $bitmap = New-BarBitmap $style.Name "Dark" | Select-Object -Last 1
+        $bitmap = New-BarBitmap $style.Name "Light" | Select-Object -Last 1
         if ($bitmap -is [Management.Automation.PSObject]) {
             $bitmap = $bitmap.PSObject.BaseObject
         }
@@ -116,11 +116,11 @@ function New-StyleCard([hashtable]$style) {
             [Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $graphics = [Drawing.Graphics]::FromImage($card)
         try {
-            $graphics.Clear([Drawing.Color]::FromArgb(255, 17, 17, 17))
+            $graphics.Clear([Drawing.Color]::White)
             $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $titleFont = [Drawing.Font]::new("Segoe UI", 15, [Drawing.FontStyle]::Bold)
-            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(252, 252, 252))
-            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(52, 52, 52), 2)
+            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(13, 13, 13))
+            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(217, 217, 217), 2)
             try {
                 $graphics.DrawRectangle($borderPen, 1, 1, $card.Width - 3, $card.Height - 3)
                 $graphics.DrawString($style.Label, $titleFont, $titleBrush, 28, 18)
@@ -158,7 +158,7 @@ try {
             [Drawing.Imaging.ImageFormat]::Png)
     }
 
-    $representative = New-BarBitmap "LabelBoxes" "Dark" | Select-Object -Last 1
+    $representative = New-BarBitmap "LabelBoxes" "Light" | Select-Object -Last 1
     if ($representative -is [Management.Automation.PSObject]) {
         $representative = $representative.PSObject.BaseObject
     }
