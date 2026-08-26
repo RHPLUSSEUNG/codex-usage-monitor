@@ -37,7 +37,8 @@ internal static class CompactBarRenderer
         float scale)
     {
         MetricVisual[] metrics = Metrics(settings, snapshot, systemUsage);
-        bool lightTheme = settings.ThemeVariant == ThemeVariant.Light;
+        ThemeVariant theme = settings.ThemeVariant;
+        CodexPalette palette = settings.CodexPalette;
         graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
         graphics.TextContrast = 0;
         DrawBackground(graphics, size, settings, metrics, scale);
@@ -45,34 +46,34 @@ internal static class CompactBarRenderer
         switch (settings.CompactBarStyle)
         {
             case CompactBarStyle.NeonGlow:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Neon, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Neon, theme, palette);
                 break;
             case CompactBarStyle.Light:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Light, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Light, theme, palette);
                 break;
             case CompactBarStyle.Cards:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Cards, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Cards, theme, palette);
                 break;
             case CompactBarStyle.CircularGauges:
-                DrawCircularGauges(graphics, metrics, scale, lightTheme);
+                DrawCircularGauges(graphics, metrics, scale, theme, palette);
                 break;
             case CompactBarStyle.CompactRows:
-                DrawCompactRows(graphics, metrics, scale, lightTheme);
+                DrawCompactRows(graphics, metrics, scale, theme, palette);
                 break;
             case CompactBarStyle.RoundedCapsules:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Capsules, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Capsules, theme, palette);
                 break;
             case CompactBarStyle.Gradient:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Gradient, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Gradient, theme, palette);
                 break;
             case CompactBarStyle.MinimalIcons:
-                DrawMinimalIcons(graphics, metrics, scale, lightTheme);
+                DrawMinimalIcons(graphics, metrics, scale, theme, palette);
                 break;
             case CompactBarStyle.LabelBoxes:
-                DrawGrid(graphics, metrics, scale, LinearStyle.LabelBoxes, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.LabelBoxes, theme, palette);
                 break;
             default:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Dark, lightTheme);
+                DrawGrid(graphics, metrics, scale, LinearStyle.Dark, theme, palette);
                 break;
         }
     }
@@ -142,13 +143,14 @@ internal static class CompactBarRenderer
         {
             Color left = MetricColor(metrics[0], Color.FromArgb(52, 130, 150));
             Color right = MetricColor(metrics[3], Color.FromArgb(90, 68, 170));
-            Color baseColor = settings.ThemeVariant == ThemeVariant.Light
+            bool lightTheme = CompactBarTheme.IsLight(settings.ThemeVariant);
+            Color baseColor = lightTheme
                 ? Color.FromArgb(244, 247, 250)
                 : configured;
             using var gradient = new LinearGradientBrush(
                 area,
-                Color.FromArgb(alpha, Mix(left, baseColor, settings.ThemeVariant == ThemeVariant.Light ? 0.82f : 0.58f)),
-                Color.FromArgb(alpha, Mix(right, baseColor, settings.ThemeVariant == ThemeVariant.Light ? 0.82f : 0.55f)),
+                Color.FromArgb(alpha, Mix(left, baseColor, lightTheme ? 0.82f : 0.58f)),
+                Color.FromArgb(alpha, Mix(right, baseColor, lightTheme ? 0.82f : 0.55f)),
                 LinearGradientMode.Horizontal);
             graphics.FillPath(gradient, backgroundPath);
             return;
@@ -165,7 +167,7 @@ internal static class CompactBarRenderer
         }
     }
 
-    private static void DrawGrid(Graphics graphics, MetricVisual[] metrics, float scale, LinearStyle style, bool lightTheme)
+    private static void DrawGrid(Graphics graphics, MetricVisual[] metrics, float scale, LinearStyle style, ThemeVariant theme, CodexPalette palette)
     {
         int cellWidth = style switch
         {
@@ -193,7 +195,7 @@ internal static class CompactBarRenderer
                 S(2 + row * (rowHeight + 2), scale),
                 S(cellWidth, scale),
                 S(rowHeight, scale));
-            DrawLinearMetric(graphics, bounds, metric, style, lightTheme, scale);
+            DrawLinearMetric(graphics, bounds, metric, style, theme, palette, scale);
         }
     }
 
@@ -202,18 +204,17 @@ internal static class CompactBarRenderer
         Rectangle bounds,
         MetricVisual metric,
         LinearStyle style,
-        bool light,
+        ThemeVariant theme,
+        CodexPalette palette,
         float scale)
     {
+        bool light = CompactBarTheme.IsLight(theme);
         Color fillColor = MetricColor(metric, Color.FromArgb(98, 214, 167));
-        Color trackColor = HexColor.ParseOrDefault(metric.Settings.TrackColor, Color.FromArgb(58, 61, 69));
-        Color textColor = light ? Color.FromArgb(42, 45, 52) : Color.White;
+        Color trackColor = CompactBarTheme.Track(metric.Settings.TrackColor, palette, theme);
+        Color textColor = CompactBarTheme.Foreground(palette, theme);
         Color titleColor = style is LinearStyle.Neon or LinearStyle.LabelBoxes
-            ? Color.FromArgb(255, fillColor.R, fillColor.G, fillColor.B)
+            ? fillColor
             : textColor;
-        if (light)
-            trackColor = Mix(trackColor, Color.White, 0.72f);
-
         if (style is LinearStyle.Cards or LinearStyle.Capsules)
         {
             int radius = style == LinearStyle.Capsules ? bounds.Height / 2 : S(5, scale);
@@ -291,8 +292,9 @@ internal static class CompactBarRenderer
         DrawTrack(graphics, track, metric.Percent, trackColor, fillColor, style == LinearStyle.Neon, scale);
     }
 
-    private static void DrawCircularGauges(Graphics graphics, MetricVisual[] metrics, float scale, bool lightTheme)
+    private static void DrawCircularGauges(Graphics graphics, MetricVisual[] metrics, float scale, ThemeVariant theme, CodexPalette palette)
     {
+        bool lightTheme = CompactBarTheme.IsLight(theme);
         int height = Math.Max(1, (int)Math.Round(graphics.VisibleClipBounds.Height));
         int titleHeight = Math.Min(S(17, scale), Math.Max(S(12, scale), height / 3));
         int diameter = Math.Max(S(12, scale), height - titleHeight - S(4, scale));
@@ -309,8 +311,8 @@ internal static class CompactBarRenderer
                 diameter);
             using var font = new Font("Segoe UI", 8.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", diameter < S(34, scale) ? 7.5f : 9f, FontStyle.Bold, GraphicsUnit.Point);
-            using var titleBrush = new SolidBrush(Color.FromArgb(255, color.R, color.G, color.B));
-            Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
+            using var titleBrush = new SolidBrush(color);
+            Color textColor = CompactBarTheme.Foreground(palette, theme);
             using var valueBrush = new SolidBrush(textColor);
             DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight));
             float penWidth = Math.Max(2f, Math.Min(S(6, scale), diameter / 7f));
@@ -324,17 +326,15 @@ internal static class CompactBarRenderer
         }
     }
 
-    private static void DrawCompactRows(Graphics graphics, MetricVisual[] metrics, float scale, bool lightTheme)
+    private static void DrawCompactRows(Graphics graphics, MetricVisual[] metrics, float scale, ThemeVariant theme, CodexPalette palette)
     {
         int row = 0;
         foreach (MetricVisual metric in metrics.Where(metric => metric.Settings.Enabled))
         {
             int y = S(4 + row * 21, scale);
             Color color = MetricColor(metric, Color.CornflowerBlue);
-            Color track = HexColor.ParseOrDefault(metric.Settings.TrackColor, Color.FromArgb(58, 61, 69));
-            if (lightTheme)
-                track = Mix(track, Color.White, 0.72f);
-            Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
+            Color track = CompactBarTheme.Track(metric.Settings.TrackColor, palette, theme);
+            Color textColor = CompactBarTheme.Foreground(palette, theme);
             using var font = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var textBrush = new SolidBrush(textColor);
@@ -354,8 +354,9 @@ internal static class CompactBarRenderer
         }
     }
 
-    private static void DrawMinimalIcons(Graphics graphics, MetricVisual[] metrics, float scale, bool lightTheme)
+    private static void DrawMinimalIcons(Graphics graphics, MetricVisual[] metrics, float scale, ThemeVariant theme, CodexPalette palette)
     {
+        bool lightTheme = CompactBarTheme.IsLight(theme);
         int index = 0;
         foreach (MetricVisual metric in metrics.Where(metric => metric.Settings.Enabled))
         {
@@ -363,7 +364,7 @@ internal static class CompactBarRenderer
             Color color = MetricColor(metric, Color.CornflowerBlue);
             using var font = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
-            Color textColor = lightTheme ? Color.FromArgb(42, 45, 52) : Color.White;
+            Color textColor = CompactBarTheme.Foreground(palette, theme);
             using var titleBrush = new SolidBrush(textColor);
             using var valueBrush = new SolidBrush(color);
             DrawIcon(graphics, metric.Icon, new Rectangle(x, S(7, scale), S(14, scale), S(14, scale)), color, scale);
@@ -529,39 +530,61 @@ internal static class CompactBarRenderer
 
 internal static class CompactBarTheme
 {
-    public static string DefaultBackground(CompactBarStyle style, ThemeVariant variant)
+    public static bool IsLight(ThemeVariant variant) =>
+        variant is ThemeVariant.Light or ThemeVariant.CodexLight;
+
+    public static Color Foreground(CodexPalette palette, ThemeVariant variant) =>
+        ParseColor(CompactBarPaletteCatalog.Get(palette, variant).Foreground, Color.White);
+
+    public static string DefaultFill(CodexPalette palette, ThemeVariant variant)
     {
-        bool light = variant == ThemeVariant.Light;
-        Color theme = light ? style switch
+        Color accent = ParseColor(
+            CompactBarPaletteCatalog.EffectiveAccent(palette, variant),
+            Color.CornflowerBlue);
+        return HexColor.Format(accent, includeAlpha: true);
+    }
+
+    public static string DefaultTrack(CodexPalette palette, ThemeVariant variant)
+    {
+        CodexPaletteColors colors = CompactBarPaletteCatalog.Get(palette, variant);
+        Color surface = ParseColor(colors.Surface, Color.FromArgb(58, 61, 69));
+        Color foreground = ParseColor(colors.Foreground, Color.White);
+        return HexColor.Format(
+            Mix(surface, foreground, IsLight(variant) ? 0.16f : 0.2f),
+            includeAlpha: true);
+    }
+
+    public static Color Track(string configured, CodexPalette palette, ThemeVariant variant)
+    {
+        if (!string.Equals(configured, "#3A3D45", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(configured, "#FF3A3D45", StringComparison.OrdinalIgnoreCase))
         {
-            CompactBarStyle.NeonGlow => Color.FromArgb(235, 250, 247),
-            CompactBarStyle.Cards => Color.FromArgb(235, 246, 245),
-            CompactBarStyle.CircularGauges => Color.FromArgb(245, 246, 248),
-            CompactBarStyle.CompactRows => Color.FromArgb(247, 248, 250),
-            CompactBarStyle.RoundedCapsules => Color.FromArgb(244, 243, 250),
-            CompactBarStyle.Gradient => Color.FromArgb(239, 245, 249),
-            CompactBarStyle.MinimalIcons => Color.FromArgb(248, 248, 249),
-            _ => Color.FromArgb(246, 247, 249)
-        } : style switch
-        {
-            CompactBarStyle.NeonGlow => Color.FromArgb(18, 37, 34),
-            CompactBarStyle.Light => Color.FromArgb(31, 33, 38),
-            CompactBarStyle.Cards => Color.FromArgb(18, 44, 43),
-            CompactBarStyle.CircularGauges => Color.FromArgb(26, 29, 34),
-            CompactBarStyle.CompactRows => Color.FromArgb(23, 25, 30),
-            CompactBarStyle.RoundedCapsules => Color.FromArgb(27, 29, 41),
-            CompactBarStyle.Gradient => Color.FromArgb(39, 75, 90),
-            CompactBarStyle.MinimalIcons => Color.FromArgb(24, 26, 31),
-            _ => Color.FromArgb(22, 24, 28)
-        };
-        int alpha = style switch
-        {
-            CompactBarStyle.NeonGlow => 238,
-            CompactBarStyle.Cards => 245,
-            CompactBarStyle.RoundedCapsules => 245,
-            CompactBarStyle.Gradient => 238,
-            _ => 255
-        };
-        return HexColor.Format(Color.FromArgb(alpha, theme.R, theme.G, theme.B), includeAlpha: true);
+            Color custom = HexColor.ParseOrDefault(configured, Color.FromArgb(58, 61, 69));
+            return IsLight(variant) ? Mix(custom, Color.White, 0.72f) : custom;
+        }
+
+        return HexColor.ParseOrDefault(
+            DefaultTrack(palette, variant),
+            Color.FromArgb(58, 61, 69));
+    }
+
+    public static string DefaultBackground(CompactBarStyle style, CodexPalette palette, ThemeVariant variant)
+    {
+        Color background = ParseColor(
+            CompactBarPaletteCatalog.Get(palette, variant).Background,
+            IsLight(variant) ? Color.White : Color.FromArgb(22, 24, 28));
+        return HexColor.Format(background, includeAlpha: true);
+    }
+
+    private static Color ParseColor(string value, Color fallback) =>
+        HexColor.ParseOrDefault(value, fallback);
+
+    private static Color Mix(Color first, Color second, float secondWeight)
+    {
+        float weight = Math.Clamp(secondWeight, 0f, 1f);
+        return Color.FromArgb(
+            (int)Math.Round(first.R * (1f - weight) + second.R * weight),
+            (int)Math.Round(first.G * (1f - weight) + second.G * weight),
+            (int)Math.Round(first.B * (1f - weight) + second.B * weight));
     }
 }

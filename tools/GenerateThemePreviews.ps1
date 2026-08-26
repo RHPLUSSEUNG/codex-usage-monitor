@@ -26,6 +26,7 @@ $assembly = [Reflection.Assembly]::LoadFrom($assemblyPath)
 $appSettingsType = $assembly.GetType("CodexUsageMonitor.Models.AppSettings", $true)
 $styleType = $assembly.GetType("CodexUsageMonitor.Models.CompactBarStyle", $true)
 $variantType = $assembly.GetType("CodexUsageMonitor.Models.ThemeVariant", $true)
+$paletteType = $assembly.GetType("CodexUsageMonitor.Models.CodexPalette", $true)
 $quotaType = $assembly.GetType("CodexUsageMonitor.Models.QuotaWindow", $true)
 $snapshotType = $assembly.GetType("CodexUsageMonitor.Models.UsageSnapshot", $true)
 $systemSnapshotType = $assembly.GetType("CodexUsageMonitor.Models.SystemUsageSnapshot", $true)
@@ -35,6 +36,8 @@ $themeType = $assembly.GetType("CodexUsageMonitor.UI.CompactBarTheme", $true)
 $calculateSize = $rendererType.GetMethod("CalculateSize", [Reflection.BindingFlags]"Public,Static")
 $draw = $rendererType.GetMethod("Draw", [Reflection.BindingFlags]"Public,Static")
 $defaultBackground = $themeType.GetMethod("DefaultBackground", [Reflection.BindingFlags]"Public,Static")
+$defaultFill = $themeType.GetMethod("DefaultFill", [Reflection.BindingFlags]"Public,Static")
+$defaultTrack = $themeType.GetMethod("DefaultTrack", [Reflection.BindingFlags]"Public,Static")
 
 $fiveHour = [Activator]::CreateInstance($quotaType, [object[]]@([double]95, [int]300, $null))
 $weekly = [Activator]::CreateInstance($quotaType, [object[]]@([double]26, [int]10080, $null))
@@ -62,9 +65,16 @@ function New-Settings([string]$styleName, [string]$variantName) {
     $settings = [Activator]::CreateInstance($appSettingsType)
     $settings.CompactBarStyle = [Enum]::Parse($styleType, $styleName)
     $settings.ThemeVariant = [Enum]::Parse($variantType, $variantName)
+    $settings.CodexPalette = [Enum]::Parse($paletteType, "Codex")
     $settings.BackgroundColor = $defaultBackground.Invoke(
         $null,
-        [object[]]@($settings.CompactBarStyle, $settings.ThemeVariant))
+        [object[]]@($settings.CompactBarStyle, $settings.CodexPalette, $settings.ThemeVariant))
+    $fill = $defaultFill.Invoke($null, [object[]]@($settings.CodexPalette, $settings.ThemeVariant))
+    $track = $defaultTrack.Invoke($null, [object[]]@($settings.CodexPalette, $settings.ThemeVariant))
+    foreach ($metricName in @("FiveHour", "Weekly", "Cpu", "Memory")) {
+        $settings.$metricName.FillColor = $fill
+        $settings.$metricName.TrackColor = $track
+    }
     $settings.ShowCompactBar = $true
     return $settings
 }
@@ -94,44 +104,33 @@ function New-BarBitmap([string]$styleName, [string]$variantName) {
 }
 
 function New-StyleCard([hashtable]$style) {
-    $dark = New-BarBitmap $style.Name "Dark" | Select-Object -Last 1
-    $light = New-BarBitmap $style.Name "Light" | Select-Object -Last 1
-    if ($dark -is [Management.Automation.PSObject]) {
-        $dark = $dark.PSObject.BaseObject
-    }
-    if ($light -is [Management.Automation.PSObject]) {
-        $light = $light.PSObject.BaseObject
-    }
+    $bitmap = $null
     try {
-        $contentWidth = [Math]::Max($dark.Width, $light.Width)
-        $rowHeight = [Math]::Max($dark.Height, $light.Height)
+        $bitmap = New-BarBitmap $style.Name "Light" | Select-Object -Last 1
+        if ($bitmap -is [Management.Automation.PSObject]) {
+            $bitmap = $bitmap.PSObject.BaseObject
+        }
         $card = [Drawing.Bitmap]::new(
-            $contentWidth + 96,
-            76 + ($rowHeight * 2) + 44,
+            $bitmap.Width + 96,
+            $bitmap.Height + 96,
             [Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $graphics = [Drawing.Graphics]::FromImage($card)
         try {
-            $graphics.Clear([Drawing.Color]::FromArgb(255, 13, 17, 23))
+            $graphics.Clear([Drawing.Color]::White)
             $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $titleFont = [Drawing.Font]::new("Segoe UI", 15, [Drawing.FontStyle]::Bold)
-            $labelFont = [Drawing.Font]::new("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(240, 246, 252))
-            $labelBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(139, 148, 158))
-            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(48, 54, 61), 2)
+            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(13, 13, 13))
+            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(217, 217, 217), 2)
             try {
                 $graphics.DrawRectangle($borderPen, 1, 1, $card.Width - 3, $card.Height - 3)
                 $graphics.DrawString($style.Label, $titleFont, $titleBrush, 28, 18)
-                $graphics.DrawString("BLACK", $labelFont, $labelBrush, 28, 58)
-                $graphics.DrawImage($dark, 48, 82)
-                $lightY = 90 + $rowHeight
-                $graphics.DrawString("WHITE", $labelFont, $labelBrush, 28, $lightY)
-                $graphics.DrawImage($light, 48, $lightY + 24)
+                $graphics.DrawImage(
+                    $bitmap,
+                    [Drawing.Rectangle]::new(48, 60, $bitmap.Width, $bitmap.Height))
             }
             finally {
                 $borderPen.Dispose()
-                $labelBrush.Dispose()
                 $titleBrush.Dispose()
-                $labelFont.Dispose()
                 $titleFont.Dispose()
             }
         }
@@ -141,11 +140,8 @@ function New-StyleCard([hashtable]$style) {
         return $card
     }
     finally {
-        if ($light -is [IDisposable]) {
-            ([IDisposable]$light).Dispose()
-        }
-        if ($dark -is [IDisposable]) {
-            ([IDisposable]$dark).Dispose()
+        if ($bitmap -is [IDisposable]) {
+            ([IDisposable]$bitmap).Dispose()
         }
     }
 }
@@ -162,7 +158,7 @@ try {
             [Drawing.Imaging.ImageFormat]::Png)
     }
 
-    $representative = New-BarBitmap "LabelBoxes" "Dark" | Select-Object -Last 1
+    $representative = New-BarBitmap "LabelBoxes" "Light" | Select-Object -Last 1
     if ($representative -is [Management.Automation.PSObject]) {
         $representative = $representative.PSObject.BaseObject
     }

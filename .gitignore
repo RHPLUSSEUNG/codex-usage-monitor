@@ -8,3 +8,4 @@ obj/
 # Local application settings and publish artifacts
 settings.json
 publish/
+artifacts/

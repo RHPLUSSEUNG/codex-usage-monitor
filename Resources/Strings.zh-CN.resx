@@ -74,7 +74,13 @@
     <value>Compact Bar 样式</value>
   </data>
   <data name="ThemeVariant" xml:space="preserve">
+    <value>颜色模式</value>
+  </data>
+  <data name="CodexPalette" xml:space="preserve">
     <value>颜色主题</value>
+  </data>
+  <data name="CompactBarScale" xml:space="preserve">
+    <value>大小比例 (%)</value>
   </data>
   <data name="DarkTheme" xml:space="preserve">
     <value>黑色</value>
@@ -122,7 +128,7 @@
     <value>外观</value>
   </data>
   <data name="MetricsTab" xml:space="preserve">
-    <value>指标</value>
+    <value>显示项目</value>
   </data>
   <data name="Preset1" xml:space="preserve">
     <value>预设 1</value>
@@ -266,7 +272,7 @@
     <value>有可用更新</value>
   </data>
   <data name="UpdateAvailableMessage" xml:space="preserve">
-    <value>版本 {0} 已发布。请在托盘菜单中选择“更新到 v{0}”进行安装。</value>
+    <value>版本 {0} 已发布。请打开“设置 → 关于”，然后选择“更新到 v{0}”进行安装。</value>
   </data>
   <data name="UpToDateTitle" xml:space="preserve">
     <value>没有更新</value>
@@ -391,4 +397,20 @@
   <data name="SettingsDefaultsMessage" xml:space="preserve">
     <value>无法读取设置文件及其备份，已加载默认值；损坏文件会保留以供诊断。</value>
   </data>
+  <data name="NotificationsSection" xml:space="preserve"><value>通知</value></data>
+  <data name="AdvancedSettings" xml:space="preserve"><value>高级设置</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>显示高级设置</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>隐藏高级设置</value></data>
+  <data name="ResetTo100Percent" xml:space="preserve"><value>重置为 100%</value></data>
+  <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar 背景</value></data>
+  <data name="UseThemeBackground" xml:space="preserve"><value>使用主题默认背景</value></data>
+  <data name="DangerZone" xml:space="preserve"><value>卸载</value></data>
+  <data name="PresetSavedInline" xml:space="preserve"><value>预设 {0} 已立即保存。</value></data>
+  <data name="PresetLoadedInline" xml:space="preserve"><value>已加载预设 {0}。请选择“保存”以保留更改。</value></data>
+  <data name="ColorWheel" xml:space="preserve"><value>色轮</value></data>
+  <data name="ColorPreview" xml:space="preserve"><value>颜色预览</value></data>
+  <data name="CancelOperation" xml:space="preserve"><value>取消</value></data>
+  <data name="UpdateCancelled" xml:space="preserve"><value>更新操作已取消。</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>更新进度</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>显示</value></data>
 </root>

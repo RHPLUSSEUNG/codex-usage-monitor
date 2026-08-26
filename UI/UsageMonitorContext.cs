@@ -23,6 +23,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly UpdateService _updateService = new();
     private readonly QuotaNotificationTracker _quotaNotifications = new();
     private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private CancellationTokenSource? _activeUpdateCancellation;
     private readonly Action? _startupReady;
     private AppSettings _settings;
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
@@ -31,6 +32,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private UpdateRelease? _availableUpdate;
     private Version? _notifiedUpdateVersion;
     private SettingsForm? _settingsForm;
+    private SettingsForm? _preparedSettingsForm;
     private bool _refreshing;
     private bool _checkingUpdate;
     private bool _installingUpdate;
@@ -44,6 +46,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         SettingsLoadResult settingsLoad = SettingsStore.LoadWithResult();
         _settings = settingsLoad.Settings;
         Localization.CurrentLanguage = _settings.Language;
+        _ = Task.Run(Localization.WarmCache);
         _client = new CodexAppServerClient(_settings.CodexExecutable);
         _uiDispatcher.CreateControl();
         _compactBar = new CompactBarHost(PostToUi);
@@ -108,6 +111,7 @@ public sealed class UsageMonitorContext : ApplicationContext
 
         _ = RefreshAsync();
         _ = CheckForUpdatesAsync(showResult: false);
+        _uiDispatcher.BeginInvoke(PrepareSettingsForm);
     }
 
     private async Task RefreshAsync()
@@ -266,6 +270,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _showBarMenu.Checked = _settings.ShowCompactBar;
         SettingsStore.Save(_settings);
         UpdateDisplay();
+        DiscardPreparedSettingsForm();
     }
 
     private void ShowSettings()
@@ -276,22 +281,9 @@ public sealed class UsageMonitorContext : ApplicationContext
             return;
         }
 
-        using var form = new SettingsForm(_settings);
+        using var form = TakePreparedSettingsForm();
         _settingsForm = form;
-        form.PreviewChanged += preview => _compactBar.Preview(preview);
-        form.DiagnosticsRequested += (_, _) => CopyDiagnostics();
-        form.UpdateRequested += async (_, _) => await HandleSettingsUpdateAsync();
-        form.UninstallRequested += (_, _) => Uninstall();
-        form.PresetSaved += (slot, preset) =>
-        {
-            if (slot == 0)
-                _settings.Preset1 = preset;
-            else if (slot == 1)
-                _settings.Preset2 = preset;
-            else
-                _settings.Preset3 = preset;
-            SettingsStore.Save(_settings);
-        };
+        form.WindowState = FormWindowState.Normal;
         UpdateSettingsManagementState(form);
         _compactBar.BeginPreview();
         DialogResult result = DialogResult.Cancel;
@@ -306,7 +298,10 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
 
         if (result != DialogResult.OK)
+        {
+            QueuePrepareSettingsForm();
             return;
+        }
 
         bool executableChanged = !string.Equals(
             _settings.CodexExecutable,
@@ -338,6 +333,67 @@ public sealed class UsageMonitorContext : ApplicationContext
         ApplySettings(startTimer: true);
         UpdateDisplay();
         _ = RefreshAsync();
+        QueuePrepareSettingsForm();
+    }
+
+    private SettingsForm TakePreparedSettingsForm()
+    {
+        SettingsForm? form = _preparedSettingsForm;
+        _preparedSettingsForm = null;
+        return form is { IsDisposed: false } ? form : CreateSettingsForm();
+    }
+
+    private SettingsForm CreateSettingsForm()
+    {
+        var form = new SettingsForm(_settings);
+        form.VisibleChanged += (_, _) =>
+        {
+            if (!form.Visible || form.Opacity <= 0d || form.IsDisposed)
+                return;
+            form.BeginInvoke(() => ActivateExistingWindow(form));
+        };
+        form.PreviewChanged += preview => _compactBar.Preview(preview);
+        form.DiagnosticsRequested += (_, _) => CopyDiagnostics();
+        form.UpdateRequested += async (_, _) => await HandleSettingsUpdateAsync();
+        form.UpdateCancellationRequested += (_, _) => _activeUpdateCancellation?.Cancel();
+        form.UninstallRequested += (_, _) => Uninstall();
+        form.PresetSaved += (slot, preset) =>
+        {
+            if (slot == 0)
+                _settings.Preset1 = preset;
+            else if (slot == 1)
+                _settings.Preset2 = preset;
+            else
+                _settings.Preset3 = preset;
+            SettingsStore.Save(_settings);
+        };
+        return form;
+    }
+
+    private void PrepareSettingsForm()
+    {
+        if (_exiting
+            || _settingsForm is { IsDisposed: false }
+            || _preparedSettingsForm is { IsDisposed: false })
+            return;
+
+        SettingsForm form = CreateSettingsForm();
+        form.PrepareForFirstShow();
+        _preparedSettingsForm = form;
+    }
+
+    private void QueuePrepareSettingsForm()
+    {
+        if (_exiting || _uiDispatcher.IsDisposed || !_uiDispatcher.IsHandleCreated)
+            return;
+        _uiDispatcher.BeginInvoke(PrepareSettingsForm);
+    }
+
+    private void DiscardPreparedSettingsForm()
+    {
+        _preparedSettingsForm?.Dispose();
+        _preparedSettingsForm = null;
+        QueuePrepareSettingsForm();
     }
 
     private void ApplySettings(bool startTimer)
@@ -417,8 +473,8 @@ public sealed class UsageMonitorContext : ApplicationContext
         {
             AppLog.Error("Could not copy diagnostics.", exception);
             MessageBox.Show(
-                $"{Localization.Text("DiagnosticsCopyFailed")}{Environment.NewLine}{exception.Message}",
-                Localization.Text("DiagnosticsCopyFailed"),
+                $"{ManagementText("DiagnosticsCopyFailed")}{Environment.NewLine}{exception.Message}",
+                ManagementText("DiagnosticsCopyFailed"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
         }
@@ -437,12 +493,16 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (_checkingUpdate || _installingUpdate || _exiting)
             return;
 
+        using var userCancellation = new CancellationTokenSource();
+        _activeUpdateCancellation = userCancellation;
         _checkingUpdate = true;
         UpdateSettingsManagementState();
+        bool cancelled = false;
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
-                _lifetimeCancellation.Token);
+                _lifetimeCancellation.Token,
+                userCancellation.Token);
             timeout.CancelAfter(TimeSpan.FromSeconds(30));
             UpdateRelease? release = await _updateService.CheckAsync(timeout.Token);
             if (_exiting)
@@ -454,8 +514,8 @@ public sealed class UsageMonitorContext : ApplicationContext
                 if (showResult)
                 {
                     MessageBox.Show(
-                        Localization.Text("UpToDateMessage"),
-                        Localization.Text("UpToDateTitle"),
+                        ManagementText("UpToDateMessage"),
+                        ManagementText("UpToDateTitle"),
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
                 }
@@ -465,31 +525,41 @@ public sealed class UsageMonitorContext : ApplicationContext
             if (_notifiedUpdateVersion != release.Version)
             {
                 _notifiedUpdateVersion = release.Version;
-                _trayIcon.BalloonTipTitle = Localization.Text("UpdateAvailableTitle");
+                _trayIcon.BalloonTipTitle = ManagementText("UpdateAvailableTitle");
                 _trayIcon.BalloonTipText =
-                    Localization.Format("UpdateAvailableMessage", release.Version.ToString(3));
+                    ManagementFormat("UpdateAvailableMessage", release.Version.ToString(3));
                 _trayIcon.ShowBalloonTip(10000);
             }
         }
         catch (OperationCanceledException) when (_exiting || _lifetimeCancellation.IsCancellationRequested)
         {
         }
+        catch (OperationCanceledException) when (userCancellation.IsCancellationRequested)
+        {
+            cancelled = true;
+        }
         catch (Exception exception)
         {
             if (showResult && !_exiting)
             {
                 MessageBox.Show(
-                    $"{Localization.Text("UpdateCheckFailed")}{Environment.NewLine}{exception.Message}",
-                    Localization.Text("UpdateCheckFailed"),
+                    $"{ManagementText("UpdateCheckFailed")}{Environment.NewLine}{exception.Message}",
+                    ManagementText("UpdateCheckFailed"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
         }
         finally
         {
+            if (ReferenceEquals(_activeUpdateCancellation, userCancellation))
+                _activeUpdateCancellation = null;
             _checkingUpdate = false;
             if (!_exiting)
+            {
                 UpdateSettingsManagementState();
+                if (cancelled)
+                    _settingsForm?.ShowManagementMessage("UpdateCancelled");
+            }
         }
     }
 
@@ -498,26 +568,39 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (_availableUpdate is null || _installingUpdate || _exiting)
             return;
 
+        using var userCancellation = new CancellationTokenSource();
+        _activeUpdateCancellation = userCancellation;
         _installingUpdate = true;
         UpdateSettingsManagementState();
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
-                _lifetimeCancellation.Token);
+                _lifetimeCancellation.Token,
+                userCancellation.Token);
             timeout.CancelAfter(TimeSpan.FromMinutes(10));
             string updaterPath = await _updateService.PrepareAsync(_availableUpdate, timeout.Token);
             UpdateService.LaunchInstaller(updaterPath);
             Exit();
         }
+        catch (OperationCanceledException) when (!_exiting && userCancellation.IsCancellationRequested)
+        {
+            _installingUpdate = false;
+            if (ReferenceEquals(_activeUpdateCancellation, userCancellation))
+                _activeUpdateCancellation = null;
+            UpdateSettingsManagementState();
+            _settingsForm?.ShowManagementMessage("UpdateCancelled");
+        }
         catch (Exception exception)
         {
             _installingUpdate = false;
+            if (ReferenceEquals(_activeUpdateCancellation, userCancellation))
+                _activeUpdateCancellation = null;
             if (!_exiting)
             {
                 UpdateSettingsManagementState();
                 MessageBox.Show(
-                    $"{Localization.Text("UpdateInstallFailed")}{Environment.NewLine}{exception.Message}",
-                    Localization.Text("UpdateInstallFailed"),
+                    $"{ManagementText("UpdateInstallFailed")}{Environment.NewLine}{exception.Message}",
+                    ManagementText("UpdateInstallFailed"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -533,21 +616,39 @@ public sealed class UsageMonitorContext : ApplicationContext
             UninstallService.IsInstalledApplication());
     }
 
+    private AppLanguage ManagementLanguage =>
+        ResolveManagementLanguage(
+            _settings.Language,
+            _settingsForm is { IsDisposed: false } form
+                ? form.DisplayLanguage
+                : null);
+
+    internal static AppLanguage ResolveManagementLanguage(
+        AppLanguage savedLanguage,
+        AppLanguage? openSettingsLanguage) =>
+        openSettingsLanguage ?? savedLanguage;
+
+    private string ManagementText(string key) =>
+        Localization.Text(ManagementLanguage, key);
+
+    private string ManagementFormat(string key, params object[] args) =>
+        Localization.Format(ManagementLanguage, key, args);
+
     private void Uninstall()
     {
         if (!UninstallService.IsInstalledApplication())
         {
             MessageBox.Show(
-                Localization.Text("UninstallUnavailable"),
-                Localization.Text("UninstallTitle"),
+                ManagementText("UninstallUnavailable"),
+                ManagementText("UninstallTitle"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;
         }
 
         if (MessageBox.Show(
-                Localization.Text("UninstallConfirm"),
-                Localization.Text("UninstallTitle"),
+                ManagementText("UninstallConfirm"),
+                ManagementText("UninstallTitle"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning,
                 MessageBoxDefaultButton.Button2) != DialogResult.Yes)
@@ -556,8 +657,8 @@ public sealed class UsageMonitorContext : ApplicationContext
         }
 
         DialogResult settingsChoice = MessageBox.Show(
-            Localization.Text("UninstallDeleteSettings"),
-            Localization.Text("UninstallTitle"),
+            ManagementText("UninstallDeleteSettings"),
+            ManagementText("UninstallTitle"),
             MessageBoxButtons.YesNoCancel,
             MessageBoxIcon.Question,
             MessageBoxDefaultButton.Button2);
@@ -573,8 +674,8 @@ public sealed class UsageMonitorContext : ApplicationContext
         {
             AppLog.Error("Could not start uninstall.", exception);
             MessageBox.Show(
-                $"{Localization.Text("UninstallFailed")}{Environment.NewLine}{exception.Message}",
-                Localization.Text("UninstallTitle"),
+                $"{ManagementText("UninstallFailed")}{Environment.NewLine}{exception.Message}",
+                ManagementText("UninstallTitle"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
@@ -587,7 +688,10 @@ public sealed class UsageMonitorContext : ApplicationContext
         _exiting = true;
         AppLog.Info("Application shutdown started.");
         _lifetimeCancellation.Cancel();
+        _activeUpdateCancellation?.Cancel();
         _settingsForm?.Close();
+        _preparedSettingsForm?.Dispose();
+        _preparedSettingsForm = null;
         _usageTimer.Stop();
         _systemTimer.Stop();
         _updateTimer.Stop();

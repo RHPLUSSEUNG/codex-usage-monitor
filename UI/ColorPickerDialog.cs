@@ -36,6 +36,7 @@ internal sealed class ColorPickerDialog : Form
         SelectedColor = initial;
         Text = T("ColorPickerTitle");
         Font = new Font("Segoe UI", 9f);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -43,6 +44,10 @@ internal sealed class ColorPickerDialog : Form
         ClientSize = new Size(340, 570);
         BackColor = Color.FromArgb(45, 45, 48);
         ForeColor = Color.White;
+        _wheel.AccessibleName = T("ColorWheel");
+        _alpha.AccessibleName = T("Opacity");
+        _preview.AccessibleName = T("ColorPreview");
+        _hex.AccessibleName = "Hex";
 
         var content = new TableLayoutPanel
         {
@@ -219,10 +224,18 @@ internal sealed class ColorPickerDialog : Form
 
 internal sealed class ColorWheelControl : Control
 {
+    private enum DragTarget
+    {
+        None,
+        Hue,
+        SaturationValue
+    }
+
     private double _hue;
     private double _saturation;
     private double _value;
-    private Bitmap? _bitmap;
+    private Bitmap? _hueRingBitmap;
+    private DragTarget _dragTarget;
 
     public event EventHandler? ColorChanged;
 
@@ -231,6 +244,37 @@ internal sealed class ColorWheelControl : Control
         DoubleBuffered = true;
         Cursor = Cursors.Cross;
         ResizeRedraw = true;
+        TabStop = true;
+        AccessibleRole = AccessibleRole.Slider;
+    }
+
+    protected override bool IsInputKey(Keys keyData) =>
+        (keyData & Keys.KeyCode) is Keys.Left or Keys.Right or Keys.Up or Keys.Down
+        || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        switch (e.KeyCode)
+        {
+            case Keys.Left:
+                _hue = (_hue + 359d) % 360d;
+                break;
+            case Keys.Right:
+                _hue = (_hue + 1d) % 360d;
+                break;
+            case Keys.Up:
+                _value = Math.Clamp(_value + 0.02d, 0d, 1d);
+                break;
+            case Keys.Down:
+                _value = Math.Clamp(_value - 0.02d, 0d, 1d);
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+        Invalidate();
+        ColorChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public Color SelectedColor
@@ -239,21 +283,22 @@ internal sealed class ColorWheelControl : Control
         set
         {
             ColorToHsv(value, out _hue, out _saturation, out _value);
-            RebuildBitmap();
+            Invalidate();
         }
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        if (_bitmap is null || _bitmap.Size != ClientSize)
-            RebuildBitmap();
-        if (_bitmap is null)
+        if (_hueRingBitmap is null || _hueRingBitmap.Size != ClientSize)
+            RebuildHueRingBitmap();
+        if (_hueRingBitmap is null)
             return;
 
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        e.Graphics.DrawImageUnscaled(_bitmap, Point.Empty);
+        e.Graphics.DrawImageUnscaled(_hueRingBitmap, Point.Empty);
         Geometry(out PointF center, out float outer, out float inner, out RectangleF square);
+        DrawSaturationValueSquare(e.Graphics, square);
 
         double angle = _hue * Math.PI / 180d;
         PointF huePoint = new(
@@ -270,57 +315,82 @@ internal sealed class ColorWheelControl : Control
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
+        if (e.Button != MouseButtons.Left)
+            return;
+
+        _dragTarget = HitTest(e.Location);
+        if (_dragTarget == DragTarget.None)
+            return;
         Capture = true;
-        UpdateFromPoint(e.Location);
+        UpdateDraggedPoint(e.Location);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (Capture && e.Button == MouseButtons.Left)
-            UpdateFromPoint(e.Location);
+        if (Capture && _dragTarget != DragTarget.None)
+            UpdateDraggedPoint(e.Location);
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
         base.OnMouseUp(e);
-        Capture = false;
+        EndDrag();
     }
 
-    private void UpdateFromPoint(Point point)
+    protected override void OnMouseCaptureChanged(EventArgs e)
+    {
+        base.OnMouseCaptureChanged(e);
+        if (!Capture)
+            _dragTarget = DragTarget.None;
+    }
+
+    private DragTarget HitTest(Point point)
     {
         Geometry(out PointF center, out float outer, out float inner, out RectangleF square);
         double dx = point.X - center.X;
         double dy = point.Y - center.Y;
         double distance = Math.Sqrt(dx * dx + dy * dy);
-
         if (distance >= inner && distance <= outer)
+            return DragTarget.Hue;
+        return square.Contains(point) ? DragTarget.SaturationValue : DragTarget.None;
+    }
+
+    private void UpdateDraggedPoint(Point point)
+    {
+        Geometry(out PointF center, out _, out _, out RectangleF square);
+        if (_dragTarget == DragTarget.Hue)
         {
-            _hue = (Math.Atan2(dy, dx) * 180d / Math.PI + 360d) % 360d;
-            RebuildBitmap();
+            _hue = HueFromPoint(point, center);
         }
-        else if (square.Contains(point))
+        else if (_dragTarget == DragTarget.SaturationValue)
         {
-            _saturation = Math.Clamp((point.X - square.Left) / square.Width, 0d, 1d);
-            _value = Math.Clamp((square.Bottom - point.Y) / square.Height, 0d, 1d);
-            Invalidate();
+            (_saturation, _value) = SaturationValueFromPoint(point, square);
         }
         else
         {
             return;
         }
 
+        Invalidate();
         ColorChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RebuildBitmap()
+    private void EndDrag()
     {
-        _bitmap?.Dispose();
+        _dragTarget = DragTarget.None;
+        if (Capture)
+            Capture = false;
+    }
+
+    private void RebuildHueRingBitmap()
+    {
+        _hueRingBitmap?.Dispose();
         if (Width <= 0 || Height <= 0)
             return;
 
-        _bitmap = new Bitmap(Width, Height);
-        Geometry(out PointF center, out float outer, out float inner, out RectangleF square);
+        _hueRingBitmap = new Bitmap(Width, Height);
+        Geometry(out PointF center, out float outer, out float inner, out _);
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
@@ -331,22 +401,38 @@ internal sealed class ColorWheelControl : Control
                 if (distance >= inner && distance <= outer)
                 {
                     double hue = (Math.Atan2(dy, dx) * 180d / Math.PI + 360d) % 360d;
-                    _bitmap.SetPixel(x, y, HsvToColor(hue, 1d, 1d));
-                }
-                else if (square.Contains(x, y))
-                {
-                    double saturation = Math.Clamp((x - square.Left) / square.Width, 0d, 1d);
-                    double value = Math.Clamp((square.Bottom - y) / square.Height, 0d, 1d);
-                    _bitmap.SetPixel(x, y, HsvToColor(_hue, saturation, value));
-                }
-                else
-                {
-                    _bitmap.SetPixel(x, y, BackColor);
+                    _hueRingBitmap.SetPixel(x, y, HsvToColor(hue, 1d, 1d));
                 }
             }
         }
         Invalidate();
     }
+
+    private void DrawSaturationValueSquare(Graphics graphics, RectangleF square)
+    {
+        Color hueColor = HsvToColor(_hue, 1d, 1d);
+        using (var saturation = new LinearGradientBrush(square, Color.White, hueColor, LinearGradientMode.Horizontal))
+            graphics.FillRectangle(saturation, square);
+        using var value = new LinearGradientBrush(
+            square,
+            Color.FromArgb(0, Color.Black),
+            Color.Black,
+            LinearGradientMode.Vertical);
+        graphics.FillRectangle(value, square);
+    }
+
+    internal static double HueFromPoint(Point point, PointF center)
+    {
+        double dx = point.X - center.X;
+        double dy = point.Y - center.Y;
+        return (Math.Atan2(dy, dx) * 180d / Math.PI + 360d) % 360d;
+    }
+
+    internal static (double Saturation, double Value) SaturationValueFromPoint(Point point, RectangleF square) =>
+        (
+            Math.Clamp((point.X - square.Left) / square.Width, 0d, 1d),
+            Math.Clamp((square.Bottom - point.Y) / square.Height, 0d, 1d)
+        );
 
     private void Geometry(out PointF center, out float outer, out float inner, out RectangleF square)
     {
@@ -413,7 +499,7 @@ internal sealed class ColorWheelControl : Control
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            _bitmap?.Dispose();
+            _hueRingBitmap?.Dispose();
         base.Dispose(disposing);
     }
 }
@@ -430,6 +516,28 @@ internal sealed class AlphaSliderControl : Control
         DoubleBuffered = true;
         Cursor = Cursors.Hand;
         ResizeRedraw = true;
+        TabStop = true;
+        AccessibleRole = AccessibleRole.Slider;
+    }
+
+    protected override bool IsInputKey(Keys keyData) =>
+        (keyData & Keys.KeyCode) is Keys.Left or Keys.Right or Keys.Up or Keys.Down
+        || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        int direction = e.KeyCode switch
+        {
+            Keys.Left or Keys.Down => -1,
+            Keys.Right or Keys.Up => 1,
+            _ => 0
+        };
+        if (direction == 0)
+            return;
+        Alpha += direction * (e.Shift ? 10 : 1);
+        e.Handled = true;
+        AlphaChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public int Alpha
@@ -480,7 +588,7 @@ internal sealed class AlphaSliderControl : Control
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (Capture && e.Button == MouseButtons.Left)
+        if (Capture)
             UpdateAlpha(e.X);
     }
 

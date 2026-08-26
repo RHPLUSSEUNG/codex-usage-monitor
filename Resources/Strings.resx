@@ -74,7 +74,13 @@
     <value>Compact Bar style</value>
   </data>
   <data name="ThemeVariant" xml:space="preserve">
+    <value>Color mode</value>
+  </data>
+  <data name="CodexPalette" xml:space="preserve">
     <value>Color theme</value>
+  </data>
+  <data name="CompactBarScale" xml:space="preserve">
+    <value>Size scale (%)</value>
   </data>
   <data name="DarkTheme" xml:space="preserve">
     <value>Black</value>
@@ -122,7 +128,7 @@
     <value>Appearance</value>
   </data>
   <data name="MetricsTab" xml:space="preserve">
-    <value>Metrics</value>
+    <value>Displayed items</value>
   </data>
   <data name="Preset1" xml:space="preserve">
     <value>Preset 1</value>
@@ -266,7 +272,7 @@
     <value>Update available</value>
   </data>
   <data name="UpdateAvailableMessage" xml:space="preserve">
-    <value>Version {0} is available. Select “Update to v{0}” from the tray menu to install it.</value>
+    <value>Version {0} is available. Open Settings → About and select “Update to v{0}” to install it.</value>
   </data>
   <data name="UpToDateTitle" xml:space="preserve">
     <value>No updates</value>
@@ -391,4 +397,20 @@
   <data name="SettingsDefaultsMessage" xml:space="preserve">
     <value>The settings file and backup could not be read. Defaults were loaded; the damaged file is preserved for diagnosis.</value>
   </data>
+  <data name="NotificationsSection" xml:space="preserve"><value>Notifications</value></data>
+  <data name="AdvancedSettings" xml:space="preserve"><value>Advanced settings</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>Show advanced settings</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>Hide advanced settings</value></data>
+  <data name="ResetTo100Percent" xml:space="preserve"><value>Reset to 100%</value></data>
+  <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar background</value></data>
+  <data name="UseThemeBackground" xml:space="preserve"><value>Use theme default background</value></data>
+  <data name="DangerZone" xml:space="preserve"><value>Uninstall</value></data>
+  <data name="PresetSavedInline" xml:space="preserve"><value>Preset {0} was saved immediately.</value></data>
+  <data name="PresetLoadedInline" xml:space="preserve"><value>Preset {0} was loaded. Select Save to keep it.</value></data>
+  <data name="ColorWheel" xml:space="preserve"><value>Color wheel</value></data>
+  <data name="ColorPreview" xml:space="preserve"><value>Color preview</value></data>
+  <data name="CancelOperation" xml:space="preserve"><value>Cancel</value></data>
+  <data name="UpdateCancelled" xml:space="preserve"><value>The update operation was cancelled.</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>Update progress</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>Display</value></data>
 </root>
