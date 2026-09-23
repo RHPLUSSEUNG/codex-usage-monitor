@@ -486,7 +486,7 @@ public sealed class AppearanceTests
     }
 
     [Fact]
-    public void Light_theme_text_has_antialiased_edges_on_the_layered_bitmap()
+    public void Light_theme_text_avoids_colored_subpixel_fringe_on_the_layered_bitmap()
     {
         var settings = new AppSettings { CompactBarStyle = CompactBarStyle.DarkMinimal };
         SettingsForm.ApplyColorThemeDefaults(settings, CodexPalette.Codex, ThemeVariant.Light);
@@ -501,16 +501,23 @@ public sealed class AppearanceTests
 
         Rectangle reset = CompactBarRenderer.Layout(settings, 1, 48)
             .Single(panel => panel.Panel == PanelId.FiveHourReset).Bounds;
-        int blendedEdgePixels = 0;
+        int visibleTextPixels = 0;
+        int coloredFringePixels = 0;
         for (int y = reset.Top + 3; y < reset.Bottom - 3; y++)
         for (int x = reset.Left + 3; x < reset.Right - 3; x++)
         {
             Color pixel = bitmap.GetPixel(x, y);
-            if (pixel.A == 255 && pixel.R is > 30 and < 230 &&
-                Math.Abs(pixel.R - pixel.G) <= 2 && Math.Abs(pixel.G - pixel.B) <= 2)
-                blendedEdgePixels++;
+            if (pixel.A != 255 || pixel.R >= 230 || pixel.G >= 230 || pixel.B >= 230)
+                continue;
+
+            visibleTextPixels++;
+            int minimum = Math.Min(pixel.R, Math.Min(pixel.G, pixel.B));
+            int maximum = Math.Max(pixel.R, Math.Max(pixel.G, pixel.B));
+            if (maximum - minimum > 2)
+                coloredFringePixels++;
         }
-        Assert.True(blendedEdgePixels > 10, "Light text edges were rendered as only dark and white pixels.");
+        Assert.True(visibleTextPixels > 10, "Light theme reset text was not rendered.");
+        Assert.Equal(0, coloredFringePixels);
     }
 
     [Fact]
