@@ -13,10 +13,10 @@ internal sealed class ColorPickerDialog : Form
     };
     private readonly AlphaSliderControl _alpha = new() { Size = new Size(280, 24) };
     private readonly Panel _preview = new() { Size = new Size(280, 38), BorderStyle = BorderStyle.FixedSingle };
-    private readonly NumericUpDown _red = NewChannel();
-    private readonly NumericUpDown _green = NewChannel();
-    private readonly NumericUpDown _blue = NewChannel();
-    private readonly NumericUpDown _alphaValue = NewChannel();
+    private readonly SettingsNumericUpDown _red = NewChannel();
+    private readonly SettingsNumericUpDown _green = NewChannel();
+    private readonly SettingsNumericUpDown _blue = NewChannel();
+    private readonly SettingsNumericUpDown _alphaValue = NewChannel();
     private readonly TextBox _hex = new()
     {
         Width = 120,
@@ -204,7 +204,7 @@ internal sealed class ColorPickerDialog : Form
             (int)Math.Round(color.B * alpha + background * (1d - alpha)));
     }
 
-    private static NumericUpDown NewChannel() => new()
+    private static SettingsNumericUpDown NewChannel() => new()
     {
         Minimum = 0,
         Maximum = 255,

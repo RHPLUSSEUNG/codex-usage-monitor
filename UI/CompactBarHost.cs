@@ -31,6 +31,9 @@ internal sealed class CompactBarHost : IDisposable
     public void Apply(AppSettings settings, UsageSnapshot snapshot, SystemUsageSnapshot systemUsage) =>
         Post(form => form.Apply(settings.Copy(), snapshot, systemUsage));
 
+    public void UpdateData(UsageSnapshot snapshot, SystemUsageSnapshot systemUsage) =>
+        Post(form => form.UpdateData(snapshot, systemUsage));
+
     public void ApplyLanguage() => Post(form => form.ApplyLanguage());
 
     public void BeginPreview() => Post(form => form.BeginPreview());

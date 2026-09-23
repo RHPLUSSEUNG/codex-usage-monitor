@@ -10,13 +10,25 @@ public sealed class CompactBarForm : Form
     private readonly ToolStripMenuItem _refreshMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
     private readonly ToolStripMenuItem _resetPositionMenu = new();
+    private readonly ContextMenuStrip _contextMenu = new();
+    private readonly ToolTip _quotaToolTip = new() { ShowAlways = true };
+    private string _visibleQuotaTooltip = "";
     private AppSettings _settings = new();
+    private AppSettings? _resolvedSettingsSource;
+    private AppSettings? _resolvedSettings;
+    private ThemeVariant? _resolvedSystemVariant;
+    private Bitmap? _renderBitmap;
+    private uint _renderBitmapDpi;
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemUsage = SystemUsageSnapshot.Empty;
     private bool _dragging;
     private bool _renderingSuspended;
     private Point _dragCursorStart;
     private Point _dragWindowStart;
+    private float _renderScale = 1f;
+    private LowLevelMouseProc? _outsideClickProc;
+    private IntPtr _outsideClickHook;
+    private int _menuOpenVersion;
 
     public event EventHandler? SettingsRequested;
     public event EventHandler? RefreshRequested;
@@ -30,23 +42,40 @@ public sealed class CompactBarForm : Form
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
 
-        var menu = new ContextMenuStrip();
         _refreshMenu.Click += (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty);
         _settingsMenu.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         _resetPositionMenu.Click += (_, _) => ResetPosition();
-        menu.Items.Add(_refreshMenu);
-        menu.Items.Add(_settingsMenu);
-        menu.Items.Add(_resetPositionMenu);
-        ContextMenuStrip = menu;
+        _contextMenu.Items.Add(_refreshMenu);
+        _contextMenu.Items.Add(_settingsMenu);
+        _contextMenu.Items.Add(_resetPositionMenu);
+        _contextMenu.Opening += (_, _) => HideQuotaTooltip();
+        _contextMenu.Opened += (_, _) => { _menuOpenVersion++; StartOutsideClickHook(); };
+        _contextMenu.Closed += (_, _) => StopOutsideClickHook();
+        ContextMenuStrip = _contextMenu;
         ApplyLanguage();
 
         MouseDown += BeginDrag;
         MouseMove += ContinueDrag;
+        MouseMove += (_, args) => UpdateQuotaTooltip(args.Location);
+        MouseLeave += (_, _) => HideQuotaTooltip();
         MouseUp += EndDrag;
         MouseDoubleClick += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     protected override bool ShowWithoutActivation => true;
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            StopOutsideClickHook();
+            _renderBitmap?.Dispose();
+            _renderBitmap = null;
+            _quotaToolTip.Dispose();
+            _contextMenu.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 
     public void ApplyLanguage()
     {
@@ -98,7 +127,7 @@ public sealed class CompactBarForm : Form
         if (_renderingSuspended)
             return;
 
-        _settings = settings;
+        SetSettings(settings);
 
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled
@@ -121,7 +150,7 @@ public sealed class CompactBarForm : Form
     {
         settings.WindowPositionX = _settings.WindowPositionX;
         settings.WindowPositionY = _settings.WindowPositionY;
-        _settings = settings;
+        SetSettings(settings);
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled
                                 || settings.Cpu.Enabled
@@ -136,6 +165,45 @@ public sealed class CompactBarForm : Form
             Show();
         if (!_dragging)
             RenderAtStoredPosition(updateZOrder: true);
+    }
+
+    public void UpdateData(UsageSnapshot snapshot, SystemUsageSnapshot systemUsage)
+    {
+        _snapshot = snapshot;
+        _systemUsage = systemUsage;
+        if (_renderingSuspended || !Visible || _dragging)
+            return;
+        // Explorer can rebuild or reorder taskbar windows. Reassert the
+        // topmost position on each data refresh so the bar cannot remain
+        // hidden behind the taskbar after that happens.
+        RenderAtStoredPosition(updateZOrder: true);
+    }
+
+    private void SetSettings(AppSettings settings)
+    {
+        _settings = settings;
+        _resolvedSettingsSource = null;
+        _resolvedSettings = null;
+        _resolvedSystemVariant = null;
+    }
+
+    private AppSettings RenderSettings()
+    {
+        if (!_settings.FollowSystemTheme)
+            return _settings;
+
+        ThemeVariant systemVariant = AppearanceTheme.SystemVariant();
+        if (ReferenceEquals(_resolvedSettingsSource, _settings)
+            && _resolvedSystemVariant == systemVariant
+            && _resolvedSettings is not null)
+        {
+            return _resolvedSettings;
+        }
+
+        _resolvedSettingsSource = _settings;
+        _resolvedSystemVariant = systemVariant;
+        _resolvedSettings = AppearanceTheme.Resolve(_settings, systemVariant);
+        return _resolvedSettings;
     }
 
     public void PositionWindow()
@@ -287,8 +355,8 @@ public sealed class CompactBarForm : Form
         float scale,
         uint dpi)
     {
-        using var bitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppArgb);
-        bitmap.SetResolution(dpi, dpi);
+        _renderScale = scale;
+        Bitmap bitmap = GetRenderBitmap(size, dpi);
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             graphics.Clear(Color.Transparent);
@@ -335,6 +403,22 @@ public sealed class CompactBarForm : Form
             SetWindowPos(Handle, HwndTopMost, location.X, location.Y, size.Width, size.Height, SwpNoActivate | SwpShowWindow);
     }
 
+    private Bitmap GetRenderBitmap(Size size, uint dpi)
+    {
+        if (_renderBitmap is not null
+            && _renderBitmap.Size == size
+            && _renderBitmapDpi == dpi)
+        {
+            return _renderBitmap;
+        }
+
+        _renderBitmap?.Dispose();
+        _renderBitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppArgb);
+        _renderBitmap.SetResolution(dpi, dpi);
+        _renderBitmapDpi = dpi;
+        return _renderBitmap;
+    }
+
     private void DrawContent(Graphics graphics, Size size, float scale)
     {
         float userScale = UserScale(_settings.CompactBarScalePercent);
@@ -345,10 +429,89 @@ public sealed class CompactBarForm : Form
         CompactBarRenderer.Draw(
             graphics,
             logicalSize,
-            _settings,
+            RenderSettings(),
             _snapshot,
             _systemUsage,
-            scale);
+            scale,
+            themeResolved: true);
+    }
+
+    private void UpdateQuotaTooltip(Point clientPoint)
+    {
+        string text = "";
+        if (!_dragging && !_contextMenu.Visible && ClientRectangle.Contains(clientPoint))
+            text = CompactBarRenderer.FormatResetTooltip(_snapshot, _settings.Language);
+        if (_visibleQuotaTooltip == text) return;
+        HideQuotaTooltip();
+        if (text.Length == 0) return;
+        _visibleQuotaTooltip = text;
+        if (IsHandleCreated && Visible)
+        {
+            Size measured = TextRenderer.MeasureText(text, SystemFonts.MessageBoxFont);
+            var tooltipSize = new Size(measured.Width + 12, measured.Height + 8);
+            Point anchor = CenteredQuotaTooltipLocation(ClientSize, tooltipSize,
+                PointToScreen(Point.Empty), Screen.FromControl(this).Bounds);
+            _quotaToolTip.Show(text, this, anchor);
+        }
+    }
+
+    internal static Point CenteredQuotaTooltipLocation(Size barSize, Size tooltipSize,
+        Point barScreenOrigin, Rectangle screenBounds)
+    {
+        int centeredX = (barSize.Width - tooltipSize.Width) / 2;
+        int minX = screenBounds.Left - barScreenOrigin.X;
+        int maxX = screenBounds.Right - tooltipSize.Width - barScreenOrigin.X;
+        int x = maxX < minX ? minX : Math.Clamp(centeredX, minX, maxX);
+        int aboveY = -tooltipSize.Height - 8;
+        int y = barScreenOrigin.Y + aboveY >= screenBounds.Top ? aboveY : barSize.Height + 4;
+        return new Point(x, y);
+    }
+
+    private void HideQuotaTooltip()
+    {
+        _quotaToolTip.Hide(this);
+        _quotaToolTip.SetToolTip(this, "");
+        _visibleQuotaTooltip = "";
+    }
+
+    private void StartOutsideClickHook()
+    {
+        if (_outsideClickHook != IntPtr.Zero) return;
+        // This layered window never activates, so its context menu needs an
+        // outside-click signal even when the click belongs to another process.
+        _outsideClickProc = OnOutsideClick;
+        _outsideClickHook = SetWindowsHookEx(14, _outsideClickProc, IntPtr.Zero, 0);
+    }
+
+    private void StopOutsideClickHook()
+    {
+        if (_outsideClickHook != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_outsideClickHook);
+            _outsideClickHook = IntPtr.Zero;
+        }
+        _outsideClickProc = null;
+    }
+
+    private IntPtr OnOutsideClick(int code, IntPtr message, IntPtr data)
+    {
+        if (code >= 0 && data != IntPtr.Zero && message.ToInt64() is 0x0201 or 0x0204 or 0x0207 or 0x020B)
+        {
+            NativePoint point = Marshal.PtrToStructure<LowLevelMouseHookData>(data).Point;
+            DismissMenuForOutsideClick(new Point(point.X, point.Y));
+        }
+        return CallNextHookEx(_outsideClickHook, code, message, data);
+    }
+
+    internal void DismissMenuForOutsideClick(Point screenPoint)
+    {
+        if (!_contextMenu.Visible || _contextMenu.Bounds.Contains(screenPoint) || !IsHandleCreated) return;
+        int version = _menuOpenVersion;
+        BeginInvoke(() =>
+        {
+            if (!IsDisposed && _contextMenu.Visible && _menuOpenVersion == version)
+                _contextMenu.Close();
+        });
     }
 
     private void DrawQuotaMetric(
@@ -544,6 +707,7 @@ public sealed class CompactBarForm : Form
     {
         if (args.Button != MouseButtons.Left)
             return;
+        HideQuotaTooltip();
         _dragging = true;
         _dragCursorStart = PhysicalCursorPosition();
         _dragWindowStart = GetWindowRect(Handle, out NativeRect rectangle)
@@ -660,6 +824,28 @@ public sealed class CompactBarForm : Form
     private const uint SwpShowWindow = 0x0040;
     private const uint MonitorDefaultToNearest = 0x00000002;
     private static readonly IntPtr HwndTopMost = new(-1);
+
+    private delegate IntPtr LowLevelMouseProc(int code, IntPtr message, IntPtr data);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc callback, IntPtr module, uint threadId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hook);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr message, IntPtr data);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LowLevelMouseHookData
+    {
+        public NativePoint Point;
+        public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public IntPtr ExtraInfo;
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetDC(IntPtr window);

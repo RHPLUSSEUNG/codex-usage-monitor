@@ -6,6 +6,29 @@ namespace CodexUsageMonitor.Tests;
 public sealed class AppServerTests
 {
     [Fact]
+    public void Daily_usage_without_today_is_pending_not_zero_or_request_failure()
+    {
+        using var rate = JsonDocument.Parse("{}");
+        using var usage = JsonDocument.Parse("""{"summary":{"lifetimeTokens":1000},"dailyUsageBuckets":[{"startDate":"2026-01-01","tokens":100}]}""");
+        var snapshot = CodexAppServerClient.ParseSnapshot(rate.RootElement, usage.RootElement);
+        Assert.Null(snapshot.TodayTokens);
+        Assert.Equal("TokenAggregationPending", snapshot.TokenUsageStatus);
+        Assert.Equal(new DateOnly(2026, 1, 1), snapshot.LastTokenUsageDate);
+        Assert.Equal(1000, snapshot.LifetimeTokens);
+    }
+
+    [Fact]
+    public void Missing_daily_data_and_an_explicit_zero_have_different_states()
+    {
+        using var rate = JsonDocument.Parse("{}");
+        using var missing = JsonDocument.Parse("""{"summary":{"lifetimeTokens":null},"dailyUsageBuckets":null}""");
+        Assert.Equal("TokenNotProvided", CodexAppServerClient.ParseSnapshot(rate.RootElement, missing.RootElement).TokenUsageStatus);
+        using var zero = JsonDocument.Parse($$"""{"summary":{},"dailyUsageBuckets":[{"startDate":"{{DateTime.Today:yyyy-MM-dd}}","tokens":0}]}""");
+        var snapshot = CodexAppServerClient.ParseSnapshot(rate.RootElement, zero.RootElement);
+        Assert.Equal(0, snapshot.TodayTokens);
+        Assert.Null(snapshot.TokenUsageStatus);
+    }
+    [Fact]
     public async Task Reader_shutdown_does_not_require_captured_ui_context()
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;

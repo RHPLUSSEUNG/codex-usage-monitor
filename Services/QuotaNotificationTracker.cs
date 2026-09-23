@@ -6,10 +6,6 @@ internal sealed record QuotaThresholdAlert(string MetricKey, int Threshold, doub
 
 internal sealed class QuotaNotificationTracker
 {
-    private static readonly int[] Thresholds = [5, 10, 20];
-    private readonly WindowState _fiveHour = new();
-    private readonly WindowState _weekly = new();
-
     public IReadOnlyList<QuotaThresholdAlert> Evaluate(
         UsageSnapshot snapshot,
         AppSettings settings,
@@ -19,8 +15,10 @@ internal sealed class QuotaNotificationTracker
             return [];
 
         var alerts = new List<QuotaThresholdAlert>(2);
-        EvaluateWindow("FiveHour", snapshot.FiveHour, _fiveHour, alerts);
-        EvaluateWindow("Weekly", snapshot.Weekly, _weekly, alerts);
+        EvaluateWindow("FiveHour", snapshot.FiveHour, settings.FiveHourAlert,
+            settings.NotificationPercent(PanelId.FiveHour), now, alerts);
+        EvaluateWindow("Weekly", snapshot.Weekly, settings.WeeklyAlert,
+            settings.NotificationPercent(PanelId.Weekly), now, alerts);
         return alerts;
     }
 
@@ -38,51 +36,21 @@ internal sealed class QuotaNotificationTracker
             : hour >= start || hour < end;
     }
 
-    private static void EvaluateWindow(
-        string metricKey,
-        QuotaWindow? window,
-        WindowState state,
-        ICollection<QuotaThresholdAlert> alerts)
+    private static void EvaluateWindow(string metricKey, QuotaWindow? window,
+        QuotaAlertState state, int threshold, DateTimeOffset now, ICollection<QuotaThresholdAlert> alerts)
     {
-        if (window is null)
-            return;
-
-        bool resetChanged = state.Initialized
-                            && state.ResetsAt != window.ResetsAt
-                            && (state.ResetsAt is not null || window.ResetsAt is not null);
-        bool usageResetWithoutTimestamp = state.Initialized
-                                          && state.ResetsAt is null
-                                          && window.ResetsAt is null
-                                          && window.RemainingPercent > state.LastRemainingPercent + 20;
-        if (!state.Initialized || resetChanged || usageResetWithoutTimestamp)
-        {
-            state.Initialized = true;
-            state.ResetsAt = window.ResetsAt;
-            state.LastNotifiedThreshold = null;
-        }
-
+        if (window is null || window.ResetsAt <= now) return;
+        // Ignore missing timestamps and small service-side timestamp corrections.
+        bool newWindow = state.ResetsAt is { } old && window.ResetsAt is { } next
+            && next > old.AddMinutes(2);
+        bool recoveredWithoutTimestamp = state.ResetsAt is null && window.ResetsAt is null
+            && window.RemainingPercent > state.LastRemainingPercent + 20;
+        if (newWindow || recoveredWithoutTimestamp) state.Notified = false;
+        if (window.ResetsAt is { } reset) state.ResetsAt = reset;
         state.LastRemainingPercent = window.RemainingPercent;
-        int? threshold = Thresholds.FirstOrDefault(
-            value => window.RemainingPercent <= value);
-        if (threshold == 0)
-            threshold = null;
-        if (threshold is null)
-            return;
-        if (state.LastNotifiedThreshold is not null
-            && threshold.Value >= state.LastNotifiedThreshold.Value)
-        {
-            return;
-        }
-
-        state.LastNotifiedThreshold = threshold;
-        alerts.Add(new QuotaThresholdAlert(metricKey, threshold.Value, window.RemainingPercent));
-    }
-
-    private sealed class WindowState
-    {
-        public bool Initialized { get; set; }
-        public DateTimeOffset? ResetsAt { get; set; }
-        public double LastRemainingPercent { get; set; }
-        public int? LastNotifiedThreshold { get; set; }
+        threshold = Math.Clamp(threshold, 1, 99);
+        if (state.Notified || window.RemainingPercent > threshold) return;
+        state.Notified = true;
+        alerts.Add(new(metricKey, threshold, window.RemainingPercent));
     }
 }

@@ -158,7 +158,7 @@
     <value>更新間隔（秒）</value>
   </data>
   <data name="QuotaNotifications" xml:space="preserve">
-    <value>制限しきい値の通知</value>
+    <value>利用枠の通知</value>
   </data>
   <data name="QuietHours" xml:space="preserve">
     <value>通知しない時間帯を使用</value>
@@ -216,6 +216,9 @@
   </data>
   <data name="RectangleBackground" xml:space="preserve">
     <value>背景</value>
+  </data>
+  <data name="TransparentBackground" xml:space="preserve">
+    <value>透明な背景</value>
   </data>
   <data name="ChooseColor" xml:space="preserve">
     <value>色を選択 · A {0}</value>
@@ -399,8 +402,9 @@
   </data>
   <data name="NotificationsSection" xml:space="preserve"><value>通知</value></data>
   <data name="AdvancedSettings" xml:space="preserve"><value>詳細設定</value></data>
-  <data name="ShowAdvancedSettings" xml:space="preserve"><value>詳細設定を表示</value></data>
-  <data name="HideAdvancedSettings" xml:space="preserve"><value>詳細設定を隠す</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>Codex CLI のパスを設定</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>Codex CLI のパスを隠す</value></data>
+  <data name="CodexExecutableHint" xml:space="preserve"><value>通常は codex のまま使用します。Codex CLI が PATH にない場合や別のインストールを使う場合のみ、実行ファイルのフルパスを入力してください。</value></data>
   <data name="ResetTo100Percent" xml:space="preserve"><value>100% に戻す</value></data>
   <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar の背景</value></data>
   <data name="UseThemeBackground" xml:space="preserve"><value>テーマ既定の背景を使用</value></data>
@@ -412,5 +416,30 @@
   <data name="CancelOperation" xml:space="preserve"><value>キャンセル</value></data>
   <data name="UpdateCancelled" xml:space="preserve"><value>更新処理をキャンセルしました。</value></data>
   <data name="UpdateProgress" xml:space="preserve"><value>更新の進行状況</value></data>
-  <data name="DisplayTab" xml:space="preserve"><value>表示</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>外観</value></data>
+  <data name="AppearanceMode" xml:space="preserve"><value>画面モード</value></data>
+  <data name="SystemMode" xml:space="preserve"><value>システム</value></data>
+  <data name="WhiteMode" xml:space="preserve"><value>ライトモード</value></data>
+  <data name="AppearancePreviewHelp" xml:space="preserve"><value>プレビュー — パネルをドラッグして交換し、要素をクリックして編集します。</value></data>
+  <data name="AppearanceBackground" xml:space="preserve"><value>背景</value></data>
+  <data name="AppearanceLabel" xml:space="preserve"><value>ラベル</value></data>
+  <data name="AppearanceBar" xml:space="preserve"><value>バー</value></data>
+  <data name="AppearancePanel" xml:space="preserve"><value>パネル</value></data>
+  <data name="ResetTime" xml:space="preserve"><value>リセット時間</value></data>
+  <data name="ResetTimeLabel" xml:space="preserve"><value>リセット時間の前に 5H/WK を表示</value></data>
+  <data name="TimeColor" xml:space="preserve"><value>時刻の色</value></data>
+  <data name="DarkMode" xml:space="preserve"><value>ダークモード</value></data>
+  <data name="LabelColor" xml:space="preserve"><value>ラベルの色</value></data>
+  <data name="PercentColor" xml:space="preserve"><value>割合の色</value></data>
+  <data name="PreviewTitle" xml:space="preserve"><value>プレビュー</value></data>
+  <data name="SelectedElement" xml:space="preserve"><value>編集する項目</value></data>
+  <data name="NotificationThreshold" xml:space="preserve"><value>通知する残量 (%)</value></data>
+  <data name="FiveHourNotificationThreshold" xml:space="preserve"><value>5時間枠の残量通知 (%)</value></data>
+  <data name="WeeklyNotificationThreshold" xml:space="preserve"><value>週間枠の残量通知 (%)</value></data>
+  <data name="NotificationOnce" xml:space="preserve"><value>各利用枠につき一度だけ通知し、リセットまでは再通知しません。</value></data>
+  <data name="TokenQueryFailed" xml:space="preserve"><value>トークン取得失敗</value></data>
+  <data name="TokenNotProvided" xml:space="preserve"><value>日次集計は未提供</value></data>
+  <data name="TokenAggregationPending" xml:space="preserve"><value>本日の集計待ち</value></data>
+  <data name="LastTokenAggregation" xml:space="preserve"><value>最新トークン集計日</value></data>
+  <data name="ResetAction" xml:space="preserve"><value>リセット</value></data>
 </root>

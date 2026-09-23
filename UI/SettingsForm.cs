@@ -4,63 +4,60 @@ using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.UI;
 
-public sealed class SettingsForm : Form
+public sealed partial class SettingsForm : Form
 {
     private static readonly CompactBarStyle[] StyleValues =
     [
-        CompactBarStyle.DarkMinimal,
+        CompactBarStyle.Light,
         CompactBarStyle.LabelBoxes,
         CompactBarStyle.NeonGlow,
-        CompactBarStyle.Light,
-        CompactBarStyle.Cards,
-        CompactBarStyle.CircularGauges,
         CompactBarStyle.CompactRows,
-        CompactBarStyle.RoundedCapsules,
         CompactBarStyle.Gradient,
         CompactBarStyle.MinimalIcons
     ];
     private static readonly CodexPalette[] PaletteValues = CompactBarPaletteCatalog.Values;
 
     private readonly AppSettings _draft;
-    private readonly List<ComboBox> _presentationCombos = [];
+    private readonly List<SettingsComboBox> _presentationCombos = [];
     private readonly List<Action> _colorButtonLanguageUpdates = [];
     private readonly List<Action> _refreshDraftEditors = [];
     private AppLanguage _displayLanguage;
     private bool _updatingLanguage;
     private bool _loadingControls;
-    private readonly CheckBox _showCompactBar = new() { AutoSize = true };
-    private readonly CheckBox _startWithWindows = new() { AutoSize = true };
-    private readonly CheckBox _quotaNotifications = new() { AutoSize = true };
-    private readonly CheckBox _quietHours = new() { AutoSize = true };
-    private readonly ComboBox _language = NewCombo();
-    private readonly ComboBox _compactBarStyle = NewCombo();
-    private readonly ComboBox _codexPalette = NewCombo();
-    private readonly ComboBox _themeVariant = NewCombo();
-    private readonly ComboBox _percentageMode = NewCombo();
-    private readonly ComboBox _presetSlot = new SettingsComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 125 };
-    private readonly Button _presetLoadButton = new() { AutoSize = true };
-    private readonly NumericUpDown _compactBarScale = new SettingsNumericUpDown { Minimum = 50, Maximum = 200, Increment = 10, Width = 72 };
+    private readonly CheckBox _showCompactBar = new SettingsToggle() { AutoSize = true };
+    private readonly CheckBox _startWithWindows = new SettingsToggle() { AutoSize = true };
+    private readonly CheckBox _quotaNotifications = new SettingsToggle() { AutoSize = true };
+    private readonly CheckBox _quietHours = new SettingsToggle() { AutoSize = true };
+    private readonly SettingsComboBox _language = NewCombo();
+    private readonly SettingsComboBox _compactBarStyle = NewCombo();
+    private readonly SettingsComboBox _codexPalette = NewCombo();
+    private readonly SettingsNumericUpDown _fiveHourNotificationPercent = new() { Minimum = 1, Maximum = 99, Width = 80 };
+    private readonly SettingsNumericUpDown _weeklyNotificationPercent = new() { Minimum = 1, Maximum = 99, Width = 80 };
+    private readonly SettingsComboBox _themeVariant = NewCombo();
+    private readonly SettingsComboBox _percentageMode = NewCombo();
+    private readonly SettingsComboBox _presetSlot = new() { Width = 125 };
+    private readonly Button _presetLoadButton = new SettingsButton() { AutoSize = true };
+    private readonly SettingsNumericUpDown _compactBarScale = new() { Minimum = 50, Maximum = 200, Increment = 10, Width = 72 };
     private readonly TrackBar _compactBarScaleSlider = new SettingsTrackBar { Minimum = 50, Maximum = 200, TickFrequency = 10, SmallChange = 10, LargeChange = 20, Width = 155 };
-    private readonly NumericUpDown _refreshSeconds = new SettingsNumericUpDown { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
-    private readonly NumericUpDown _quietHoursStart = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
-    private readonly NumericUpDown _quietHoursEnd = new SettingsNumericUpDown { Minimum = 0, Maximum = 23, Width = 90 };
-    private readonly TextBox _codexPath = new() { Width = 280 };
+    private readonly SettingsNumericUpDown _refreshSeconds = new() { Minimum = 30, Maximum = 1800, Increment = 30, Width = 90 };
+    private readonly SettingsNumericUpDown _quietHoursStart = new() { Minimum = 0, Maximum = 23, Width = 90 };
+    private readonly SettingsNumericUpDown _quietHoursEnd = new() { Minimum = 0, Maximum = 23, Width = 90 };
+    private readonly TextBox _codexPath = new() { Width = 420 };
     private readonly Label _aboutDescription = new() { AutoSize = true, MaximumSize = new Size(460, 0) };
     private readonly Label _versionLabel = new() { AutoSize = true };
     private readonly Label _authorLabel = new() { AutoSize = true };
     private readonly Label _licenseLabel = new() { AutoSize = true };
     private readonly LinkLabel _repositoryLink = new() { AutoSize = true };
-    private readonly Button _diagnosticsButton = new() { AutoSize = true };
-    private readonly Button _updateButton = new() { AutoSize = true };
-    private readonly Button _cancelManagementButton = new() { AutoSize = true, Visible = false };
-    private readonly Button _uninstallButton = new() { AutoSize = true };
+    private readonly Button _diagnosticsButton = new SettingsButton() { AutoSize = true };
+    private readonly Button _updateButton = new SettingsButton() { AutoSize = true };
+    private readonly Button _cancelManagementButton = new SettingsButton() { AutoSize = true, Visible = false };
+    private readonly Button _uninstallButton = new SettingsButton() { AutoSize = true };
     private readonly Label _managementStatus = new() { AutoSize = true, MaximumSize = new Size(460, 0), ForeColor = Color.DimGray };
     private readonly ProgressBar _managementProgress = new() { Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 25, Width = 300, Visible = false };
     private readonly Label _presetStatus = new() { AutoSize = true, ForeColor = Color.DimGray };
     private readonly System.Windows.Forms.Timer _previewTimer = new() { Interval = 33 };
-    private readonly TabControl _tabs = new() { Dock = DockStyle.Fill, Padding = new Point(14, 5) };
+    private readonly TabControl _tabs = new AppearanceTabs() { Dock = DockStyle.Fill, Padding = new Point(14, 5) };
     private TabPage? _displayTab;
-    private List<Control>? _frozenDisplayControls;
     private AppSettings? _pendingPreview;
     private bool _checkingUpdate;
     private bool _installingUpdate;
@@ -83,14 +80,14 @@ public sealed class SettingsForm : Form
         _draft = settings.Copy();
         _displayLanguage = settings.Language;
         Text = T("SettingsTitle");
-        Font = new Font("Segoe UI", 9f);
+        Font = new Font("Segoe UI", 10f);
         AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = true;
-        MinimizeBox = false;
+        MinimizeBox = true;
         StartPosition = FormStartPosition.Manual;
-        MinimumSize = new Size(560, 620);
-        ClientSize = new Size(600, 700);
+        MinimumSize = new Size(820, 640);
+        ClientSize = new Size(1040, 900);
 
         var generalTab = CreateTab("GeneralTab");
         var displayTab = CreateTab("DisplayTab");
@@ -104,10 +101,11 @@ public sealed class SettingsForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 1,
+            RowCount = 2,
             Padding = new Padding(8, 8, 8, 0)
         };
         mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainLayout.Controls.Add(_tabs, 0, 0);
         Controls.Add(mainLayout);
 
@@ -141,42 +139,35 @@ public sealed class SettingsForm : Form
         SetLocalizationKey(note, "SettingsNote");
         generalContent.Controls.Add(note);
 
-        var styleLayout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = new Padding(0, 4, 0, 10) };
-        AddBehaviorRow(styleLayout, "CompactBarStyle", _compactBarStyle, 0);
-        AddBehaviorRow(styleLayout, "ThemeVariant", _themeVariant, 1);
-        AddBehaviorRow(styleLayout, "CodexPalette", _codexPalette, 2);
-        Control scaleEditor = CreateScaleEditor();
-        styleLayout.Controls.Add(scaleEditor, 0, 3);
-        styleLayout.SetColumnSpan(scaleEditor, 2);
-        displayContent.Controls.Add(CreatePresetGroup());
-        displayContent.Controls.Add(styleLayout);
-        displayContent.Controls.Add(CreateBackgroundGroup());
-
-        var basis = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = new Padding(0, 4, 0, 10) };
-        AddBehaviorRow(basis, "DisplayBasis", _percentageMode, 0);
-        displayContent.Controls.Add(basis);
-        displayContent.Controls.Add(CreateMetricGroup("FiveHourLimit", _draft.FiveHour));
-        displayContent.Controls.Add(CreateMetricGroup("WeeklyLimit", _draft.Weekly));
-        displayContent.Controls.Add(CreateMetricGroup("CpuUsage", _draft.Cpu));
-        displayContent.Controls.Add(CreateMetricGroup("MemoryUsage", _draft.Memory));
+        BuildAppearanceTab(displayContent);
 
         aboutContent.Controls.Add(CreateAboutGroup());
         aboutContent.Controls.Add(CreateManagementGroup());
 
-        var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Bottom, AutoSize = true, Padding = new Padding(8) };
-        var save = new Button { AutoSize = true };
-        var cancel = new Button { DialogResult = DialogResult.Cancel, AutoSize = true };
+        var buttons = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.RightToLeft,
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            WrapContents = false,
+            Padding = new Padding(8),
+            Margin = Padding.Empty
+        };
+        var save = new SettingsButton { AutoSize = true };
+        var cancel = new SettingsButton { DialogResult = DialogResult.Cancel, AutoSize = true };
         SetLocalizationKey(save, "Save");
         SetLocalizationKey(cancel, "Cancel");
         buttons.Controls.Add(save);
         buttons.Controls.Add(cancel);
-        Controls.Add(buttons);
+        mainLayout.Controls.Add(buttons, 0, 1);
         AcceptButton = save;
         CancelButton = cancel;
 
         _showCompactBar.Checked = settings.ShowCompactBar;
         _startWithWindows.Checked = settings.StartWithWindows;
         _quotaNotifications.Checked = settings.EnableQuotaNotifications;
+        _fiveHourNotificationPercent.Value = settings.NotificationPercent(PanelId.FiveHour);
+        _weeklyNotificationPercent.Value = settings.NotificationPercent(PanelId.Weekly);
         _quietHours.Checked = settings.QuietHoursEnabled;
         _language.SelectedIndex = (int)settings.Language;
         _compactBarStyle.SelectedIndex = StyleIndex(settings.CompactBarStyle);
@@ -195,7 +186,6 @@ public sealed class SettingsForm : Form
         _previewTimer.Tick += (_, _) => FlushPreview();
         ResizeEnd += (_, _) =>
         {
-            RefreshFrozenDisplayLayout();
             HideHorizontalScroll(_displayTab);
         };
         _repositoryLink.LinkClicked += (_, _) => OpenUrl(
@@ -261,6 +251,8 @@ public sealed class SettingsForm : Form
         };
         UpdateAboutText();
         UpdateManagementControls();
+        ApplyWindowTheme();
+        _appearancePreview.RefreshPreview();
         ResumeLayout(performLayout: false);
     }
 
@@ -269,6 +261,7 @@ public sealed class SettingsForm : Form
         base.OnLoad(e);
         Screen screen = Screen.FromPoint(Cursor.Position);
         Rectangle area = screen.WorkingArea;
+        Size = new Size(Math.Min(Width, area.Width - 24), Math.Min(Height, area.Height - 24));
         Location = new Point(
             area.Left + Math.Max(0, (area.Width - Width) / 2),
             area.Top + Math.Max(0, (area.Height - Height) / 2));
@@ -291,7 +284,6 @@ public sealed class SettingsForm : Form
             CreateControlTree(this);
             _displayTab.PerformLayout();
             _tabs.PerformLayout();
-            FreezeDisplayLayout();
             Update();
             _tabs.SelectedIndex = selectedIndex;
             Hide();
@@ -312,34 +304,10 @@ public sealed class SettingsForm : Form
             CreateControlTree(child);
     }
 
-    private void FreezeDisplayLayout()
-    {
-        if (_displayTab is null || _frozenDisplayControls is not null)
-            return;
-        _frozenDisplayControls = SuspendLayoutTree(_displayTab);
-    }
-
-    private void ThawDisplayLayout(bool performLayout = true)
-    {
-        if (_frozenDisplayControls is not { } controls)
-            return;
-        ResumeLayoutTree(controls, performLayout);
-        _frozenDisplayControls = null;
-    }
-
-    private void RefreshFrozenDisplayLayout()
-    {
-        if (_frozenDisplayControls is null || _displayTab is null)
-            return;
-        ThawDisplayLayout();
-        _displayTab.PerformLayout();
-        FreezeDisplayLayout();
-    }
-
     private TabPage CreateTab(string localizationKey)
     {
-        var tab = new TabPage { Padding = new Padding(0), AutoScroll = true };
-        tab.Layout += (_, _) => HideHorizontalScroll(tab);
+        var tab = new TabPage { Padding = Padding.Empty, AutoScroll = false };
+        tab.Controls.Add(new SettingsScrollHost { Dock = DockStyle.Fill });
         SetLocalizationKey(tab, localizationKey);
         return tab;
     }
@@ -355,13 +323,13 @@ public sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false
         };
-        tab.Controls.Add(content);
+        ((SettingsScrollHost)tab.Controls[0]).SetContent(content);
         return content;
     }
 
     private GroupBox CreateNotificationGroup()
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
         SetLocalizationKey(group, "NotificationsSection");
         SetLocalizationKey(_quotaNotifications, "QuotaNotifications");
         SetLocalizationKey(_quietHours, "QuietHours");
@@ -373,6 +341,13 @@ public sealed class SettingsForm : Form
             WrapContents = false
         };
         content.Controls.Add(_quotaNotifications);
+        var threshold = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 10, 0, 10) };
+        AddBehaviorRow(threshold, "FiveHourNotificationThreshold", _fiveHourNotificationPercent, 0);
+        AddBehaviorRow(threshold, "WeeklyNotificationThreshold", _weeklyNotificationPercent, 1);
+        content.Controls.Add(threshold);
+        var once = new Label { AutoSize = true, MaximumSize = new Size(600, 0) };
+        SetLocalizationKey(once, "NotificationOnce");
+        content.Controls.Add(once);
         content.Controls.Add(_quietHours);
         var hours = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Margin = new Padding(20, 2, 0, 0) };
         AddBehaviorRow(hours, "QuietHoursStart", _quietHoursStart, 0);
@@ -387,17 +362,38 @@ public sealed class SettingsForm : Form
         var content = new FlowLayoutPanel
         {
             AutoSize = true,
-            Dock = DockStyle.Top,
             FlowDirection = FlowDirection.TopDown,
-            WrapContents = false
+            WrapContents = false,
+            Margin = new Padding(0, 4, 0, 0)
         };
-        var toggle = new Button { AutoSize = true };
+        var toggle = new SettingsButton { AutoSize = true };
         SetLocalizationKey(toggle, "ShowAdvancedSettings");
-        var advanced = new GroupBox { AutoSize = true, Padding = new Padding(10), Visible = false };
+        var advanced = new SettingsSection
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(500, 0),
+            Padding = new Padding(18, 44, 18, 18),
+            Visible = false
+        };
         SetLocalizationKey(advanced, "AdvancedSettings");
-        var layout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2 };
-        AddBehaviorRow(layout, "CodexExecutable", _codexPath, 0);
-        advanced.Controls.Add(layout);
+        var fields = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            Margin = Padding.Empty,
+            Location = new Point(18, 44)
+        };
+        var pathLabel = new Label { AutoSize = true, Margin = new Padding(0, 0, 0, 5) };
+        SetLocalizationKey(pathLabel, "CodexExecutable");
+        _codexPath.Margin = new Padding(0, 0, 0, 8);
+        var hint = new Label { AutoSize = true, MaximumSize = new Size(450, 0), Margin = Padding.Empty };
+        SetLocalizationKey(hint, "CodexExecutableHint");
+        fields.Controls.Add(pathLabel);
+        fields.Controls.Add(_codexPath);
+        fields.Controls.Add(hint);
+        advanced.Controls.Add(fields);
         toggle.Click += (_, _) =>
         {
             advanced.Visible = !advanced.Visible;
@@ -421,7 +417,7 @@ public sealed class SettingsForm : Form
         SetLocalizationKey(label, "CompactBarScale");
         _compactBarScaleSlider.AccessibleName = T("CompactBarScale");
         _compactBarScale.AccessibleName = T("CompactBarScale");
-        var reset = new Button { AutoSize = true };
+        var reset = new SettingsButton { AutoSize = true };
         SetLocalizationKey(reset, "ResetTo100Percent");
         reset.Click += (_, _) => ChangeCompactBarScale(100);
         row.Controls.Add(label);
@@ -441,28 +437,30 @@ public sealed class SettingsForm : Form
 
     private GroupBox CreateMetricGroup(string titleKey, MetricSettings metric)
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(18) };
         SetLocalizationKey(group, titleKey);
-        var layout = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill };
+        var layout = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Dock = DockStyle.Top };
         group.Controls.Add(layout);
-        var enabled = new CheckBox { Checked = metric.Enabled, AutoSize = true };
+        var enabled = new SettingsToggle { Checked = metric.Enabled, AutoSize = true };
         SetLocalizationKey(enabled, "Show");
         var presentation = NewCombo();
         presentation.Items.AddRange([T("PercentOnly"), T("BarOnly"), T("PercentAndBar")]);
         _presentationCombos.Add(presentation);
         presentation.SelectedIndex = metric.Presentation switch { MetricPresentation.PercentOnly => 0, MetricPresentation.BarOnly => 1, _ => 2 };
-        layout.Controls.Add(enabled, 0, 0);
-        layout.SetColumnSpan(enabled, 2);
-        var presentationLabel = new Label { AutoSize = true, Anchor = AnchorStyles.Left };
-        SetLocalizationKey(presentationLabel, "Presentation");
-        layout.Controls.Add(presentationLabel, 0, 1);
-        layout.Controls.Add(presentation, 1, 1);
+        enabled.Text = "";
+        enabled.Tag = null;
+        enabled.AccessibleName = T("Show");
+        layout.Controls.Add(AppearanceRow("Show", enabled));
+        layout.Controls.Add(AppearanceRow("Presentation", presentation));
         Control fillEditor = CreateColorButton("FillColor", () => metric.FillColor, value => metric.FillColor = value);
         Control trackEditor = CreateColorButton("TrackColor", () => metric.TrackColor, value => metric.TrackColor = value);
-        layout.Controls.Add(fillEditor, 0, 2);
-        layout.SetColumnSpan(fillEditor, 2);
-        layout.Controls.Add(trackEditor, 0, 3);
-        layout.SetColumnSpan(trackEditor, 2);
+        Control labelEditor = CreateColorButton("LabelColor", () => string.IsNullOrEmpty(metric.LabelColor) ? metric.FillColor : metric.LabelColor, value => metric.LabelColor = value);
+        Control percentEditor = CreateColorButton("PercentColor", () => string.IsNullOrEmpty(metric.PercentColor) ? CompactBarPaletteCatalog.Get(_draft.CodexPalette, _draft.ThemeVariant).Foreground : metric.PercentColor, value => metric.PercentColor = value);
+        fillEditor.Tag = "metric-fill";
+        trackEditor.Tag = "metric-track";
+        labelEditor.Tag = "metric-label";
+        percentEditor.Tag = "metric-percent";
+        layout.Controls.AddRange([fillEditor, trackEditor, labelEditor, percentEditor]);
         _refreshDraftEditors.Add(() =>
         {
             enabled.Checked = metric.Enabled;
@@ -497,7 +495,7 @@ public sealed class SettingsForm : Form
 
     private GroupBox CreateBackgroundGroup()
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(18) };
         SetLocalizationKey(group, "CompactBarBackground");
         var content = new FlowLayoutPanel
         {
@@ -506,8 +504,23 @@ public sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false
         };
+        var transparent = new SettingsToggle { AutoSize = true, Checked = _draft.TransparentBackground };
+        SetLocalizationKey(transparent, "TransparentBackground");
+        transparent.CheckedChanged += (_, _) =>
+        {
+            if (_loadingControls)
+                return;
+            _draft.TransparentBackground = transparent.Checked;
+            if (!transparent.Checked && HexColor.ParseOrDefault(_draft.BackgroundColor, Color.Transparent).A == 0)
+                _draft.BackgroundColor = CompactBarTheme.DefaultBackground(
+                    _draft.CompactBarStyle, _draft.CodexPalette, _draft.ThemeVariant);
+            RefreshControlsFromDraft();
+            RaisePreview();
+        };
+        _refreshDraftEditors.Add(() => transparent.Checked = _draft.TransparentBackground);
+        content.Controls.Add(AppearanceRow("TransparentBackground", transparent));
         content.Controls.Add(CreateColorButton("RectangleBackground", () => _draft.BackgroundColor, value => _draft.BackgroundColor = value));
-        var reset = new Button { AutoSize = true };
+        var reset = new SettingsButton { AutoSize = true };
         SetLocalizationKey(reset, "UseThemeBackground");
         reset.Click += (_, _) =>
         {
@@ -515,17 +528,19 @@ public sealed class SettingsForm : Form
                 _draft.CompactBarStyle,
                 _draft.CodexPalette,
                 _draft.ThemeVariant);
+            _draft.TransparentBackground = false;
             RefreshControlsFromDraft();
             RaisePreview();
         };
-        content.Controls.Add(reset);
+        content.Controls.Add(AppearanceRow("UseThemeBackground", reset));
+        reset.Text = T("ResetAction");
         group.Controls.Add(content);
         return group;
     }
 
     private GroupBox CreateAboutGroup()
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
         SetLocalizationKey(group, "About");
         var layout = new FlowLayoutPanel
         {
@@ -552,7 +567,7 @@ public sealed class SettingsForm : Form
 
     private GroupBox CreateManagementGroup()
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(12) };
         SetLocalizationKey(group, "ManagementActions");
         var layout = new FlowLayoutPanel
         {
@@ -591,7 +606,7 @@ public sealed class SettingsForm : Form
 
     private GroupBox CreatePresetGroup()
     {
-        var group = new GroupBox { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
+        var group = new SettingsSection { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(10) };
         SetLocalizationKey(group, "Presets");
         var content = new TableLayoutPanel { AutoSize = true, ColumnCount = 1, RowCount = 2, Dock = DockStyle.Top };
         var actions = new FlowLayoutPanel
@@ -601,7 +616,7 @@ public sealed class SettingsForm : Form
             WrapContents = false,
             Margin = Padding.Empty
         };
-        var save = new Button { AutoSize = true };
+        var save = new SettingsButton { AutoSize = true };
         SetLocalizationKey(_presetLoadButton, "LoadPreset");
         SetLocalizationKey(save, "SavePreset");
         _presetLoadButton.Click += (_, _) => LoadPreset(Math.Max(0, _presetSlot.SelectedIndex));
@@ -621,15 +636,14 @@ public sealed class SettingsForm : Form
 
     private Control CreateColorButton(string labelKey, Func<string> getter, Action<string> setter)
     {
-        var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = new Padding(0, 2, 0, 2) };
         Color selected = HexColor.ParseOrDefault(getter(), Color.Gray);
-        var choose = new Button { Width = 155, Height = 30, UseVisualStyleBackColor = false };
+        var choose = new SettingsButton { Width = 155, Height = 30, UseVisualStyleBackColor = false, Tag = "color-swatch" };
         void UpdateButton()
         {
             choose.BackColor = Color.FromArgb(255, selected.R, selected.G, selected.B);
             double luminance = selected.R * 0.299 + selected.G * 0.587 + selected.B * 0.114;
             choose.ForeColor = luminance >= 150d ? Color.Black : Color.White;
-            choose.Text = Localization.Format(_displayLanguage, "ChooseColor", selected.A);
+            choose.Text = HexColor.Format(selected, includeAlpha: selected.A != 255);
             choose.AccessibleName = $"{T(labelKey)}: {choose.Text}";
         }
         _colorButtonLanguageUpdates.Add(UpdateButton);
@@ -662,10 +676,7 @@ public sealed class SettingsForm : Form
             UpdateButton();
             RaisePreview();
         };
-        var label = new Label { AutoSize = true, Width = 80, Anchor = AnchorStyles.Left };
-        SetLocalizationKey(label, labelKey);
-        row.Controls.Add(label);
-        row.Controls.Add(choose);
+        Control row = AppearanceRow(labelKey, choose);
         UpdateButton();
         return row;
     }
@@ -677,6 +688,9 @@ public sealed class SettingsForm : Form
         _draft.Language = (AppLanguage)Math.Max(0, _language.SelectedIndex);
         _draft.RefreshIntervalSeconds = (int)_refreshSeconds.Value;
         _draft.EnableQuotaNotifications = _quotaNotifications.Checked;
+        _draft.FiveHourNotificationPercent = (int)_fiveHourNotificationPercent.Value;
+        _draft.WeeklyNotificationPercent = (int)_weeklyNotificationPercent.Value;
+        _draft.QuotaNotificationPercent = _draft.FiveHourNotificationPercent;
         _draft.QuietHoursEnabled = _quietHours.Checked;
         _draft.QuietHoursStart = (int)_quietHoursStart.Value;
         _draft.QuietHoursEnd = (int)_quietHoursEnd.Value;
@@ -697,9 +711,6 @@ public sealed class SettingsForm : Form
     private void ApplyLanguage()
     {
         _updatingLanguage = true;
-        bool refreezeDisplay = _frozenDisplayControls is not null;
-        if (refreezeDisplay)
-            ThawDisplayLayout(performLayout: false);
         List<Control> suspendedControls = SuspendLayoutTree(this);
         try
         {
@@ -710,7 +721,7 @@ public sealed class SettingsForm : Form
             UpdateThemeVariantItems(_draft.CodexPalette, _draft.ThemeVariant);
             ReplaceItems(_percentageMode, T("RemainingPercent"), T("UsedPercent"));
             ReplaceItems(_presetSlot, PresetNames());
-            foreach (ComboBox presentation in _presentationCombos)
+            foreach (SettingsComboBox presentation in _presentationCombos)
                 ReplaceItems(presentation, T("PercentOnly"), T("BarOnly"), T("PercentAndBar"));
             foreach (Action update in _colorButtonLanguageUpdates)
                 update();
@@ -722,13 +733,9 @@ public sealed class SettingsForm : Form
         finally
         {
             ResumeLayoutTree(suspendedControls);
-            if (refreezeDisplay)
-            {
-                _displayTab?.PerformLayout();
-                FreezeDisplayLayout();
-            }
             _updatingLanguage = false;
         }
+        RefreshAppearanceLabels();
     }
 
     private static List<Control> SuspendLayoutTree(Control root)
@@ -768,7 +775,7 @@ public sealed class SettingsForm : Form
         }
     }
 
-    private static void ReplaceItems(ComboBox combo, params string[] items)
+    private static void ReplaceItems(SettingsComboBox combo, params string[] items)
     {
         int selectedIndex = combo.SelectedIndex;
         combo.BeginUpdate();
@@ -874,6 +881,7 @@ public sealed class SettingsForm : Form
         RefreshPresetButtons();
         PresetSaved?.Invoke(slot, preset.Copy());
         _presetStatus.Text = Localization.Format(_displayLanguage, "PresetSavedInline", slot + 1);
+        _presetStatus.Visible = true;
     }
 
     private void LoadPreset(int slot)
@@ -885,6 +893,7 @@ public sealed class SettingsForm : Form
         RefreshControlsFromDraft();
         RaisePreview();
         _presetStatus.Text = Localization.Format(_displayLanguage, "PresetLoadedInline", slot + 1);
+        _presetStatus.Visible = true;
     }
 
     private CompactBarPreset? GetPreset(int slot) => slot switch
@@ -968,6 +977,9 @@ public sealed class SettingsForm : Form
         string track = CompactBarTheme.DefaultTrack(palette, theme);
         foreach (MetricSettings metric in new[] { settings.FiveHour, settings.Weekly, settings.Cpu, settings.Memory })
         {
+            metric.LabelColor = "";
+            metric.PercentColor = "";
+            metric.ResetTimeColor = "";
             metric.FillColor = fill;
             metric.TrackColor = track;
         }
@@ -1000,40 +1012,37 @@ public sealed class SettingsForm : Form
     private void UpdateQuietHoursControls()
     {
         _quietHours.Enabled = _quotaNotifications.Checked;
+        _fiveHourNotificationPercent.Enabled = _quotaNotifications.Checked;
+        _weeklyNotificationPercent.Enabled = _quotaNotifications.Checked;
         bool hoursEnabled = _quotaNotifications.Checked && _quietHours.Checked;
         _quietHoursStart.Enabled = hoursEnabled;
         _quietHoursEnd.Enabled = hoursEnabled;
     }
 
-    private static void ScrollParent(Control control, MouseEventArgs e)
+    internal static void ScrollParent(Control control, MouseEventArgs e)
     {
         if (e is HandledMouseEventArgs handled)
             handled.Handled = true;
 
         Control? current = control.Parent;
-        while (current is not null && current is not ScrollableControl { AutoScroll: true })
+        while (current is not null && current is not SettingsScrollHost)
             current = current.Parent;
-        if (current is not ScrollableControl scrollHost)
+        if (current is not SettingsScrollHost scrollHost)
             return;
 
         int lines = Math.Max(1, SystemInformation.MouseWheelScrollLines);
-        int currentY = -scrollHost.AutoScrollPosition.Y;
-        int nextY = Math.Max(0, currentY - Math.Sign(e.Delta) * lines * 18);
-        scrollHost.AutoScrollPosition = new Point(-scrollHost.AutoScrollPosition.X, nextY);
+        scrollHost.ScrollBy(-Math.Sign(e.Delta) * lines * 18);
     }
 
     private static void HideHorizontalScroll(TabPage? tab)
     {
-        if (tab is null)
-            return;
-        tab.HorizontalScroll.Enabled = false;
-        tab.HorizontalScroll.Visible = false;
-        if (tab.AutoScrollPosition.X != 0)
-            tab.AutoScrollPosition = new Point(0, -tab.AutoScrollPosition.Y);
+        if (tab?.Controls.Count > 0 && tab.Controls[0] is SettingsScrollHost host)
+            host.RefreshLayout();
     }
 
     private void RaisePreview()
     {
+        RefreshAppearance();
         _pendingPreview = _draft.Copy();
         if (!_previewTimer.Enabled)
             _previewTimer.Start();
@@ -1050,14 +1059,10 @@ public sealed class SettingsForm : Form
 
     private string[] StyleNames() =>
     [
-        T("DarkMinimalStyle"),
+        T("LightStyle"),
         T("LabelBoxStyle"),
         T("NeonGlowStyle"),
-        T("LightStyle"),
-        T("CardsStyle"),
-        T("CircularGaugesStyle"),
         T("CompactRowsStyle"),
-        T("RoundedCapsulesStyle"),
         T("GradientStyle"),
         T("MinimalIconsStyle")
     ];
@@ -1084,7 +1089,7 @@ public sealed class SettingsForm : Form
 
     private static int StyleIndex(CompactBarStyle style)
     {
-        int index = Array.IndexOf(StyleValues, style);
+        int index = Array.IndexOf(StyleValues, AppSettings.NormalizeStyle(style));
         return index < 0 ? 0 : index;
     }
 
@@ -1100,35 +1105,6 @@ public sealed class SettingsForm : Form
         return index < 0 ? Array.IndexOf(PaletteValues, CodexPalette.Codex) : index;
     }
 
-    private static ComboBox NewCombo() => new SettingsComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
+    private static SettingsComboBox NewCombo() => new() { Width = 170 };
 
-    private sealed class SettingsComboBox : ComboBox
-    {
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            if (DroppedDown)
-            {
-                base.OnMouseWheel(e);
-                return;
-            }
-
-            ScrollParent(this, e);
-        }
-    }
-
-    private sealed class SettingsNumericUpDown : NumericUpDown
-    {
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            ScrollParent(this, e);
-        }
-    }
-
-    private sealed class SettingsTrackBar : TrackBar
-    {
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            ScrollParent(this, e);
-        }
-    }
 }

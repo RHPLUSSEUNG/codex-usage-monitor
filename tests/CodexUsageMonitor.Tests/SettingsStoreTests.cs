@@ -7,6 +7,20 @@ namespace CodexUsageMonitor.Tests;
 public sealed class SettingsStoreTests
 {
     [Fact]
+    public void New_install_uses_system_codex_light_style_with_transparent_background()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(CompactBarStyle.Light, settings.CompactBarStyle);
+        Assert.Equal(CodexPalette.Codex, settings.CodexPalette);
+        Assert.True(settings.FollowSystemTheme);
+        Assert.True(settings.TransparentBackground);
+        Assert.StartsWith("#00", settings.BackgroundColor, StringComparison.OrdinalIgnoreCase);
+        Assert.False(settings.FiveHour.ShowResetTimeLabel);
+        Assert.False(settings.Weekly.ShowResetTimeLabel);
+    }
+
+    [Fact]
     public void Save_writes_versioned_primary_and_previous_valid_backup()
     {
         using var directory = new TemporaryDirectory();
@@ -75,6 +89,37 @@ public sealed class SettingsStoreTests
         Assert.Equal(AppLanguage.Korean, result.Settings.Language);
         Assert.Equal(AppSettings.CurrentSettingsVersion, result.Settings.SettingsVersion);
         Assert.Equal(100, result.Settings.CompactBarScalePercent);
+    }
+
+    [Theory]
+    [InlineData("DarkMinimal")]
+    [InlineData("Cards")]
+    [InlineData("CircularGauges")]
+    [InlineData("RoundedCapsules")]
+    public void Load_migrates_removed_styles_to_light(string storedStyle)
+    {
+        using var directory = new TemporaryDirectory();
+        File.WriteAllText(
+            System.IO.Path.Combine(directory.Path, "settings.json"),
+            $$"""{"SettingsVersion":2,"CompactBarStyle":"{{storedStyle}}","BackgroundColor":"#FF16181C"}""");
+
+        AppSettings loaded = SettingsStore.LoadFromDirectory(directory.Path).Settings;
+
+        Assert.Equal(CompactBarStyle.Light, loaded.CompactBarStyle);
+        Assert.False(loaded.TransparentBackground);
+    }
+
+    [Fact]
+    public void Version_two_transparent_background_keeps_its_visual_state()
+    {
+        using var directory = new TemporaryDirectory();
+        File.WriteAllText(
+            System.IO.Path.Combine(directory.Path, "settings.json"),
+            """{"SettingsVersion":2,"BackgroundColor":"#0016181C"}""");
+
+        AppSettings loaded = SettingsStore.LoadFromDirectory(directory.Path).Settings;
+
+        Assert.True(loaded.TransparentBackground);
     }
 
     [Theory]

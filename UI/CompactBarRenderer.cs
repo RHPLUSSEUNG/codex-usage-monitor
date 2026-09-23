@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Globalization;
 using CodexUsageMonitor.Models;
 
 namespace CodexUsageMonitor.UI;
@@ -8,75 +9,248 @@ internal static class CompactBarRenderer
 {
     private const int GridCellWidth = 158;
     private const int GridRowHeight = 22;
+    private const int ResetLabelColumnWidth = 24;
+    private static readonly string[] LinearPanelTitles = ["5H", "WK", "CPU", "RAM"];
 
-    public static Size CalculateSize(AppSettings settings, float scale, int taskbarHeight)
+    internal enum Element { Panel, Label, Bar, Percent, ResetTime }
+    internal sealed record HitRegion(PanelId Panel, Element Element, Rectangle Bounds);
+    internal sealed record PanelLayout(PanelId Panel, Rectangle Bounds, Rectangle Content, Rectangle Reset);
+
+    internal static string FormatResetTime(DateTimeOffset? resetsAt, bool weekly, DateTimeOffset now)
     {
-        MetricVisual[] metrics = Metrics(settings, null, null);
-        int count = metrics.Count(metric => metric.Settings.Enabled);
-        if (count == 0)
-            return new Size(1, 1);
-
-        return settings.CompactBarStyle switch
-        {
-            CompactBarStyle.CircularGauges => CircularGaugeSize(count, scale, taskbarHeight),
-            CompactBarStyle.CompactRows => new Size(S(250, scale), S(6 + count * 21, scale)),
-            CompactBarStyle.MinimalIcons => new Size(S(8 + count * 74, scale), S(48, scale)),
-            CompactBarStyle.Cards => GridSize(metrics, scale, 164, 28),
-            CompactBarStyle.RoundedCapsules => GridSize(metrics, scale, 164, 27),
-            CompactBarStyle.LabelBoxes => GridSize(metrics, scale, GridCellWidth + 6, GridRowHeight),
-            _ => GridSize(metrics, scale, GridCellWidth, GridRowHeight)
-        };
+        if (resetsAt is null) return "--";
+        TimeSpan remaining = resetsAt.Value - now;
+        if (weekly && remaining.TotalDays >= 1) return $"{(int)remaining.TotalDays:00}d";
+        if (remaining.TotalHours >= 1) return $"{(int)remaining.TotalHours:00}h";
+        return $"{Math.Max(0, (int)remaining.TotalMinutes):00}m";
     }
 
-    public static void Draw(
-        Graphics graphics,
-        Size size,
-        AppSettings settings,
-        UsageSnapshot snapshot,
-        SystemUsageSnapshot systemUsage,
-        float scale)
+    internal static string FormatResetTooltip(UsageSnapshot snapshot, AppLanguage language)
     {
+        string Line(string titleKey, DateTimeOffset? resetsAt)
+        {
+            string reset = resetsAt is null
+                ? Localization.Text(language, "ResetUnknown")
+                : Localization.Format(language, "ResetAt",
+                    resetsAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
+            return $"{Localization.Text(language, titleKey)} · {reset}";
+        }
+        return Line("FiveHour", snapshot.FiveHour?.ResetsAt) + Environment.NewLine
+            + Line("Weekly", snapshot.Weekly?.ResetsAt);
+    }
+
+    internal static string FormatResetPanelText(PanelId panel, AppSettings settings, UsageSnapshot snapshot, DateTimeOffset now)
+    {
+        bool weekly = panel == PanelId.WeeklyReset;
+        string label = settings.Metric(panel).ShowResetTimeLabel ? (weekly ? "WK " : "5H ") : "";
+        return label + FormatResetCountdown(panel, snapshot, now);
+    }
+
+    private static string FormatResetCountdown(PanelId panel, UsageSnapshot snapshot, DateTimeOffset now)
+    {
+        bool weekly = panel == PanelId.WeeklyReset;
+        DateTimeOffset? resetsAt = (weekly ? snapshot.Weekly : snapshot.FiveHour)?.ResetsAt;
+        return "↻ " + FormatResetTime(resetsAt, weekly, now);
+    }
+
+    internal static List<PanelLayout> Layout(AppSettings settings, float scale, int taskbarHeight)
+    {
+        PanelId[] order = HasCompletePanelOrder(settings.PanelOrder)
+            ? settings.PanelOrder
+            : AppSettings.NormalizePanelOrder(settings.PanelOrder);
+        var result = new List<PanelLayout>(6);
+        bool rows = settings.CompactBarStyle == CompactBarStyle.CompactRows;
+        bool gauges = settings.CompactBarStyle == CompactBarStyle.CircularGauges;
+        bool icons = settings.CompactBarStyle == CompactBarStyle.MinimalIcons;
+        int width = settings.CompactBarStyle switch
+        {
+            CompactBarStyle.CompactRows => S(250, scale),
+            CompactBarStyle.CircularGauges => Math.Max(S(50, scale), (int)Math.Round(taskbarHeight * 1.15)),
+            CompactBarStyle.MinimalIcons => S(74, scale),
+            CompactBarStyle.Cards or CompactBarStyle.RoundedCapsules or CompactBarStyle.LabelBoxes => S(164, scale),
+            _ => S(GridCellWidth, scale)
+        };
+        int height = settings.CompactBarStyle switch
+        {
+            CompactBarStyle.CircularGauges => taskbarHeight,
+            CompactBarStyle.MinimalIcons => S(48, scale),
+            CompactBarStyle.Cards => S(28, scale),
+            CompactBarStyle.RoundedCapsules => S(27, scale),
+            _ => S(22, scale)
+        };
+        bool firstRow = IsPanelVisible(settings, order[0])
+                        || IsPanelVisible(settings, order[1])
+                        || IsPanelVisible(settings, order[2]);
+        int[] rowX = [S(2, scale), S(2, scale)];
+        int offset = S(2, scale);
+        for (int slot = 0; slot < order.Length; slot++)
+        {
+            PanelId id = order[slot];
+            if (!IsPanelVisible(settings, id))
+                continue;
+            int row = slot / 3;
+            int x, y, panelWidth;
+            if (IsResetPanel(id))
+            {
+                int textWidth = settings.Metric(id).ShowResetTimeLabel ? 70 : 45;
+                panelWidth = S(textWidth, scale);
+            }
+            else panelWidth = width;
+            if (rows) { x = S(2, scale); y = offset; offset += height + S(2, scale); }
+            else if (gauges || icons) { x = offset; y = S(2, scale); offset += panelWidth + S(4, scale); }
+            else
+            {
+                x = rowX[row];
+                y = S(2, scale) + (row == 1 && firstRow ? height + S(2, scale) : 0);
+                rowX[row] += panelWidth + S(4, scale);
+            }
+            var bounds = new Rectangle(x, y, panelWidth, height);
+            result.Add(new(id, bounds, bounds, IsResetPanel(id) ? bounds : Rectangle.Empty));
+        }
+        return result;
+    }
+
+    private static bool HasCompletePanelOrder(PanelId[]? order)
+    {
+        if (order is not { Length: 6 })
+            return false;
+        int seen = 0;
+        foreach (PanelId id in order)
+        {
+            int value = (int)id;
+            if ((uint)value >= 6u || (seen & (1 << value)) != 0)
+                return false;
+            seen |= 1 << value;
+        }
+        return seen == 0b11_1111;
+    }
+
+    internal static bool IsResetPanel(PanelId id) => id is PanelId.FiveHourReset or PanelId.WeeklyReset;
+
+    internal static bool IsPanelVisible(AppSettings settings, PanelId id) => IsResetPanel(id)
+        ? settings.Metric(id).ShowResetTime : settings.Metric(id).Enabled;
+
+    public static Size CalculateSize(AppSettings settings, float scale, int taskbarHeight)
+        => CalculateSize(Layout(settings, scale, taskbarHeight), scale);
+
+    internal static Size CalculateSize(IReadOnlyList<PanelLayout> panels, float scale)
+    {
+        if (panels.Count == 0)
+            return new Size(1, 1);
+        int right = 0, bottom = 0;
+        foreach (PanelLayout panel in panels)
+        {
+            right = Math.Max(right, panel.Bounds.Right);
+            bottom = Math.Max(bottom, panel.Bounds.Bottom);
+        }
+        return new Size(right + S(2, scale), bottom + S(2, scale));
+    }
+
+    public static void Draw(Graphics graphics, Size size, AppSettings settings, UsageSnapshot snapshot,
+        SystemUsageSnapshot systemUsage, float scale, bool themeResolved = false) =>
+        DrawWithRegions(graphics, size, settings, snapshot, systemUsage, scale, themeResolved: themeResolved);
+
+    internal static void DrawWithRegions(Graphics graphics, Size size, AppSettings settings, UsageSnapshot snapshot,
+        SystemUsageSnapshot systemUsage, float scale, List<HitRegion>? regions = null, bool themeResolved = false)
+    {
+        if (!themeResolved)
+            settings = AppearanceTheme.Resolve(settings);
         MetricVisual[] metrics = Metrics(settings, snapshot, systemUsage);
-        ThemeVariant theme = settings.ThemeVariant;
-        CodexPalette palette = settings.CodexPalette;
         graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
         graphics.TextContrast = 0;
         DrawBackground(graphics, size, settings, metrics, scale);
-
-        switch (settings.CompactBarStyle)
+        int gaugeHeight = Math.Max(1, size.Height - S(4, scale));
+        using var primaryFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+        int maxLinearTitleWidth = Math.Max(S(29, scale), LinearPanelTitles.Max(title =>
+            TextRenderer.MeasureText(graphics, title, primaryFont, Size.Empty,
+                TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width));
+        foreach (var panel in Layout(settings, scale, gaugeHeight))
         {
-            case CompactBarStyle.NeonGlow:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Neon, theme, palette);
-                break;
-            case CompactBarStyle.Light:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Light, theme, palette);
-                break;
-            case CompactBarStyle.Cards:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Cards, theme, palette);
-                break;
-            case CompactBarStyle.CircularGauges:
-                DrawCircularGauges(graphics, metrics, scale, theme, palette);
-                break;
-            case CompactBarStyle.CompactRows:
-                DrawCompactRows(graphics, metrics, scale, theme, palette);
-                break;
-            case CompactBarStyle.RoundedCapsules:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Capsules, theme, palette);
-                break;
-            case CompactBarStyle.Gradient:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Gradient, theme, palette);
-                break;
-            case CompactBarStyle.MinimalIcons:
-                DrawMinimalIcons(graphics, metrics, scale, theme, palette);
-                break;
-            case CompactBarStyle.LabelBoxes:
-                DrawGrid(graphics, metrics, scale, LinearStyle.LabelBoxes, theme, palette);
-                break;
-            default:
-                DrawGrid(graphics, metrics, scale, LinearStyle.Dark, theme, palette);
-                break;
+            regions?.Add(new(panel.Panel, Element.Panel, panel.Bounds));
+            void Hit(Element element, Rectangle bounds) => regions?.Add(new(panel.Panel, element, bounds));
+            if (IsResetPanel(panel.Panel))
+            {
+                MetricSettings resetSettings = settings.Metric(panel.Panel);
+                string resetText = FormatResetCountdown(panel.Panel, snapshot, DateTimeOffset.Now);
+                Color resetColor = HexColor.ParseOrDefault(resetSettings.ResetTimeColor,
+                    CompactBarTheme.Foreground(settings.CodexPalette, settings.ThemeVariant));
+                // GDI+ keeps the countdown glyphs and their panel width on the same DPI scale.
+                Rectangle timeBounds = panel.Bounds;
+                if (resetSettings.ShowResetTimeLabel)
+                {
+                    int labelWidth = S(ResetLabelColumnWidth, scale);
+                    var labelBounds = new Rectangle(panel.Bounds.X, panel.Bounds.Y, labelWidth, panel.Bounds.Height);
+                    DrawThemeText(graphics, panel.Panel == PanelId.WeeklyReset ? "WK" : "5H", primaryFont,
+                        labelBounds, resetColor,
+                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
+                        TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, true);
+                    timeBounds = new Rectangle(labelBounds.Right, panel.Bounds.Y,
+                        panel.Bounds.Width - labelWidth, panel.Bounds.Height);
+                }
+                DrawThemeText(graphics, resetText, primaryFont, timeBounds, resetColor,
+                    TextFormatFlags.Left |
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
+                    TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix,
+                    true);
+                Hit(Element.ResetTime, panel.Reset);
+                continue;
+            }
+            MetricVisual metric = metrics[(int)panel.Panel];
+            if (settings.CompactBarStyle is CompactBarStyle.CircularGauges or CompactBarStyle.MinimalIcons)
+            {
+                var state = graphics.Save();
+                graphics.TranslateTransform(panel.Content.X, panel.Content.Y);
+                graphics.SetClip(new Rectangle(Point.Empty, panel.Content.Size));
+                if (settings.CompactBarStyle == CompactBarStyle.CircularGauges)
+                    DrawCircularGauges(graphics, [metric], scale, settings.ThemeVariant, settings.CodexPalette);
+                else DrawMinimalIcons(graphics, [metric], scale, settings.ThemeVariant, settings.CodexPalette);
+                graphics.Restore(state);
+                Hit(Element.Label, new Rectangle(panel.Content.X, panel.Content.Y, panel.Content.Width, S(18, scale)));
+                var lower = new Rectangle(panel.Content.X, panel.Content.Y + S(18, scale), panel.Content.Width, Math.Max(1, panel.Content.Height - S(18, scale)));
+                if (metric.Settings.Presentation != MetricPresentation.PercentOnly) Hit(Element.Bar, lower);
+                if (metric.Settings.Presentation != MetricPresentation.BarOnly)
+                {
+                    var value = lower;
+                    if (settings.CompactBarStyle == CompactBarStyle.CircularGauges) value.Inflate(-S(10, scale), -S(5, scale));
+                    else value.Height = Math.Min(value.Height, S(22, scale));
+                    Hit(Element.Percent, value);
+                }
+            }
+            else if (settings.CompactBarStyle == CompactBarStyle.CompactRows)
+            {
+                var state = graphics.Save();
+                graphics.TranslateTransform(panel.Content.X, panel.Content.Y - S(4, scale));
+                DrawCompactRows(graphics, [metric], scale, settings.ThemeVariant, settings.CodexPalette);
+                graphics.Restore(state);
+                Hit(Element.Label, new Rectangle(panel.Content.X, panel.Content.Y, S(70, scale), panel.Content.Height));
+                if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
+                    Hit(Element.Bar, new Rectangle(panel.Content.X + S(74, scale), panel.Content.Y, S(129, scale), panel.Content.Height));
+                if (metric.Settings.Presentation != MetricPresentation.BarOnly)
+                    Hit(Element.Percent, new Rectangle(panel.Content.X + S(207, scale), panel.Content.Y, S(42, scale), panel.Content.Height));
+            }
+            else
+            {
+                LinearStyle style = settings.CompactBarStyle switch
+                {
+                    CompactBarStyle.LabelBoxes => LinearStyle.LabelBoxes,
+                    CompactBarStyle.Cards => LinearStyle.Cards,
+                    CompactBarStyle.RoundedCapsules => LinearStyle.Capsules,
+                    CompactBarStyle.NeonGlow => LinearStyle.Neon,
+                    CompactBarStyle.Light => LinearStyle.Light,
+                    CompactBarStyle.Gradient => LinearStyle.Gradient,
+                    _ => LinearStyle.Dark
+                };
+                DrawLinearMetric(graphics, panel.Content, metric, style, settings.ThemeVariant,
+                    settings.CodexPalette, scale, primaryFont, maxLinearTitleWidth, Hit);
+            }
         }
     }
+
+    internal static string PanelTitle(PanelId id) => id switch
+    {
+        PanelId.FiveHour => "5H", PanelId.Weekly => "WK", PanelId.Cpu => "CPU",
+        PanelId.FiveHourReset => "5H ↻", PanelId.WeeklyReset => "WK ↻", _ => "RAM"
+    };
 
     private static MetricVisual[] Metrics(
         AppSettings settings,
@@ -103,26 +277,6 @@ internal static class CompactBarRenderer
         ];
     }
 
-    private static Size GridSize(MetricVisual[] metrics, float scale, int cellWidth, int rowHeight)
-    {
-        bool firstColumn = metrics.Any(metric => metric.Slot < 2 && metric.Settings.Enabled);
-        bool secondColumn = metrics.Any(metric => metric.Slot >= 2 && metric.Settings.Enabled);
-        bool firstRow = metrics.Any(metric => metric.Slot % 2 == 0 && metric.Settings.Enabled);
-        bool secondRow = metrics.Any(metric => metric.Slot % 2 == 1 && metric.Settings.Enabled);
-        int columns = (firstColumn ? 1 : 0) + (secondColumn ? 1 : 0);
-        int rows = (firstRow ? 1 : 0) + (secondRow ? 1 : 0);
-        return new Size(
-            S(4 + columns * cellWidth + Math.Max(0, columns - 1) * 4, scale),
-            S(4 + rows * rowHeight + Math.Max(0, rows - 1) * 2, scale));
-    }
-
-    private static Size CircularGaugeSize(int count, float scale, int taskbarHeight)
-    {
-        int height = Math.Max(1, taskbarHeight);
-        int cellWidth = Math.Max(S(50, scale), (int)Math.Round(height * 1.15d));
-        return new Size(S(6, scale) + count * cellWidth, height);
-    }
-
     private static void DrawBackground(
         Graphics graphics,
         Size size,
@@ -134,7 +288,7 @@ internal static class CompactBarRenderer
         // UpdateLayeredWindow lets fully transparent pixels pass mouse input
         // through to windows behind the bar. Alpha 1 remains visually
         // transparent while keeping the complete Compact Bar draggable.
-        int alpha = Math.Max(1, (int)configured.A);
+        int alpha = settings.TransparentBackground ? 1 : Math.Max(1, (int)configured.A);
         Rectangle area = new(0, 0, Math.Max(1, size.Width - 1), Math.Max(1, size.Height - 1));
         int radius = S(8, scale);
         using GraphicsPath backgroundPath = Rounded(area, radius);
@@ -159,43 +313,11 @@ internal static class CompactBarRenderer
         using (var background = new SolidBrush(Color.FromArgb(alpha, configured.R, configured.G, configured.B)))
             graphics.FillPath(background, backgroundPath);
 
-        if (settings.CompactBarStyle == CompactBarStyle.NeonGlow && size.Width > 4 && size.Height > 4)
+        if (metrics.Any(m => m.Settings.Enabled) && settings.CompactBarStyle == CompactBarStyle.NeonGlow && size.Width > 4 && size.Height > 4)
         {
-            Color accent = MetricColor(metrics.First(metric => metric.Settings.Enabled), Color.Cyan);
+            Color accent = MetricColor(metrics.FirstOrDefault(metric => metric.Settings.Enabled), Color.Cyan);
             using var border = new Pen(Color.FromArgb(170, accent), S(1, scale));
             graphics.DrawPath(border, backgroundPath);
-        }
-    }
-
-    private static void DrawGrid(Graphics graphics, MetricVisual[] metrics, float scale, LinearStyle style, ThemeVariant theme, CodexPalette palette)
-    {
-        int cellWidth = style switch
-        {
-            LinearStyle.Cards or LinearStyle.Capsules => 164,
-            LinearStyle.LabelBoxes => GridCellWidth + 6,
-            _ => GridCellWidth
-        };
-        int rowHeight = style switch
-        {
-            LinearStyle.Cards => 28,
-            LinearStyle.Capsules => 27,
-            _ => GridRowHeight
-        };
-
-        bool firstColumnVisible = metrics.Any(metric => metric.Slot < 2 && metric.Settings.Enabled);
-        bool firstRowVisible = metrics.Any(metric => metric.Slot % 2 == 0 && metric.Settings.Enabled);
-        foreach (MetricVisual metric in metrics.Where(metric => metric.Settings.Enabled))
-        {
-            int logicalColumn = metric.Slot < 2 ? 0 : 1;
-            int logicalRow = metric.Slot % 2;
-            int column = logicalColumn == 1 && !firstColumnVisible ? 0 : logicalColumn;
-            int row = logicalRow == 1 && !firstRowVisible ? 0 : logicalRow;
-            var bounds = new Rectangle(
-                S(2 + column * (cellWidth + 4), scale),
-                S(2 + row * (rowHeight + 2), scale),
-                S(cellWidth, scale),
-                S(rowHeight, scale));
-            DrawLinearMetric(graphics, bounds, metric, style, theme, palette, scale);
         }
     }
 
@@ -206,7 +328,10 @@ internal static class CompactBarRenderer
         LinearStyle style,
         ThemeVariant theme,
         CodexPalette palette,
-        float scale)
+        float scale,
+        Font font,
+        int maxTitleWidth,
+        Action<Element, Rectangle>? hit = null)
     {
         bool light = CompactBarTheme.IsLight(theme);
         Color fillColor = MetricColor(metric, Color.FromArgb(98, 214, 167));
@@ -223,11 +348,21 @@ internal static class CompactBarRenderer
             graphics.FillPath(cellBrush, cellPath);
         }
 
-        using var font = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
-        using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+        titleColor = HexColor.ParseOrDefault(metric.Settings.LabelColor, titleColor);
+        textColor = HexColor.ParseOrDefault(metric.Settings.PercentColor, textColor);
         using var textBrush = new SolidBrush(textColor);
         using var titleBrush = new SolidBrush(titleColor);
         string percentText = PercentText(metric.Percent);
+        int measuredTitleWidth = TextRenderer.MeasureText(graphics, metric.Title, font, Size.Empty,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+        int graphStartX = bounds.X + maxTitleWidth + (style switch
+        {
+            LinearStyle.Cards => S(5, scale) + S(18, scale) + S(5, scale),
+            LinearStyle.LabelBoxes => S(1, scale) + S(10, scale) + S(5, scale),
+            _ => S(5, scale) + S(5, scale)
+        });
+        if (metric.Slot < 2)
+            graphStartX -= S(6, scale);
         int contentX;
 
         if (style == LinearStyle.LabelBoxes)
@@ -235,13 +370,13 @@ internal static class CompactBarRenderer
             var label = new Rectangle(
                 bounds.X + S(1, scale),
                 bounds.Y + S(1, scale),
-                S(38, scale),
+                measuredTitleWidth + S(10, scale),
                 bounds.Height - S(2, scale));
             using (var labelBackground = new SolidBrush(Color.FromArgb(48, fillColor.R, fillColor.G, fillColor.B)))
             using (GraphicsPath labelPath = Rounded(label, S(4, scale)))
                 graphics.FillPath(labelBackground, labelPath);
-            DrawCenteredText(graphics, metric.Title, boldFont, titleBrush, label);
-            contentX = label.Right + S(5, scale);
+            DrawCenteredText(graphics, metric.Title, font, titleBrush, label, light);
+            contentX = Math.Max(label.Right + S(5, scale), graphStartX);
         }
         else
         {
@@ -251,45 +386,36 @@ internal static class CompactBarRenderer
                 DrawIcon(graphics, metric.Icon, new Rectangle(contentX, bounds.Y + S(6, scale), S(13, scale), S(13, scale)), titleColor, scale);
                 contentX += S(18, scale);
             }
-            graphics.DrawString(
-                metric.Title,
-                style == LinearStyle.Neon ? boldFont : font,
-                titleBrush,
-                contentX,
-                bounds.Y + S(1, scale));
-            contentX += S(style == LinearStyle.Cards ? 31 : 34, scale);
+            int titleWidth = measuredTitleWidth + S(5, scale);
+            var titleBounds = new Rectangle(contentX, bounds.Y, titleWidth, bounds.Height);
+            DrawThemeText(graphics, metric.Title, font,
+                titleBounds, titleBrush.Color,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
+                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, light);
+            contentX = Math.Max(contentX + titleWidth, graphStartX);
         }
 
-        if (metric.Settings.Presentation == MetricPresentation.PercentOnly)
+        hit?.Invoke(Element.Label, new Rectangle(bounds.X, bounds.Y, contentX - bounds.X, bounds.Height));
+        // Measure the value as in the original compact bar. A longer value
+        // takes space from the track, while hiding it leaves that space reserved.
+        int valueWidth = TextRenderer.MeasureText(percentText, font, Size.Empty,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width + S(4, scale);
+        var valueBounds = new Rectangle(bounds.Right - valueWidth, bounds.Y,
+            valueWidth - S(3, scale), bounds.Height);
+        if (metric.Settings.Presentation != MetricPresentation.BarOnly)
         {
-            graphics.DrawString(
-                percentText,
-                boldFont,
-                textBrush,
-                contentX + S(3, scale),
-                bounds.Y + S(1, scale));
-            return;
+            DrawThemeText(graphics, percentText, font, valueBounds, textBrush.Color,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
+                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, light);
+            hit?.Invoke(Element.Percent, valueBounds);
         }
-
-        int valueWidth = 0;
-        if (metric.Settings.Presentation == MetricPresentation.PercentAndBar)
+        if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
         {
-            SizeF valueSize = graphics.MeasureString(percentText, boldFont);
-            valueWidth = (int)Math.Ceiling(valueSize.Width) + S(4, scale);
-            graphics.DrawString(
-                percentText,
-                boldFont,
-                textBrush,
-                bounds.Right - valueSize.Width - S(3, scale),
-                bounds.Y + S(1, scale));
+            var track = new Rectangle(contentX, bounds.Y + (bounds.Height - S(6, scale)) / 2,
+                Math.Max(S(8, scale), bounds.Right - contentX - valueWidth - S(4, scale)), S(6, scale));
+            hit?.Invoke(Element.Bar, new Rectangle(track.X, bounds.Y, track.Width, bounds.Height));
+            DrawTrack(graphics, track, metric.Percent, trackColor, fillColor, style == LinearStyle.Neon, scale);
         }
-
-        var track = new Rectangle(
-            contentX,
-            bounds.Y + (bounds.Height - S(6, scale)) / 2,
-            Math.Max(S(8, scale), bounds.Right - contentX - valueWidth - S(4, scale)),
-            S(6, scale));
-        DrawTrack(graphics, track, metric.Percent, trackColor, fillColor, style == LinearStyle.Neon, scale);
     }
 
     private static void DrawCircularGauges(Graphics graphics, MetricVisual[] metrics, float scale, ThemeVariant theme, CodexPalette palette)
@@ -311,17 +437,21 @@ internal static class CompactBarRenderer
                 diameter);
             using var font = new Font("Segoe UI", 8.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", diameter < S(34, scale) ? 7.5f : 9f, FontStyle.Bold, GraphicsUnit.Point);
-            using var titleBrush = new SolidBrush(color);
+            using var titleBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.LabelColor, color));
             Color textColor = CompactBarTheme.Foreground(palette, theme);
-            using var valueBrush = new SolidBrush(textColor);
-            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight));
+            using var valueBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.PercentColor, textColor));
+            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight), lightTheme);
             float penWidth = Math.Max(2f, Math.Min(S(6, scale), diameter / 7f));
-            using var trackPen = new Pen(lightTheme ? Color.FromArgb(55, 30, 34, 42) : Color.FromArgb(70, 255, 255, 255), penWidth);
+            using var trackPen = new Pen(CompactBarTheme.Track(metric.Settings.TrackColor, palette, theme), penWidth);
             using var fillPen = new Pen(color, penWidth) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            graphics.DrawArc(trackPen, gauge, -90, 360);
-            if (metric.Percent is not null)
-                graphics.DrawArc(fillPen, gauge, -90, (float)(360d * Math.Clamp(metric.Percent.Value, 0d, 100d) / 100d));
-            DrawCenteredText(graphics, PercentText(metric.Percent), boldFont, valueBrush, gauge);
+            if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
+            {
+                graphics.DrawArc(trackPen, gauge, -90, 360);
+                if (metric.Percent is not null)
+                    graphics.DrawArc(fillPen, gauge, -90, (float)(360d * Math.Clamp(metric.Percent.Value, 0d, 100d) / 100d));
+            }
+            if (metric.Settings.Presentation != MetricPresentation.BarOnly)
+                DrawCenteredText(graphics, PercentText(metric.Percent), boldFont, valueBrush, gauge, lightTheme);
             index++;
         }
     }
@@ -339,17 +469,19 @@ internal static class CompactBarRenderer
             using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             using var textBrush = new SolidBrush(textColor);
             DrawIcon(graphics, metric.Icon, new Rectangle(S(6, scale), y + S(3, scale), S(14, scale), S(14, scale)), textColor, scale);
-            graphics.DrawString(metric.Title, font, textBrush, S(27, scale), y);
+            using var labelBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.LabelColor, textColor));
+            using var percentBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.PercentColor, textColor));
+            graphics.DrawString(metric.Title, font, labelBrush, S(27, scale), y);
 
             int trackX = S(74, scale);
-            int valueWidth = metric.Settings.Presentation == MetricPresentation.BarOnly ? 0 : S(42, scale);
+            int valueWidth = S(42, scale);
             if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
             {
                 var trackBounds = new Rectangle(trackX, y + S(7, scale), S(245, scale) - trackX - valueWidth, S(6, scale));
                 DrawTrack(graphics, trackBounds, metric.Percent, track, color, false, scale);
             }
             if (metric.Settings.Presentation != MetricPresentation.BarOnly)
-                graphics.DrawString(PercentText(metric.Percent), boldFont, textBrush, S(207, scale), y);
+                graphics.DrawString(PercentText(metric.Percent), boldFont, percentBrush, S(207, scale), y);
             row++;
         }
     }
@@ -365,11 +497,15 @@ internal static class CompactBarRenderer
             using var font = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
             using var boldFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
             Color textColor = CompactBarTheme.Foreground(palette, theme);
-            using var titleBrush = new SolidBrush(textColor);
-            using var valueBrush = new SolidBrush(color);
+            using var titleBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.LabelColor, textColor));
+            using var valueBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.PercentColor, color));
             DrawIcon(graphics, metric.Icon, new Rectangle(x, S(7, scale), S(14, scale), S(14, scale)), color, scale);
             graphics.DrawString(metric.Title, font, titleBrush, x + S(19, scale), S(4, scale));
-            graphics.DrawString(PercentText(metric.Percent), boldFont, valueBrush, x + S(18, scale), S(24, scale));
+            if (metric.Settings.Presentation != MetricPresentation.BarOnly)
+                graphics.DrawString(PercentText(metric.Percent), boldFont, valueBrush, x + S(18, scale), S(24, scale));
+            if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
+                DrawTrack(graphics, new Rectangle(x + S(4, scale), S(42, scale), S(62, scale), S(4, scale)), metric.Percent,
+                    CompactBarTheme.Track(metric.Settings.TrackColor, palette, theme), color, false, scale);
             if (index > 0)
             {
                 using var divider = new Pen(lightTheme ? Color.FromArgb(55, 30, 34, 42) : Color.FromArgb(65, 255, 255, 255), S(1, scale));
@@ -457,14 +593,29 @@ internal static class CompactBarRenderer
         string text,
         Font font,
         SolidBrush brush,
-        Rectangle bounds)
+        Rectangle bounds,
+        bool lightTheme)
     {
-        using var format = new StringFormat
+        DrawThemeText(graphics, text, font, bounds, brush.Color,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
+            TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, lightTheme);
+    }
+
+    private static void DrawThemeText(Graphics graphics, string text, Font font, Rectangle bounds, Color color,
+        TextFormatFlags flags, bool useGdiPlus)
+    {
+        if (!useGdiPlus)
         {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            FormatFlags = StringFormatFlags.NoWrap
-        };
+            TextRenderer.DrawText(graphics, text, font, bounds, color, flags);
+            return;
+        }
+
+        using var brush = new SolidBrush(color);
+        using var format = (StringFormat)StringFormat.GenericTypographic.Clone();
+        format.Alignment = flags.HasFlag(TextFormatFlags.HorizontalCenter) ? StringAlignment.Center
+            : flags.HasFlag(TextFormatFlags.Right) ? StringAlignment.Far : StringAlignment.Near;
+        format.LineAlignment = StringAlignment.Center;
+        format.FormatFlags |= StringFormatFlags.NoWrap;
         graphics.DrawString(text, font, brush, bounds, format);
     }
 

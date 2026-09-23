@@ -154,7 +154,8 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void UpdateDisplay()
     {
-        _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
+        _compactBar.UpdateData(_snapshot, _systemSnapshot);
+        _settingsForm?.UpdatePreviewData(_snapshot, _systemSnapshot);
 
         QuotaWindow? iconMetric = _settings.Weekly.Enabled ? _snapshot.Weekly : _snapshot.FiveHour;
         double? iconPercent = iconMetric is null
@@ -179,18 +180,10 @@ public sealed class UsageMonitorContext : ApplicationContext
     private void RefreshSystemUsage()
     {
         SystemUsageSnapshot next = _systemMonitor.Sample();
-        if (RoundedSystemPercent(_systemSnapshot.CpuPercent) == RoundedSystemPercent(next.CpuPercent)
-            && RoundedSystemPercent(_systemSnapshot.MemoryPercent) == RoundedSystemPercent(next.MemoryPercent))
-        {
-            return;
-        }
-
         _systemSnapshot = next;
-        _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
+        _compactBar.UpdateData(_snapshot, _systemSnapshot);
+        _settingsForm?.UpdatePreviewData(_snapshot, _systemSnapshot);
     }
-
-    private static int RoundedSystemPercent(double? value) =>
-        value is null ? -1 : (int)Math.Round(value.Value);
 
     private string FormatShort(QuotaWindow? window)
     {
@@ -218,7 +211,8 @@ public sealed class UsageMonitorContext : ApplicationContext
                 FormatStatusLine(Localization.Text("Weekly"), _snapshot.Weekly),
                 $"{Localization.Text("CpuUsage")}: {FormatSystemPercent(_systemSnapshot.CpuPercent)}",
                 $"{Localization.Text("MemoryUsage")}: {FormatSystemPercent(_systemSnapshot.MemoryPercent)}",
-                $"{Localization.Text("TodayTokens")}: {(_snapshot.TodayTokens?.ToString("N0") ?? Localization.Text("Unavailable"))}",
+                $"{Localization.Text("TodayTokens")}: {(_snapshot.TodayTokens?.ToString("N0") ?? Localization.Text(_snapshot.TokenUsageStatus ?? "Unavailable"))}",
+                $"{Localization.Text("LastTokenAggregation")}: {_snapshot.LastTokenUsageDate?.ToString("yyyy-MM-dd") ?? Localization.Text("Unavailable")}",
                 $"{Localization.Text("LifetimeTokens")}: {(_snapshot.LifetimeTokens?.ToString("N0") ?? Localization.Text("Unavailable"))}",
                 $"{Localization.Text("LastUpdated")}: {_snapshot.UpdatedAt:yyyy-MM-dd HH:mm:ss}"
             });
@@ -236,6 +230,8 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (alerts.Count == 0)
             return;
 
+        try { SettingsStore.Save(_settings); }
+        catch (Exception exception) { AppLog.Error("Could not save quota notification state.", exception); }
         _trayIcon.BalloonTipTitle = Localization.Text("QuotaAlertTitle");
         _trayIcon.BalloonTipText = string.Join(
             Environment.NewLine,
@@ -269,6 +265,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _settings.ShowCompactBar = !_settings.ShowCompactBar;
         _showBarMenu.Checked = _settings.ShowCompactBar;
         SettingsStore.Save(_settings);
+        _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
         UpdateDisplay();
         DiscardPreparedSettingsForm();
     }
@@ -283,6 +280,7 @@ public sealed class UsageMonitorContext : ApplicationContext
 
         using var form = TakePreparedSettingsForm();
         _settingsForm = form;
+        form.UpdatePreviewData(_snapshot, _systemSnapshot);
         form.WindowState = FormWindowState.Normal;
         UpdateSettingsManagementState(form);
         _compactBar.BeginPreview();
@@ -310,6 +308,8 @@ public sealed class UsageMonitorContext : ApplicationContext
 
         form.Result.WindowPositionX = _settings.WindowPositionX;
         form.Result.WindowPositionY = _settings.WindowPositionY;
+        form.Result.FiveHourAlert = _settings.FiveHourAlert.Copy();
+        form.Result.WeeklyAlert = _settings.WeeklyAlert.Copy();
         _settings = form.Result;
         Localization.CurrentLanguage = _settings.Language;
         _compactBar.ApplyLanguage();
@@ -402,6 +402,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (startTimer)
             _usageTimer.Start();
         _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
+        _settingsForm?.UpdatePreviewData(_snapshot, _systemSnapshot);
     }
 
     private void ApplyLanguage()

@@ -49,7 +49,7 @@
 | 📊 | **Codex 限额** | 5 小时及每周限额的剩余或已用百分比 |
 | 🖥️ | **系统使用率** | 独立刷新的 CPU 和内存使用率 |
 | 🔔 | **限额提醒** | 支持免打扰时段的剩余 20%、10%、5% 单次通知 |
-| 🎨 | **10 种样式 × 28 种颜色主题** | 黑色/白色模式与 Codex 应用调色板 |
+| 🎨 | **6 种样式 × 28 种颜色主题** | 系统/浅色/深色模式与 Codex 应用调色板 |
 | 💾 | **3 个预设** | 即时保存并恢复偏好的外观 |
 | 🌍 | **4 种语言** | 英语、韩语、简体中文和日语 |
 | 🔒 | **本地且私密** | 使用 `codex app-server`，不抓取网页或访问认证文件 |
@@ -64,10 +64,8 @@ Compact Bar 分为两列：第一列显示 `5H` 和 `WK`，第二列显示 `CPU`
 
 | | |
 |---|---|
-| **深色极简**<br><img src="../docs/themes/dark-minimal.png" alt="深色极简样式" width="400"> | **标签框**<br><img src="../docs/themes/label-boxes.png" alt="标签框样式" width="400"> |
-| **霓虹光效**<br><img src="../docs/themes/neon-glow.png" alt="霓虹光效样式" width="400"> | **浅色**<br><img src="../docs/themes/light.png" alt="浅色样式" width="400"> |
-| **卡片**<br><img src="../docs/themes/cards.png" alt="卡片样式" width="400"> | **圆形仪表**<br><img src="../docs/themes/circular-gauges.png" alt="圆形仪表样式" width="400"> |
-| **紧凑条**<br><img src="../docs/themes/compact-rows.png" alt="紧凑条样式" width="400"> | **圆角胶囊**<br><img src="../docs/themes/rounded-capsules.png" alt="圆角胶囊样式" width="400"> |
+| **浅色**<br><img src="../docs/themes/light.png" alt="浅色样式" width="400"> | **标签框**<br><img src="../docs/themes/label-boxes.png" alt="标签框样式" width="400"> |
+| **霓虹光效**<br><img src="../docs/themes/neon-glow.png" alt="霓虹光效样式" width="400"> | **紧凑条**<br><img src="../docs/themes/compact-rows.png" alt="紧凑条样式" width="400"> |
 | **渐变**<br><img src="../docs/themes/gradient.png" alt="渐变样式" width="400"> | **极简图标 + 文本**<br><img src="../docs/themes/minimal-icons.png" alt="极简图标加文本样式" width="400"> |
 
 <a id="quick-start"></a>
@@ -112,7 +110,7 @@ codex login status
 
 v1.1.0 之前的版本不包含更新程序，因此需要手动安装一次 v1.1.0 或更高版本。
 
-首次安装时，界面语言默认为英语，预设 1 会预先设置为标签框 / Codex 调色板 / 黑色 / 背景 Alpha `0`。现有的 `settings.json` 不会被覆盖。
+首次安装时将使用浅色样式、Codex 调色板和系统模式。透明背景默认开启，背景 Alpha 为 `0`，重置时间中的 `5H`/`WK` 前缀默认关闭。现有的 `settings.json` 不会被覆盖。
 
 若要删除安装版，请在 **设置 → 关于** 中选择 **卸载**。确认窗口可选择保留或同时删除设置、预设和日志。卸载时也会删除开始菜单快捷方式和 Windows 启动项。
 
@@ -170,7 +168,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 调色板包括 Absolutely、Ayu、Catppuccin、Codex、Dracula、Everforest、GitHub、Gruvbox、Linear、Lobster、Material、Matrix、Monokai、Night Owl、Nord、Notion、One、Oscurange、Proof、Raycast、Rose Pine、Sentry、Solarized、Temple、Tokyo Night、Vercel、VS Code Plus 和 Xcode。黑色/白色选项只显示各 Codex 调色板实际支持的明暗组合。
 
-设置分为**常规**、**显示**和**关于**选项卡。显示选项卡在一个可滚动页面中整合了预设、外观、显示基准和四个项目的设置，并提供 50～200% 滑块和 100% 重置按钮。切换样式会保留当前颜色；选择颜色模式或颜色主题时会应用该主题的背景、填充和轨道颜色。圆形仪表高度以当前显示器的任务栏高度为基准。更新检查和下载会显示活动状态，并可取消。
+设置分为**常规**、**显示**和**关于**选项卡。显示选项卡在一个可滚动页面中整合了预设、外观、显示基准和四个项目的设置，并提供 50～200% 滑块和 100% 重置按钮。切换样式会保留当前颜色；选择屏幕模式或颜色主题时会应用该主题的背景、填充和轨道颜色。
 
 设置会先写入并验证临时文件，再以原子方式替换。上一份有效文件保留为 `settings.json.bak`；如果主 JSON 损坏，程序会恢复备份并通过托盘通知说明。`SettingsVersion` 字段用于今后的兼容迁移。
 
@@ -189,7 +187,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 | 填充颜色 | 设置进度条已填充部分的颜色。 |
 | 轨道颜色 | 设置进度条未填充背景的颜色。 |
 
-**背景**只控制带圆角的 Compact Bar 背景。颜色选择器支持 RGBA 数值、Alpha 滑块以及六位 RGB Hex。即使将背景 Alpha 设为 `0`，也只会隐藏背景，文字和图表仍然可见。
+**背景**提供透明背景开关和 RGBA 颜色设置。开启透明背景后，文字和图表仍然保持可见。
 
 <a id="privacy"></a>
 

@@ -55,16 +55,20 @@ public sealed class CodexAppServerClient : IAsyncDisposable
             JsonElement rateResult = await RequestAsync("account/rateLimits/read", null, cancellationToken);
 
             JsonElement? usageResult = null;
+            bool usageFailed = false;
             try
             {
                 usageResult = await RequestAsync("account/usage/read", null, cancellationToken);
             }
-            catch
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
             {
-                // Some auth modes provide rate limits but not token-activity summaries.
+                usageFailed = true;
+                AppLog.Warning($"Token usage query failed ({exception.GetType().Name}).");
             }
 
-            return ParseSnapshot(rateResult, usageResult);
+            UsageSnapshot snapshot = ParseSnapshot(rateResult, usageResult);
+            return usageFailed ? snapshot with { TokenUsageStatus = "TokenQueryFailed" } : snapshot;
         }
         catch (Exception exception)
         {
@@ -331,32 +335,44 @@ public sealed class CodexAppServerClient : IAsyncDisposable
 
         long? todayTokens = null;
         long? lifetimeTokens = null;
-        if (usageResult is { } usage)
+        DateOnly? latest = null;
+        string? tokenStatus = "TokenNotProvided";
+        if (usageResult is { ValueKind: JsonValueKind.Object } usage)
         {
             if (usage.TryGetProperty("summary", out JsonElement summary)
+                && summary.ValueKind == JsonValueKind.Object
                 && summary.TryGetProperty("lifetimeTokens", out JsonElement lifetime)
+                && lifetime.ValueKind == JsonValueKind.Number
                 && lifetime.TryGetInt64(out long lifetimeValue))
                 lifetimeTokens = lifetimeValue;
 
             if (usage.TryGetProperty("dailyUsageBuckets", out JsonElement buckets)
                 && buckets.ValueKind == JsonValueKind.Array)
             {
+                tokenStatus = "TokenAggregationPending";
                 string today = DateTime.Today.ToString("yyyy-MM-dd");
                 foreach (JsonElement bucket in buckets.EnumerateArray())
                 {
+                    if (bucket.ValueKind != JsonValueKind.Object) continue;
+                    if (bucket.TryGetProperty("startDate", out JsonElement bucketDate)
+                        && bucketDate.ValueKind == JsonValueKind.String
+                        && DateOnly.TryParseExact(bucketDate.GetString(), "yyyy-MM-dd", out var parsed)
+                        && (latest is null || parsed > latest)) latest = parsed;
                     if (bucket.TryGetProperty("startDate", out JsonElement date)
+                        && date.ValueKind == JsonValueKind.String
                         && date.GetString() == today
                         && bucket.TryGetProperty("tokens", out JsonElement tokens)
+                        && tokens.ValueKind == JsonValueKind.Number
                         && tokens.TryGetInt64(out long tokenValue))
                     {
                         todayTokens = tokenValue;
-                        break;
+                        tokenStatus = null;
                     }
                 }
             }
         }
 
-        return new UsageSnapshot(fiveHour, weekly, todayTokens, lifetimeTokens, DateTimeOffset.Now);
+        return new UsageSnapshot(fiveHour, weekly, todayTokens, lifetimeTokens, DateTimeOffset.Now, LastTokenUsageDate: latest, TokenUsageStatus: tokenStatus);
     }
 
     private static void AddWindows(JsonElement limits, ICollection<QuotaWindow> output)

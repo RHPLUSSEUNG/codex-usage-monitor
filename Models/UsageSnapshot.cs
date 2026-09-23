@@ -11,7 +11,9 @@ public sealed record UsageSnapshot(
     long? TodayTokens,
     long? LifetimeTokens,
     DateTimeOffset UpdatedAt,
-    string? Error = null)
+    string? Error = null,
+    DateOnly? LastTokenUsageDate = null,
+    string? TokenUsageStatus = null)
 {
     public static UsageSnapshot Waiting { get; } =
         new(null, null, null, null, DateTimeOffset.MinValue, "사용량을 불러오는 중");

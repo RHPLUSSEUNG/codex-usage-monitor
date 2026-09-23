@@ -96,6 +96,8 @@ public static class SettingsStore
     {
         Directory.CreateDirectory(directory);
         settings.SettingsVersion = AppSettings.CurrentSettingsVersion;
+        settings.PanelOrder = AppSettings.NormalizePanelOrder(settings.PanelOrder);
+        settings.CompactBarStyle = AppSettings.NormalizeStyle(settings.CompactBarStyle);
 
         string settingsPath = Path.Combine(directory, "settings.json");
         string backupPath = Path.Combine(directory, "settings.json.bak");
@@ -178,6 +180,7 @@ public static class SettingsStore
 
     private static void Normalize(AppSettings settings)
     {
+        int storedVersion = settings.SettingsVersion;
         if (settings.SettingsVersion > AppSettings.CurrentSettingsVersion)
         {
             throw new NotSupportedException(
@@ -185,22 +188,35 @@ public static class SettingsStore
                 + $"{AppSettings.CurrentSettingsVersion}.");
         }
 
+        if (storedVersion < 3)
+            settings.TransparentBackground = HasZeroAlpha(settings.BackgroundColor);
         settings.SettingsVersion = AppSettings.CurrentSettingsVersion;
+        settings.PanelOrder = AppSettings.NormalizePanelOrder(settings.PanelOrder);
+        settings.CompactBarStyle = AppSettings.NormalizeStyle(settings.CompactBarStyle);
+        settings.QuotaNotificationPercent = Math.Clamp(settings.QuotaNotificationPercent, 1, 99);
+        settings.FiveHourNotificationPercent = settings.NotificationPercent(PanelId.FiveHour);
+        settings.WeeklyNotificationPercent = settings.NotificationPercent(PanelId.Weekly);
+        settings.FiveHourAlert ??= new();
+        settings.WeeklyAlert ??= new();
         NormalizeAppearance(settings);
         settings.CompactBarScalePercent = Math.Clamp(settings.CompactBarScalePercent, 50, 200);
         settings.FiveHour ??= new MetricSettings();
         settings.Weekly ??= new MetricSettings { FillColor = "#77A8FF" };
         settings.Cpu ??= new MetricSettings { FillColor = "#F2C66D" };
         settings.Memory ??= new MetricSettings { FillColor = "#D48BFF" };
-        NormalizePreset(settings.Preset1);
-        NormalizePreset(settings.Preset2);
-        NormalizePreset(settings.Preset3);
+        NormalizePreset(settings.Preset1, storedVersion);
+        NormalizePreset(settings.Preset2, storedVersion);
+        NormalizePreset(settings.Preset3, storedVersion);
     }
 
-    private static void NormalizePreset(CompactBarPreset? preset)
+    private static void NormalizePreset(CompactBarPreset? preset, int storedVersion)
     {
         if (preset is null)
             return;
+        if (storedVersion < 3)
+            preset.TransparentBackground = HasZeroAlpha(preset.BackgroundColor);
+        preset.Style = AppSettings.NormalizeStyle(preset.Style);
+        preset.PanelOrder = AppSettings.NormalizePanelOrder(preset.PanelOrder);
         NormalizeAppearance(preset);
         preset.ScalePercent = Math.Clamp(preset.ScalePercent, 50, 200);
         preset.FiveHour ??= new MetricSettings();
@@ -208,6 +224,9 @@ public static class SettingsStore
         preset.Cpu ??= new MetricSettings { FillColor = "#F2C66D" };
         preset.Memory ??= new MetricSettings { FillColor = "#D48BFF" };
     }
+
+    private static bool HasZeroAlpha(string? color) =>
+        color?.Length == 9 && color.StartsWith("#00", StringComparison.OrdinalIgnoreCase);
 
     private static void NormalizeAppearance(AppSettings settings)
     {

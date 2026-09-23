@@ -158,7 +158,7 @@
     <value>刷新间隔（秒）</value>
   </data>
   <data name="QuotaNotifications" xml:space="preserve">
-    <value>限额阈值通知</value>
+    <value>额度通知</value>
   </data>
   <data name="QuietHours" xml:space="preserve">
     <value>启用免打扰时段</value>
@@ -216,6 +216,9 @@
   </data>
   <data name="RectangleBackground" xml:space="preserve">
     <value>背景</value>
+  </data>
+  <data name="TransparentBackground" xml:space="preserve">
+    <value>透明背景</value>
   </data>
   <data name="ChooseColor" xml:space="preserve">
     <value>选择颜色 · A {0}</value>
@@ -399,8 +402,9 @@
   </data>
   <data name="NotificationsSection" xml:space="preserve"><value>通知</value></data>
   <data name="AdvancedSettings" xml:space="preserve"><value>高级设置</value></data>
-  <data name="ShowAdvancedSettings" xml:space="preserve"><value>显示高级设置</value></data>
-  <data name="HideAdvancedSettings" xml:space="preserve"><value>隐藏高级设置</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>设置 Codex CLI 路径</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>隐藏 Codex CLI 路径</value></data>
+  <data name="CodexExecutableHint" xml:space="preserve"><value>通常保持 codex。仅当 PATH 中找不到 Codex CLI 或需要使用其他安装版本时，输入可执行文件的完整路径。</value></data>
   <data name="ResetTo100Percent" xml:space="preserve"><value>重置为 100%</value></data>
   <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar 背景</value></data>
   <data name="UseThemeBackground" xml:space="preserve"><value>使用主题默认背景</value></data>
@@ -412,5 +416,30 @@
   <data name="CancelOperation" xml:space="preserve"><value>取消</value></data>
   <data name="UpdateCancelled" xml:space="preserve"><value>更新操作已取消。</value></data>
   <data name="UpdateProgress" xml:space="preserve"><value>更新进度</value></data>
-  <data name="DisplayTab" xml:space="preserve"><value>显示</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>外观</value></data>
+  <data name="AppearanceMode" xml:space="preserve"><value>显示模式</value></data>
+  <data name="SystemMode" xml:space="preserve"><value>系统</value></data>
+  <data name="WhiteMode" xml:space="preserve"><value>浅色模式</value></data>
+  <data name="AppearancePreviewHelp" xml:space="preserve"><value>预览 — 拖动面板交换位置，点击元素编辑。</value></data>
+  <data name="AppearanceBackground" xml:space="preserve"><value>背景</value></data>
+  <data name="AppearanceLabel" xml:space="preserve"><value>标签</value></data>
+  <data name="AppearanceBar" xml:space="preserve"><value>进度条</value></data>
+  <data name="AppearancePanel" xml:space="preserve"><value>面板</value></data>
+  <data name="ResetTime" xml:space="preserve"><value>重置时间</value></data>
+  <data name="ResetTimeLabel" xml:space="preserve"><value>在重置时间前显示 5H/WK</value></data>
+  <data name="TimeColor" xml:space="preserve"><value>时间颜色</value></data>
+  <data name="DarkMode" xml:space="preserve"><value>深色模式</value></data>
+  <data name="LabelColor" xml:space="preserve"><value>标签颜色</value></data>
+  <data name="PercentColor" xml:space="preserve"><value>百分比颜色</value></data>
+  <data name="PreviewTitle" xml:space="preserve"><value>预览</value></data>
+  <data name="SelectedElement" xml:space="preserve"><value>编辑项</value></data>
+  <data name="NotificationThreshold" xml:space="preserve"><value>剩余百分比通知 (%)</value></data>
+  <data name="FiveHourNotificationThreshold" xml:space="preserve"><value>5 小时额度剩余通知 (%)</value></data>
+  <data name="WeeklyNotificationThreshold" xml:space="preserve"><value>每周额度剩余通知 (%)</value></data>
+  <data name="NotificationOnce" xml:space="preserve"><value>每个额度周期仅通知一次，重置前不再通知。</value></data>
+  <data name="TokenQueryFailed" xml:space="preserve"><value>Token 查询失败</value></data>
+  <data name="TokenNotProvided" xml:space="preserve"><value>未提供每日统计</value></data>
+  <data name="TokenAggregationPending" xml:space="preserve"><value>等待今日统计</value></data>
+  <data name="LastTokenAggregation" xml:space="preserve"><value>最近 Token 统计日期</value></data>
+  <data name="ResetAction" xml:space="preserve"><value>重置</value></data>
 </root>

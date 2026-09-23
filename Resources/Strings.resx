@@ -158,7 +158,7 @@
     <value>Refresh interval (sec)</value>
   </data>
   <data name="QuotaNotifications" xml:space="preserve">
-    <value>Quota threshold notifications</value>
+    <value>Quota notification</value>
   </data>
   <data name="QuietHours" xml:space="preserve">
     <value>Use quiet hours</value>
@@ -216,6 +216,9 @@
   </data>
   <data name="RectangleBackground" xml:space="preserve">
     <value>Background</value>
+  </data>
+  <data name="TransparentBackground" xml:space="preserve">
+    <value>Transparent background</value>
   </data>
   <data name="ChooseColor" xml:space="preserve">
     <value>Choose color · A {0}</value>
@@ -399,8 +402,9 @@
   </data>
   <data name="NotificationsSection" xml:space="preserve"><value>Notifications</value></data>
   <data name="AdvancedSettings" xml:space="preserve"><value>Advanced settings</value></data>
-  <data name="ShowAdvancedSettings" xml:space="preserve"><value>Show advanced settings</value></data>
-  <data name="HideAdvancedSettings" xml:space="preserve"><value>Hide advanced settings</value></data>
+  <data name="ShowAdvancedSettings" xml:space="preserve"><value>Set Codex CLI path</value></data>
+  <data name="HideAdvancedSettings" xml:space="preserve"><value>Hide Codex CLI path</value></data>
+  <data name="CodexExecutableHint" xml:space="preserve"><value>Normally leave this as codex. Enter the full path only if the Codex CLI is not found in PATH or you need a different installation.</value></data>
   <data name="ResetTo100Percent" xml:space="preserve"><value>Reset to 100%</value></data>
   <data name="CompactBarBackground" xml:space="preserve"><value>Compact Bar background</value></data>
   <data name="UseThemeBackground" xml:space="preserve"><value>Use theme default background</value></data>
@@ -412,5 +416,30 @@
   <data name="CancelOperation" xml:space="preserve"><value>Cancel</value></data>
   <data name="UpdateCancelled" xml:space="preserve"><value>The update operation was cancelled.</value></data>
   <data name="UpdateProgress" xml:space="preserve"><value>Update progress</value></data>
-  <data name="DisplayTab" xml:space="preserve"><value>Display</value></data>
+  <data name="DisplayTab" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceMode" xml:space="preserve"><value>Screen mode</value></data>
+  <data name="SystemMode" xml:space="preserve"><value>System</value></data>
+  <data name="WhiteMode" xml:space="preserve"><value>White mode</value></data>
+  <data name="AppearancePreviewHelp" xml:space="preserve"><value>Preview — drag panels to swap; click an element to edit.</value></data>
+  <data name="AppearanceBackground" xml:space="preserve"><value>Background</value></data>
+  <data name="AppearanceLabel" xml:space="preserve"><value>Label</value></data>
+  <data name="AppearanceBar" xml:space="preserve"><value>Bar</value></data>
+  <data name="AppearancePanel" xml:space="preserve"><value>Panel</value></data>
+  <data name="ResetTime" xml:space="preserve"><value>Reset time</value></data>
+  <data name="ResetTimeLabel" xml:space="preserve"><value>Show 5H/WK before reset time</value></data>
+  <data name="TimeColor" xml:space="preserve"><value>Time color</value></data>
+  <data name="DarkMode" xml:space="preserve"><value>Dark mode</value></data>
+  <data name="LabelColor" xml:space="preserve"><value>Label color</value></data>
+  <data name="PercentColor" xml:space="preserve"><value>Percentage color</value></data>
+  <data name="PreviewTitle" xml:space="preserve"><value>Preview</value></data>
+  <data name="SelectedElement" xml:space="preserve"><value>Edit selection</value></data>
+  <data name="NotificationThreshold" xml:space="preserve"><value>Notify at remaining (%)</value></data>
+  <data name="FiveHourNotificationThreshold" xml:space="preserve"><value>5-hour remaining alert (%)</value></data>
+  <data name="WeeklyNotificationThreshold" xml:space="preserve"><value>Weekly remaining alert (%)</value></data>
+  <data name="NotificationOnce" xml:space="preserve"><value>Notify once per quota window, then stay quiet until reset.</value></data>
+  <data name="TokenQueryFailed" xml:space="preserve"><value>Token query failed</value></data>
+  <data name="TokenNotProvided" xml:space="preserve"><value>Daily totals not provided</value></data>
+  <data name="TokenAggregationPending" xml:space="preserve"><value>Awaiting today’s aggregation</value></data>
+  <data name="LastTokenAggregation" xml:space="preserve"><value>Latest daily token entry</value></data>
+  <data name="ResetAction" xml:space="preserve"><value>Reset</value></data>
 </root>

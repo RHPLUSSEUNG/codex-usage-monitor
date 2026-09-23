@@ -7,11 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CodexUsageMonitor</AssemblyName>
     <RootNamespace>CodexUsageMonitor</RootNamespace>
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\CodexUsageMonitor.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
 

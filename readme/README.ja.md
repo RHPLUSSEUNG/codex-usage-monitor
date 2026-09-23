@@ -49,7 +49,7 @@
 | 📊 | **Codex 上限** | 5時間・週間上限の残りまたは使用済みパーセント |
 | 🖥️ | **システム使用率** | 個別に更新される CPU・RAM 使用率 |
 | 🔔 | **制限通知** | 通知しない時間帯に対応した残り 20%・10%・5% の一回通知 |
-| 🎨 | **10スタイル × 28カラーテーマ** | ブラック／ホワイトモードとCodexアプリのパレット |
+| 🎨 | **6スタイル × 28カラーテーマ** | システム／ライト／ダークモードとCodexアプリのパレット |
 | 💾 | **3つのプリセット** | 好みの外観をすぐに保存・復元 |
 | 🌍 | **4言語** | 英語・韓国語・簡体字中国語・日本語 |
 | 🔒 | **ローカル・プライベート** | `codex app-server` を使用し、Webスクレイピングや認証ファイルへのアクセスなし |
@@ -64,10 +64,8 @@ Compact Bar は2列構成です。1列目に `5H` と `WK`、2列目に `CPU` �
 
 | | |
 |---|---|
-| **ダークミニマル**<br><img src="../docs/themes/dark-minimal.png" alt="ダークミニマルスタイル" width="400"> | **ラベルボックス**<br><img src="../docs/themes/label-boxes.png" alt="ラベルボックススタイル" width="400"> |
-| **ネオングロー**<br><img src="../docs/themes/neon-glow.png" alt="ネオングロースタイル" width="400"> | **ライト**<br><img src="../docs/themes/light.png" alt="ライトスタイル" width="400"> |
-| **カード**<br><img src="../docs/themes/cards.png" alt="カードスタイル" width="400"> | **円形ゲージ**<br><img src="../docs/themes/circular-gauges.png" alt="円形ゲージスタイル" width="400"> |
-| **コンパクトバー**<br><img src="../docs/themes/compact-rows.png" alt="コンパクトバースタイル" width="400"> | **丸型カプセル**<br><img src="../docs/themes/rounded-capsules.png" alt="丸型カプセルスタイル" width="400"> |
+| **ライト**<br><img src="../docs/themes/light.png" alt="ライトスタイル" width="400"> | **ラベルボックス**<br><img src="../docs/themes/label-boxes.png" alt="ラベルボックススタイル" width="400"> |
+| **ネオングロー**<br><img src="../docs/themes/neon-glow.png" alt="ネオングロースタイル" width="400"> | **コンパクトバー**<br><img src="../docs/themes/compact-rows.png" alt="コンパクトバースタイル" width="400"> |
 | **グラデーション**<br><img src="../docs/themes/gradient.png" alt="グラデーションスタイル" width="400"> | **ミニマルアイコン + テキスト**<br><img src="../docs/themes/minimal-icons.png" alt="ミニマルアイコンとテキストスタイル" width="400"> |
 
 <a id="quick-start"></a>
@@ -112,7 +110,7 @@ codex login status
 
 v1.1.0 より前のバージョンにはアップデーターが含まれないため、v1.1.0 以降を一度手動でインストールする必要があります。
 
-初回インストール時の UI 言語は英語で、プリセット 1 はラベルボックス／Codexパレット／ブラック／背景 Alpha `0` にあらかじめ設定されます。既存の `settings.json` は上書きされません。
+初回インストール時はライトスタイル／Codexパレット／システムモードで起動します。透明背景はオン、背景 Alpha は `0`、リセット時間の `5H`／`WK` 接頭辞はオフです。既存の `settings.json` は上書きされません。
 
 インストール版を削除するには、**設定 → 情報** から **アンインストール** を選択します。確認画面で設定、プリセット、ログを保持するか同時に削除するかを選べます。スタートメニューのショートカットと Windows 自動起動登録も削除されます。
 
@@ -170,7 +168,7 @@ Compact Bar が見えない場合は、トレイアイコンを右クリック�
 
 パレットには Absolutely、Ayu、Catppuccin、Codex、Dracula、Everforest、GitHub、Gruvbox、Linear、Lobster、Material、Matrix、Monokai、Night Owl、Nord、Notion、One、Oscurange、Proof、Raycast、Rose Pine、Sentry、Solarized、Temple、Tokyo Night、Vercel、VS Code Plus、Xcode があります。ブラック／ホワイトは、各 Codex パレットが実際に提供する明るさだけを表示します。
 
-設定は**一般**、**表示**、**情報**タブに分かれます。表示タブでは、プリセット、外観、表示基準、4項目の設定を1つのスクロール可能なページで編集でき、50～200% のスライダーと 100% リセットボタンも使用できます。スタイル変更では現在の色を保持し、カラーモードまたはカラーテーマを選ぶと、そのテーマの背景・Fill・トラック色が適用されます。円形ゲージの高さは現在のモニターのタスクバーを基準にします。更新の確認とダウンロードには進行表示とキャンセルボタンがあります。
+設定は**一般**、**表示**、**情報**タブに分かれます。表示タブでは、プリセット、外観、表示基準、4項目の設定を1つのスクロール可能なページで編集でき、50～200% のスライダーと 100% リセットボタンも使用できます。スタイル変更では現在の色を保持し、画面モードまたはカラーテーマを選ぶと、そのテーマの背景・Fill・トラック色が適用されます。
 
 設定は検証済みの一時ファイルを経由して原子的に保存されます。直前の正常なファイルは `settings.json.bak` として保持され、主 JSON が破損した場合はバックアップを復元してトレイ通知で案内します。`SettingsVersion` フィールドは今後の互換移行に使用されます。
 
@@ -189,7 +187,7 @@ Compact Bar が見えない場合は、トレイアイコンを右クリック�
 | 塗りつぶし色 | バーの塗りつぶされた部分の色を設定します。 |
 | トラック色 | バーの塗りつぶされていない背景色を設定します。 |
 
-**背景**は角丸の Compact Bar 背景だけを変更します。カラーピッカーでは RGBA 値、アルファスライダー、6桁の RGB Hex を使用できます。背景の Alpha を `0` にしても背景だけが透明になり、文字とグラフは表示されたままです。
+**背景**には透明背景の切り替えと RGBA カラー設定があります。透明背景をオンにしても文字とグラフは表示されたままです。
 
 <a id="privacy"></a>
 
