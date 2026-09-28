@@ -314,9 +314,15 @@ public sealed class AppearanceTests
                 Assert.Null(form.AcceptButton);
                 const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
                 var scale = (SettingsNumericUpDown)typeof(SettingsForm).GetField("_compactBarScale", fields)!.GetValue(form)!;
+                var slider = (TrackBar)typeof(SettingsForm).GetField("_compactBarScaleSlider", fields)!.GetValue(form)!;
                 TextBox editor = scale.Controls.OfType<TextBox>().Single();
                 editor.Text = "175";
                 Assert.Equal(175, scale.Value);
+                Assert.Equal(175, slider.Value);
+                slider.Value = 130;
+                Assert.Equal(130, scale.Value);
+                Assert.Equal("130", editor.Text);
+                editor.Text = "175";
                 typeof(SettingsForm).GetMethod("SaveAndClose", fields)!.Invoke(form, null);
                 Assert.Equal(175, form.Result.CompactBarScalePercent);
                 Assert.Equal(DialogResult.OK, form.DialogResult);
