@@ -160,7 +160,6 @@ public sealed partial class SettingsForm : Form
         buttons.Controls.Add(save);
         buttons.Controls.Add(cancel);
         mainLayout.Controls.Add(buttons, 0, 1);
-        AcceptButton = save;
         CancelButton = cancel;
 
         _showCompactBar.Checked = settings.ShowCompactBar;
@@ -265,6 +264,28 @@ public sealed partial class SettingsForm : Form
         Location = new Point(
             area.Left + Math.Max(0, (area.Width - Width) / 2),
             area.Top + Math.Max(0, (area.Height - Height) / 2));
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == Keys.Enter)
+        {
+            SettingsNumericUpDown? numeric = new[]
+            {
+                _fiveHourNotificationPercent,
+                _weeklyNotificationPercent,
+                _compactBarScale,
+                _refreshSeconds,
+                _quietHoursStart,
+                _quietHoursEnd
+            }.FirstOrDefault(control => control.ContainsFocus);
+            if (numeric is not null)
+            {
+                numeric.CommitPendingEdit();
+                return true;
+            }
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
     internal void PrepareForFirstShow()
@@ -683,6 +704,16 @@ public sealed partial class SettingsForm : Form
 
     private void SaveAndClose()
     {
+        foreach (SettingsNumericUpDown numeric in new[]
+        {
+            _fiveHourNotificationPercent,
+            _weeklyNotificationPercent,
+            _compactBarScale,
+            _refreshSeconds,
+            _quietHoursStart,
+            _quietHoursEnd
+        })
+            numeric.CommitPendingEdit();
         SyncGeneralControlsToDraft();
         _draft.StartWithWindows = _startWithWindows.Checked;
         _draft.Language = (AppLanguage)Math.Max(0, _language.SelectedIndex);

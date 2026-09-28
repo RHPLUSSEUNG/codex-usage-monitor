@@ -282,14 +282,15 @@ public sealed class AppearanceTests
             {
                 using var numeric = new SettingsNumericUpDown { Minimum = 1, Maximum = 99, Value = 10 };
                 var editor = numeric.Controls.OfType<TextBox>().Single();
+                int changes = 0;
+                numeric.ValueChanged += (_, _) => changes++;
                 editor.Text = "1 2";
                 Assert.Equal("12", editor.Text);
-                typeof(SettingsNumericUpDown).GetMethod("CommitEditor", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .Invoke(numeric, null);
                 Assert.Equal(12, numeric.Value);
+                Assert.Equal(1, changes);
                 editor.Text = "150";
-                typeof(SettingsNumericUpDown).GetMethod("CommitEditor", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .Invoke(numeric, null);
+                Assert.Equal(12, numeric.Value);
+                numeric.CommitPendingEdit();
                 Assert.Equal(99, numeric.Value);
                 Assert.Equal("99", editor.Text);
             }
@@ -298,6 +299,33 @@ public sealed class AppearanceTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Numeric settings did not finish.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void Settings_enter_does_not_save_and_pending_typed_numbers_are_saved()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var form = new SettingsForm(new AppSettings());
+                Assert.Null(form.AcceptButton);
+                const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+                var scale = (SettingsNumericUpDown)typeof(SettingsForm).GetField("_compactBarScale", fields)!.GetValue(form)!;
+                TextBox editor = scale.Controls.OfType<TextBox>().Single();
+                editor.Text = "175";
+                Assert.Equal(175, scale.Value);
+                typeof(SettingsForm).GetMethod("SaveAndClose", fields)!.Invoke(form, null);
+                Assert.Equal(175, form.Result.CompactBarScalePercent);
+                Assert.Equal(DialogResult.OK, form.DialogResult);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Settings numeric input test did not finish.");
         Assert.Null(failure);
     }
 

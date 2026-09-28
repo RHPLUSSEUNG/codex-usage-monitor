@@ -582,13 +582,18 @@ internal sealed class SettingsNumericUpDown : Control
                 if (!char.IsControl(e.KeyChar) && e.KeyChar is not (>= '0' and <= '9'))
                     e.Handled = true;
             };
-            _editor.TextChanged += (_, _) => NormalizeEditor();
+            _editor.TextChanged += (_, _) => ApplyTypedValue();
             _editor.KeyDown += (_, e) =>
             {
                 _selectAllOnFirstClick = false;
                 if (e.KeyCode == Keys.Up) { Step(1); e.SuppressKeyPress = true; }
                 else if (e.KeyCode == Keys.Down) { Step(-1); e.SuppressKeyPress = true; }
-                else if (e.KeyCode == Keys.Enter) { CommitEditor(); e.SuppressKeyPress = true; }
+                else if (e.KeyCode == Keys.Enter)
+                {
+                    CommitEditor();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
             };
             _editor.Leave += (_, _) => CommitEditor();
             _editor.MouseWheel += (_, e) => SettingsForm.ScrollParent(this, e);
@@ -617,6 +622,18 @@ internal sealed class SettingsNumericUpDown : Control
             }
             finally { _normalizingEditor = false; }
         }
+        private void ApplyTypedValue()
+        {
+            if (_normalizingEditor) return;
+            NormalizeEditor();
+            if (!decimal.TryParse(_editor.Text, out decimal parsed)
+                || parsed < _minimum || parsed > _maximum
+                || parsed == _value)
+                return;
+            _value = parsed;
+            ValueChanged?.Invoke(this, EventArgs.Empty);
+        }
+        internal void CommitPendingEdit() => CommitEditor();
         private void CommitEditor()
         {
             if (decimal.TryParse(_editor.Text, out decimal parsed)) Value = parsed;
