@@ -547,7 +547,16 @@ internal sealed class SettingsNumericUpDown : Control
         private bool _normalizingEditor, _selectAllOnFirstClick;
         internal event EventHandler? ValueChanged;
         internal decimal Minimum { get => _minimum; set { _minimum = value; Value = _value; } }
-        internal decimal Maximum { get => _maximum; set { _maximum = value; Value = _value; } }
+        internal decimal Maximum
+        {
+            get => _maximum;
+            set
+            {
+                _maximum = value;
+                _editor.MaxLength = Math.Max(1, decimal.Truncate(Math.Abs(_maximum)).ToString().Length);
+                Value = _value;
+            }
+        }
         internal decimal Increment { get => _increment; set => _increment = Math.Max(1, value); }
         internal decimal Value
         {
@@ -626,10 +635,14 @@ internal sealed class SettingsNumericUpDown : Control
         {
             if (_normalizingEditor) return;
             NormalizeEditor();
-            if (!decimal.TryParse(_editor.Text, out decimal parsed)
-                || parsed < _minimum || parsed > _maximum
-                || parsed == _value)
+            if (_editor.Text.Length == 0)
                 return;
+            if (!decimal.TryParse(_editor.Text, out decimal parsed) || parsed > _maximum)
+            {
+                Value = _maximum;
+                return;
+            }
+            if (parsed < _minimum || parsed == _value) return;
             _value = parsed;
             ValueChanged?.Invoke(this, EventArgs.Empty);
         }

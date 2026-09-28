@@ -289,10 +289,14 @@ public sealed class AppearanceTests
                 Assert.Equal(12, numeric.Value);
                 Assert.Equal(1, changes);
                 editor.Text = "150";
-                Assert.Equal(12, numeric.Value);
-                numeric.CommitPendingEdit();
                 Assert.Equal(99, numeric.Value);
                 Assert.Equal("99", editor.Text);
+                Assert.Equal(2, changes);
+                editor.Text = "0";
+                Assert.Equal(99, numeric.Value);
+                numeric.CommitPendingEdit();
+                Assert.Equal(1, numeric.Value);
+                Assert.Equal("1", editor.Text);
             }
             catch (Exception exception) { failure = exception; }
         });
@@ -319,6 +323,10 @@ public sealed class AppearanceTests
                 editor.Text = "175";
                 Assert.Equal(175, scale.Value);
                 Assert.Equal(175, slider.Value);
+                editor.Text = "999";
+                Assert.Equal(200, scale.Value);
+                Assert.Equal(200, slider.Value);
+                Assert.Equal("200", editor.Text);
                 slider.Value = 130;
                 Assert.Equal(130, scale.Value);
                 Assert.Equal("130", editor.Text);
