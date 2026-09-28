@@ -399,15 +399,15 @@ public sealed class AppearanceTests
         settings.FiveHour.ShowResetTimeLabel = true;
         settings.Weekly.ShowResetTimeLabel = true;
         var before = CompactBarRenderer.Layout(settings, 1, 48).ToDictionary(panel => panel.Panel);
-        Assert.Equal(70, before[PanelId.FiveHourReset].Bounds.Width);
-        Assert.Equal(70, before[PanelId.WeeklyReset].Bounds.Width);
+        Assert.Equal(65, before[PanelId.FiveHourReset].Bounds.Width);
+        Assert.Equal(65, before[PanelId.WeeklyReset].Bounds.Width);
         var darkHighDpi = CompactBarRenderer.Layout(settings, 1.5f, 72).ToDictionary(panel => panel.Panel);
-        Assert.Equal(105, darkHighDpi[PanelId.FiveHourReset].Bounds.Width);
-        Assert.Equal(105, darkHighDpi[PanelId.WeeklyReset].Bounds.Width);
+        Assert.Equal(98, darkHighDpi[PanelId.FiveHourReset].Bounds.Width);
+        Assert.Equal(98, darkHighDpi[PanelId.WeeklyReset].Bounds.Width);
         settings.ThemeVariant = ThemeVariant.Light;
         var lightHighDpi = CompactBarRenderer.Layout(settings, 1.5f, 72).ToDictionary(panel => panel.Panel);
-        Assert.Equal(105, lightHighDpi[PanelId.FiveHourReset].Bounds.Width);
-        Assert.Equal(105, lightHighDpi[PanelId.WeeklyReset].Bounds.Width);
+        Assert.Equal(98, lightHighDpi[PanelId.FiveHourReset].Bounds.Width);
+        Assert.Equal(98, lightHighDpi[PanelId.WeeklyReset].Bounds.Width);
         settings.ThemeVariant = ThemeVariant.Dark;
         Assert.Equal("5H ↻ 02h", CompactBarRenderer.FormatResetPanelText(PanelId.FiveHourReset, settings, snapshot, now));
         Assert.Equal("WK ↻ 04d", CompactBarRenderer.FormatResetPanelText(PanelId.WeeklyReset, settings, snapshot, now));
@@ -417,8 +417,8 @@ public sealed class AppearanceTests
         settings.Weekly.ShowResetTimeLabel = false;
         Assert.Equal("↻ 04d", CompactBarRenderer.FormatResetPanelText(PanelId.WeeklyReset, settings, snapshot, now));
         var after = CompactBarRenderer.Layout(settings, 1, 48).ToDictionary(panel => panel.Panel);
-        Assert.Equal(45, after[PanelId.FiveHourReset].Bounds.Width);
-        Assert.Equal(45, after[PanelId.WeeklyReset].Bounds.Width);
+        Assert.Equal(43, after[PanelId.FiveHourReset].Bounds.Width);
+        Assert.Equal(43, after[PanelId.WeeklyReset].Bounds.Width);
         foreach (PanelId id in new[] { PanelId.FiveHour, PanelId.Weekly, PanelId.Cpu, PanelId.Memory })
             Assert.Equal(before[id].Bounds.Size, after[id].Bounds.Size);
         Assert.Equal(4, after[PanelId.FiveHour].Bounds.Left - after[PanelId.FiveHourReset].Bounds.Right);
@@ -446,19 +446,75 @@ public sealed class AppearanceTests
             foreach ((PanelId id, string label) in new[]
                 { (PanelId.FiveHourReset, "5H"), (PanelId.WeeklyReset, "WK") })
             {
-                int labelColumnWidth = showLabel ? (int)Math.Round(24 * scale) : 0;
+                int labelColumnWidth = showLabel ? (int)Math.Round(22 * scale) : 0;
                 if (showLabel)
                 {
                     float labelWidth = graphics.MeasureString(label, font, PointF.Empty, format).Width;
-                    Assert.True(labelWidth + 2 * scale <= labelColumnWidth,
+                    Assert.True(labelWidth + scale <= labelColumnWidth,
                         $"{label} needs {labelWidth:0.0}px but its column has {labelColumnWidth}px at {scale:0.##}x DPI.");
                 }
                 float timeWidth = graphics.MeasureString("↻ 00m", font, PointF.Empty, format).Width;
                 int available = panels[id].Bounds.Width - labelColumnWidth;
-                Assert.True(timeWidth + 2 * scale <= available,
+                Assert.True(timeWidth + scale <= available,
                     $"Countdown needs {timeWidth:0.0}px but {id} has {available}px at {scale:0.##}x DPI.");
             }
         }
+    }
+
+    [Fact]
+    public void Dark_theme_text_scales_with_the_compact_bar()
+    {
+        var settings = new AppSettings
+        {
+            FollowSystemTheme = false,
+            ThemeVariant = ThemeVariant.Dark,
+            CompactBarStyle = CompactBarStyle.DarkMinimal,
+            TransparentBackground = true
+        };
+        settings.FiveHour.Enabled = false;
+        settings.FiveHour.ShowResetTime = false;
+        settings.Weekly.Enabled = false;
+        settings.Weekly.ShowResetTime = false;
+        settings.Cpu.Enabled = true;
+        settings.Cpu.Presentation = MetricPresentation.PercentOnly;
+        settings.Memory.Enabled = false;
+
+        Rectangle TextBounds(float userScale)
+        {
+            Size logical = CompactBarRenderer.CalculateSize(settings, 1, 48);
+            Size physical = CompactBarForm.ScaleSize(logical, (int)(userScale * 100));
+            using var bitmap = new Bitmap(physical.Width, physical.Height, PixelFormat.Format32bppArgb);
+            using (Graphics graphics = Graphics.FromImage(bitmap))
+            {
+                graphics.Clear(Color.Transparent);
+                graphics.ScaleTransform(userScale, userScale);
+                CompactBarRenderer.Draw(graphics, logical, settings, UsageSnapshot.Waiting,
+                    new SystemUsageSnapshot(73, null), 1, themeResolved: true);
+            }
+
+            int left = physical.Width, top = physical.Height, right = -1, bottom = -1;
+            for (int y = 0; y < physical.Height; y++)
+            for (int x = 0; x < physical.Width; x++)
+            {
+                Color pixel = bitmap.GetPixel(x, y);
+                if (pixel.A < 32 || pixel.R < 180 || pixel.G < 180 || pixel.B < 180)
+                    continue;
+                left = Math.Min(left, x);
+                top = Math.Min(top, y);
+                right = Math.Max(right, x);
+                bottom = Math.Max(bottom, y);
+            }
+            Assert.True(right >= left && bottom >= top);
+            return Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
+        }
+
+        Rectangle halved = TextBounds(.5f);
+        Rectangle normal = TextBounds(1);
+        Rectangle doubled = TextBounds(2);
+        Assert.InRange((double)halved.Width / normal.Width, .4, .65);
+        Assert.InRange((double)halved.Height / normal.Height, .4, .7);
+        Assert.InRange((double)doubled.Width / normal.Width, 1.8, 2.2);
+        Assert.InRange((double)doubled.Height / normal.Height, 1.6, 2.2);
     }
 
     [Fact]

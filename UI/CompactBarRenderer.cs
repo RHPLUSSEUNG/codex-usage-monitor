@@ -9,7 +9,9 @@ internal static class CompactBarRenderer
 {
     private const int GridCellWidth = 158;
     private const int GridRowHeight = 22;
-    private const int ResetLabelColumnWidth = 24;
+    private const int ResetLabelColumnWidth = 22;
+    private const int ResetPanelWidthWithLabel = 65;
+    private const int ResetPanelWidthWithoutLabel = 43;
     private static readonly string[] LinearPanelTitles = ["5H", "WK", "CPU", "RAM"];
 
     internal enum Element { Panel, Label, Bar, Percent, ResetTime }
@@ -92,7 +94,9 @@ internal static class CompactBarRenderer
             int x, y, panelWidth;
             if (IsResetPanel(id))
             {
-                int textWidth = settings.Metric(id).ShowResetTimeLabel ? 70 : 45;
+                int textWidth = settings.Metric(id).ShowResetTimeLabel
+                    ? ResetPanelWidthWithLabel
+                    : ResetPanelWidthWithoutLabel;
                 panelWidth = S(textWidth, scale);
             }
             else panelWidth = width;
@@ -183,15 +187,14 @@ internal static class CompactBarRenderer
                     DrawThemeText(graphics, panel.Panel == PanelId.WeeklyReset ? "WK" : "5H", primaryFont,
                         labelBounds, resetColor,
                         TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
-                        TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, true);
+                        TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
                     timeBounds = new Rectangle(labelBounds.Right, panel.Bounds.Y,
                         panel.Bounds.Width - labelWidth, panel.Bounds.Height);
                 }
                 DrawThemeText(graphics, resetText, primaryFont, timeBounds, resetColor,
                     TextFormatFlags.Left |
                     TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
-                    TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix,
-                    true);
+                    TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
                 Hit(Element.ResetTime, panel.Reset);
                 continue;
             }
@@ -375,7 +378,7 @@ internal static class CompactBarRenderer
             using (var labelBackground = new SolidBrush(Color.FromArgb(48, fillColor.R, fillColor.G, fillColor.B)))
             using (GraphicsPath labelPath = Rounded(label, S(4, scale)))
                 graphics.FillPath(labelBackground, labelPath);
-            DrawCenteredText(graphics, metric.Title, font, titleBrush, label, light);
+            DrawCenteredText(graphics, metric.Title, font, titleBrush, label);
             contentX = Math.Max(label.Right + S(5, scale), graphStartX);
         }
         else
@@ -391,7 +394,7 @@ internal static class CompactBarRenderer
             DrawThemeText(graphics, metric.Title, font,
                 titleBounds, titleBrush.Color,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
-                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, light);
+                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             contentX = Math.Max(contentX + titleWidth, graphStartX);
         }
 
@@ -406,7 +409,7 @@ internal static class CompactBarRenderer
         {
             DrawThemeText(graphics, percentText, font, valueBounds, textBrush.Color,
                 TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
-                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, light);
+                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             hit?.Invoke(Element.Percent, valueBounds);
         }
         if (metric.Settings.Presentation != MetricPresentation.PercentOnly)
@@ -420,7 +423,6 @@ internal static class CompactBarRenderer
 
     private static void DrawCircularGauges(Graphics graphics, MetricVisual[] metrics, float scale, ThemeVariant theme, CodexPalette palette)
     {
-        bool lightTheme = CompactBarTheme.IsLight(theme);
         int height = Math.Max(1, (int)Math.Round(graphics.VisibleClipBounds.Height));
         int titleHeight = Math.Min(S(17, scale), Math.Max(S(12, scale), height / 3));
         int diameter = Math.Max(S(12, scale), height - titleHeight - S(4, scale));
@@ -440,7 +442,7 @@ internal static class CompactBarRenderer
             using var titleBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.LabelColor, color));
             Color textColor = CompactBarTheme.Foreground(palette, theme);
             using var valueBrush = new SolidBrush(HexColor.ParseOrDefault(metric.Settings.PercentColor, textColor));
-            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight), lightTheme);
+            DrawCenteredText(graphics, metric.Title, font, titleBrush, new Rectangle(x, 0, cellWidth, titleHeight));
             float penWidth = Math.Max(2f, Math.Min(S(6, scale), diameter / 7f));
             using var trackPen = new Pen(CompactBarTheme.Track(metric.Settings.TrackColor, palette, theme), penWidth);
             using var fillPen = new Pen(color, penWidth) { StartCap = LineCap.Round, EndCap = LineCap.Round };
@@ -451,7 +453,7 @@ internal static class CompactBarRenderer
                     graphics.DrawArc(fillPen, gauge, -90, (float)(360d * Math.Clamp(metric.Percent.Value, 0d, 100d) / 100d));
             }
             if (metric.Settings.Presentation != MetricPresentation.BarOnly)
-                DrawCenteredText(graphics, PercentText(metric.Percent), boldFont, valueBrush, gauge, lightTheme);
+                DrawCenteredText(graphics, PercentText(metric.Percent), boldFont, valueBrush, gauge);
             index++;
         }
     }
@@ -593,23 +595,16 @@ internal static class CompactBarRenderer
         string text,
         Font font,
         SolidBrush brush,
-        Rectangle bounds,
-        bool lightTheme)
+        Rectangle bounds)
     {
         DrawThemeText(graphics, text, font, bounds, brush.Color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine |
-            TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix, lightTheme);
+            TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
     }
 
     private static void DrawThemeText(Graphics graphics, string text, Font font, Rectangle bounds, Color color,
-        TextFormatFlags flags, bool useGdiPlus)
+        TextFormatFlags flags)
     {
-        if (!useGdiPlus)
-        {
-            TextRenderer.DrawText(graphics, text, font, bounds, color, flags);
-            return;
-        }
-
         using var brush = new SolidBrush(color);
         using var format = (StringFormat)StringFormat.GenericTypographic.Clone();
         format.Alignment = flags.HasFlag(TextFormatFlags.HorizontalCenter) ? StringAlignment.Center
