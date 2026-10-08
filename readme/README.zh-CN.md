@@ -13,6 +13,7 @@
   <a href="../README.md">English</a> ·
   <a href="README.ko.md">한국어</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja.md">日本語</a>
 </p>
 
@@ -65,7 +66,7 @@ Compact Bar 可同时显示 **5H**、**WK**、**CPU** 和 **RAM**。每项可显
 在外观预览中，将一个面板拖到另一个面板上即可交换位置。调整布局时会同时显示 5 小时和每周重置倒计时面板；隐藏的面板不会保留空位。
 
 <p align="center">
-  <img src="../docs/panel-ordering.png" alt="在外观预览中拖动 5H 面板" width="838">
+  <img src="../docs/panel-ordering.png" alt="在外观预览中拖动 5H 面板" width="790">
 </p>
 
 ### 重置时间提示
@@ -73,12 +74,20 @@ Compact Bar 可同时显示 **5H**、**WK**、**CPU** 和 **RAM**。每项可显
 将鼠标悬停在 Compact Bar 的任意位置，即可查看 5 小时和每周限额的准确重置日期。提示框会对齐到可见面板最近的一端，并根据屏幕空间显示在上方或下方。
 
 <p align="center">
-  <img src="../docs/reset-tooltip.png" alt="Compact Bar 重置时间提示" width="720">
+  <img src="../docs/reset-tooltip.png" alt="Compact Bar 重置时间提示" width="672">
 </p>
 
 <a id="styles"></a>
 
 ## 🎨 外观
+
+### 屏幕模式
+
+**系统**会自动跟随 Windows 主题，也可以将 Compact Bar 固定为**深色**或**浅色**模式。下方预览使用 Everforest 配色。
+
+<p align="center">
+  <img src="../docs/screen-modes.png" alt="系统、深色和浅色屏幕模式" width="984">
+</p>
 
 <details>
 <summary><strong>颜色主题</strong> — 28 种调色板</summary>
@@ -93,6 +102,8 @@ Compact Bar 可同时显示 **5H**、**WK**、**CPU** 和 **RAM**。每项可显
 
 <details>
 <summary><strong>进度条样式</strong> — 6 种布局</summary>
+
+所有样式预览均使用深色模式的 Everforest 配色。
 
 | | |
 |---|---|

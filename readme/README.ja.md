@@ -13,6 +13,7 @@
   <a href="../README.md">English</a> ·
   <a href="README.ko.md">한국어</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja.md">日本語</a>
 </p>
 
@@ -65,7 +66,7 @@ Compact Bar には **5H**、**WK**、**CPU**、**RAM** の主要な数値がひ�
 外観プレビューでパネルを別のパネルへドラッグすると、2つの位置が入れ替わります。配置中も5時間・週間リセットまでの残り時間パネルが表示され、非表示のパネルは空き領域を残しません。
 
 <p align="center">
-  <img src="../docs/panel-ordering.png" alt="外観プレビューで 5H パネルをドラッグしている画面" width="838">
+  <img src="../docs/panel-ordering.png" alt="外観プレビューで 5H パネルをドラッグしている画面" width="790">
 </p>
 
 ### リセット日時のツールチップ
@@ -73,12 +74,20 @@ Compact Bar には **5H**、**WK**、**CPU**、**RAM** の主要な数値がひ�
 Compact Bar のどこにマウスを置いても、5時間・週間上限の正確なリセット日時を確認できます。ツールチップは表示中のパネルの近い端にそろい、画面内に収まるよう上または下に表示されます。
 
 <p align="center">
-  <img src="../docs/reset-tooltip.png" alt="Compact Bar のリセット日時ツールチップ" width="720">
+  <img src="../docs/reset-tooltip.png" alt="Compact Bar のリセット日時ツールチップ" width="672">
 </p>
 
 <a id="styles"></a>
 
 ## 🎨 外観
+
+### 画面モード
+
+**システム**は Windows テーマに自動で追従します。Compact Bar を**ダーク**または**ライト**モードに固定することもできます。以下のプレビューには Everforest カラーテーマを使用しています。
+
+<p align="center">
+  <img src="../docs/screen-modes.png" alt="システム、ダーク、ライトの画面モード" width="984">
+</p>
 
 <details>
 <summary><strong>カラーテーマ</strong> — 28パレット</summary>
@@ -93,6 +102,8 @@ Compact Bar のどこにマウスを置いても、5時間・週間上限の正�
 
 <details>
 <summary><strong>バースタイル</strong> — 6レイアウト</summary>
+
+すべてのスタイルプレビューには、ダークモードの Everforest カラーテーマを使用しています。
 
 | | |
 |---|---|

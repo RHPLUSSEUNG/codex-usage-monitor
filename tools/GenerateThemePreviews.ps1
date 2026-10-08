@@ -119,27 +119,27 @@ function New-BarBitmap([string]$styleName, [string]$variantName, [string]$palett
 function New-StyleCard([hashtable]$style) {
     $bitmap = $null
     try {
-        $bitmap = New-BarBitmap $style.Name "Light" | Select-Object -Last 1
+        $bitmap = New-BarBitmap $style.Name "Dark" "Everforest" | Select-Object -Last 1
         if ($bitmap -is [Management.Automation.PSObject]) {
             $bitmap = $bitmap.PSObject.BaseObject
         }
         $card = [Drawing.Bitmap]::new(
-            $bitmap.Width + 96,
-            $bitmap.Height + 96,
+            $bitmap.Width + 48,
+            $bitmap.Height + 70,
             [Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $graphics = [Drawing.Graphics]::FromImage($card)
         try {
-            $graphics.Clear([Drawing.Color]::White)
+            $graphics.Clear([Drawing.Color]::FromArgb(45, 53, 59))
             $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $titleFont = [Drawing.Font]::new("Segoe UI", 15, [Drawing.FontStyle]::Bold)
-            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(13, 13, 13))
-            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(217, 217, 217), 2)
+            $titleBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(211, 198, 170))
+            $borderPen = [Drawing.Pen]::new([Drawing.Color]::FromArgb(71, 82, 88), 1)
             try {
                 $graphics.DrawRectangle($borderPen, 1, 1, $card.Width - 3, $card.Height - 3)
-                $graphics.DrawString($style.Label, $titleFont, $titleBrush, 28, 18)
+                $graphics.DrawString($style.Label, $titleFont, $titleBrush, 20, 8)
                 $graphics.DrawImage(
                     $bitmap,
-                    [Drawing.Rectangle]::new(48, 60, $bitmap.Width, $bitmap.Height))
+                    [Drawing.Rectangle]::new(24, 38, $bitmap.Width, $bitmap.Height))
             }
             finally {
                 $borderPen.Dispose()
@@ -160,7 +160,7 @@ function New-StyleCard([hashtable]$style) {
 }
 
 function New-PanelOrderPreview {
-    $settings = New-Settings "Light" "Light" | Select-Object -Last 1
+    $settings = New-Settings "Light" "Dark" "Everforest" | Select-Object -Last 1
     if ($settings -is [Management.Automation.PSObject]) { $settings = $settings.PSObject.BaseObject }
     $settings.FiveHour.ShowResetTime = $true
     $settings.Weekly.ShowResetTime = $true
@@ -173,7 +173,7 @@ function New-PanelOrderPreview {
         $panels = $layout.Invoke($null, [object[]]@($settings, [single]2, [int]96))
         $source = $panels | Where-Object { $_.Panel.ToString() -eq "FiveHour" }
         $target = $panels | Where-Object { $_.Panel.ToString() -eq "Cpu" }
-        $origin = [Drawing.Point]::new(48, 72)
+        $origin = [Drawing.Point]::new(24, 42)
         $sourceBounds = [Drawing.Rectangle]::new(
             $origin.X + $source.Bounds.X, $origin.Y + $source.Bounds.Y,
             $source.Bounds.Width, $source.Bounds.Height)
@@ -183,18 +183,18 @@ function New-PanelOrderPreview {
         $ghostBounds = $sourceBounds
         $ghostBounds.Offset([int](($targetBounds.X - $sourceBounds.X) * .62), 14)
 
-        $card = [Drawing.Bitmap]::new($bar.Width + 96, $bar.Height + 148,
+        $card = [Drawing.Bitmap]::new($bar.Width + 48, $bar.Height + 70,
             [Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $graphics = [Drawing.Graphics]::FromImage($card)
         try {
-            $surface = [Drawing.Color]::FromArgb(49, 55, 59)
-            $foreground = [Drawing.Color]::FromArgb(226, 219, 198)
+            $surface = [Drawing.Color]::FromArgb(45, 53, 59)
+            $foreground = [Drawing.Color]::FromArgb(211, 198, 170)
             $graphics.Clear($surface)
             $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $titleFont = [Drawing.Font]::new("Segoe UI", 12, [Drawing.FontStyle]::Bold)
             $textBrush = [Drawing.SolidBrush]::new($foreground)
             try {
-                $graphics.DrawString("Appearance preview · dragging 5H", $titleFont, $textBrush, 48, 22)
+                $graphics.DrawString("Appearance preview · dragging 5H", $titleFont, $textBrush, 24, 10)
                 $graphics.DrawImage($bar,
                     [Drawing.Rectangle]::new($origin.X, $origin.Y, $bar.Width, $bar.Height))
 
@@ -236,7 +236,7 @@ function New-PanelOrderPreview {
 }
 
 function New-ResetTooltipPreview {
-    $bar = New-BarBitmap "Light" "Light" | Select-Object -Last 1
+    $bar = New-BarBitmap "Light" "Dark" "Everforest" | Select-Object -Last 1
     if ($bar -is [Management.Automation.PSObject]) { $bar = $bar.PSObject.BaseObject }
     try {
         $tooltipText = "5-hour · resets at 2026-10-08 14:30`nWeekly · resets at 2026-10-12 09:00"
@@ -249,19 +249,19 @@ function New-ResetTooltipPreview {
             $measureGraphics.Dispose()
             $measureBitmap.Dispose()
         }
-        $margin = 36
+        $margin = 12
         $tooltipWidth = [int][Math]::Ceiling($measured.Width) + 24
         $tooltipHeight = [int][Math]::Ceiling($measured.Height) + 16
         $gap = 2
-        $card = [Drawing.Bitmap]::new($bar.Width + $margin * 2, $bar.Height + $tooltipHeight + $gap + 44,
+        $card = [Drawing.Bitmap]::new($bar.Width + $margin * 2, $bar.Height + $tooltipHeight + $gap + 16,
             [Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $card.SetResolution(192, 192)
         $graphics = [Drawing.Graphics]::FromImage($card)
         try {
-            $graphics.Clear([Drawing.Color]::FromArgb(246, 247, 249))
+            $graphics.Clear([Drawing.Color]::FromArgb(45, 53, 59))
             $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $barX = $margin
-            $barY = 22 + $tooltipHeight + $gap
+            $barY = 8 + $tooltipHeight + $gap
             $tooltipX = $barX + $bar.Width - $tooltipWidth
             $tooltipY = $barY - $tooltipHeight - $gap
             $tooltipBounds = [Drawing.Rectangle]::new($tooltipX, $tooltipY, $tooltipWidth, $tooltipHeight)
@@ -293,9 +293,9 @@ function New-ColorThemePreview {
     $palettes = [Enum]::GetValues($paletteType)
     $columns = 2
     $rows = [int][Math]::Ceiling($palettes.Count / $columns)
-    $columnWidth = 760
-    $rowHeight = 132
-    $card = [Drawing.Bitmap]::new($columnWidth * $columns, $rowHeight * $rows + 28,
+    $columnWidth = 560
+    $rowHeight = 112
+    $card = [Drawing.Bitmap]::new($columnWidth * $columns, $rowHeight * $rows + 12,
         [Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [Drawing.Graphics]::FromImage($card)
     try {
@@ -314,12 +314,12 @@ function New-ColorThemePreview {
                 try {
                     $column = [int][Math]::Floor($index / [double]$rows)
                     $row = $index % $rows
-                    $x = $column * $columnWidth + 24
-                    $y = $row * $rowHeight + 18
+                    $x = $column * $columnWidth + 16
+                    $y = $row * $rowHeight + 10
                     $colors = $paletteColors.Invoke($null, [object[]]@($palette, $variant))
                     $badgeColor = [Drawing.ColorTranslator]::FromHtml($colors.Background)
                     $accentColor = [Drawing.ColorTranslator]::FromHtml($colors.Accent)
-                    $badge = [Drawing.Rectangle]::new($x, $y + 2, 36, 36)
+                    $badge = [Drawing.Rectangle]::new($x, $y + 2, 32, 32)
                     $badgeBrush = [Drawing.SolidBrush]::new($badgeColor)
                     $badgeText = [Drawing.SolidBrush]::new($accentColor)
                     try {
@@ -339,9 +339,9 @@ function New-ColorThemePreview {
                         $badgeBrush.Dispose()
                     }
                     $name = $paletteDisplayName.Invoke($null, [object[]]@($palette))
-                    $graphics.DrawString($name, $nameFont, $nameBrush, $x + 48, $y + 7)
-                    $target = [Drawing.Rectangle]::new($x, $y + 48, 668, 100)
-                    $target.Height = 72
+                    $graphics.DrawString($name, $nameFont, $nameBrush, $x + 42, $y + 5)
+                    $target = [Drawing.Rectangle]::new($x, $y + 40, 500, 64)
+                    $target.Height = 64
                     $target.Width = [int]($bar.Width * ($target.Height / [double]$bar.Height))
                     $graphics.DrawImage($bar, $target)
                 }
@@ -358,6 +358,83 @@ function New-ColorThemePreview {
     return $card
 }
 
+function New-ScreenModePreview {
+    $cardWidth = 320
+    $cardHeight = 116
+    $gap = 12
+    $canvas = [Drawing.Bitmap]::new($cardWidth * 3 + $gap * 2, $cardHeight,
+        [Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [Drawing.Graphics]::FromImage($canvas)
+    try {
+        $surface = [Drawing.Color]::FromArgb(45, 53, 59)
+        $cardFill = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(52, 63, 68))
+        $selectedBorder = [Drawing.Pen]::new([Drawing.Color]::FromArgb(167, 192, 128), 2)
+        $labelBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(211, 198, 170))
+        $labelFont = [Drawing.Font]::new("Segoe UI", 11, [Drawing.FontStyle]::Regular)
+        $format = [Drawing.StringFormat]::new()
+        try {
+            $graphics.Clear($surface)
+            $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $format.Alignment = [Drawing.StringAlignment]::Center
+            $format.LineAlignment = [Drawing.StringAlignment]::Center
+            $labels = @("System", "Dark", "Light")
+            for ($index = 0; $index -lt 3; $index++) {
+                $x = $index * ($cardWidth + $gap)
+                $bounds = [Drawing.Rectangle]::new($x, 0, $cardWidth, $cardHeight)
+                $graphics.FillRectangle($cardFill, $bounds)
+                if ($index -eq 1) {
+                    $graphics.DrawRectangle($selectedBorder, $x + 1, 1, $cardWidth - 3, $cardHeight - 3)
+                }
+
+                $preview = [Drawing.Rectangle]::new($x + 14, 14, $cardWidth - 28, 58)
+                $lightBackground = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(247, 247, 244))
+                $darkBackground = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(32, 38, 41))
+                $lightTrack = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(204, 207, 204))
+                $darkTrack = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(67, 78, 82))
+                $accent = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(167, 192, 128))
+                try {
+                    if ($index -eq 0) {
+                        $half = [int]($preview.Width / 2)
+                        $graphics.FillRectangle($lightBackground, $preview.X, $preview.Y, $half, $preview.Height)
+                        $graphics.FillRectangle($darkBackground, $preview.X + $half, $preview.Y, $preview.Width - $half, $preview.Height)
+                    }
+                    elseif ($index -eq 1) { $graphics.FillRectangle($darkBackground, $preview) }
+                    else { $graphics.FillRectangle($lightBackground, $preview) }
+
+                    foreach ($column in 0, 1) {
+                        $columnX = $preview.X + 10 + $column * 146
+                        $trackBrush = if ($index -eq 2 -or ($index -eq 0 -and $column -eq 0)) { $lightTrack } else { $darkTrack }
+                        foreach ($row in 0, 1) {
+                            $rowY = $preview.Y + 10 + $row * 24
+                            $graphics.FillRectangle($accent, $columnX, $rowY, 34, 9)
+                            $graphics.FillRectangle($trackBrush, $columnX + 42, $rowY, 84, 9)
+                            $graphics.FillRectangle($accent, $columnX + 42, $rowY, 38 + $row * 14, 9)
+                        }
+                    }
+                }
+                finally {
+                    $accent.Dispose()
+                    $darkTrack.Dispose()
+                    $lightTrack.Dispose()
+                    $darkBackground.Dispose()
+                    $lightBackground.Dispose()
+                }
+                $labelBounds = [Drawing.RectangleF]::new([single]$x, 78, [single]$cardWidth, 30)
+                $graphics.DrawString($labels[$index], $labelFont, $labelBrush, $labelBounds, $format)
+            }
+        }
+        finally {
+            $format.Dispose()
+            $labelFont.Dispose()
+            $labelBrush.Dispose()
+            $selectedBorder.Dispose()
+            $cardFill.Dispose()
+        }
+    }
+    finally { $graphics.Dispose() }
+    return $canvas
+}
+
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 $cards = @()
 
@@ -370,7 +447,7 @@ try {
             [Drawing.Imaging.ImageFormat]::Png)
     }
 
-    $representative = New-BarBitmap "Light" "Light" | Select-Object -Last 1
+    $representative = New-BarBitmap "Light" "Dark" "Everforest" | Select-Object -Last 1
     if ($representative -is [Management.Automation.PSObject]) {
         $representative = $representative.PSObject.BaseObject
     }
@@ -402,6 +479,12 @@ try {
         $colorThemes.Save((Join-Path $projectRoot "docs\color-themes.png"), [Drawing.Imaging.ImageFormat]::Png)
     }
     finally { $colorThemes.Dispose() }
+
+    $screenModes = New-ScreenModePreview | Select-Object -Last 1
+    try {
+        $screenModes.Save((Join-Path $projectRoot "docs\screen-modes.png"), [Drawing.Imaging.ImageFormat]::Png)
+    }
+    finally { $screenModes.Dispose() }
 }
 finally {
     foreach ($card in $cards) {
