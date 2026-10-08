@@ -35,24 +35,49 @@
 - English, Korean, Simplified Chinese, and Japanese
 - Local `codex app-server` integration without webpage scraping or auth-file access
 
-## Default appearance
+## Compact Bar
 
-A new installation starts with:
+The Compact Bar keeps the main readings visible at a glance: **5H**, **WK**, **CPU**, and **RAM**. Each metric can show a percentage, a progress bar, or both.
 
-- **Light** style and **Codex** color palette
-- **System** screen mode
-- Transparent background enabled with background alpha `0`
-- Reset countdowns displayed as `↻ 02h` or `↻ 05d`, without the extra `5H`/`WK` prefix
+### Rearrange panels
 
-Existing settings are preserved. Removed styles—Dark minimal, Cards, Circular gauges, and Rounded capsules—are migrated to Light.
+Drag a panel in the Appearance preview onto another panel to swap their positions. The preview keeps the 5-hour and weekly reset countdown panels visible while you arrange the layout. Hidden panels do not reserve an empty slot.
 
-## Styles
+<p align="center">
+  <img src="docs/panel-ordering.png" alt="Dragging the 5H panel in the Appearance preview" width="838">
+</p>
+
+### Reset-time tooltip
+
+Hover anywhere over the Compact Bar to see the exact 5-hour and weekly reset dates. The tooltip follows the nearest visible edge of the bar and moves above or below it to stay on screen.
+
+<p align="center">
+  <img src="docs/reset-tooltip.png" alt="Compact Bar reset-time tooltip" width="720">
+</p>
+
+## Appearance
+
+<details>
+<summary><strong>Color themes</strong> — 28 palettes</summary>
+
+Each palette updates the background, text, accent, fill, and track colors together. Dark- and light-mode variants are available where the source theme provides both.
+
+<p align="center">
+  <img src="docs/color-themes.png" alt="Codex Usage Monitor color themes">
+</p>
+
+</details>
+
+<details>
+<summary><strong>Bar styles</strong> — 6 layouts</summary>
 
 | | |
 |---|---|
 | **Light**<br><img src="docs/themes/light.png" alt="Light style" width="400"> | **Label boxes**<br><img src="docs/themes/label-boxes.png" alt="Label boxes style" width="400"> |
 | **Neon glow**<br><img src="docs/themes/neon-glow.png" alt="Neon glow style" width="400"> | **Compact rows**<br><img src="docs/themes/compact-rows.png" alt="Compact rows style" width="400"> |
 | **Gradient**<br><img src="docs/themes/gradient.png" alt="Gradient style" width="400"> | **Minimal icons + text**<br><img src="docs/themes/minimal-icons.png" alt="Minimal icons and text style" width="400"> |
+
+</details>
 
 ## Install
 

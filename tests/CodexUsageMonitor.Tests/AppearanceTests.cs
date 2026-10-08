@@ -584,6 +584,35 @@ public sealed class AppearanceTests
     }
 
     [Fact]
+    public void Linear_percent_width_uses_the_target_monitor_dpi()
+    {
+        var settings = new AppSettings { CompactBarStyle = CompactBarStyle.Light };
+        settings.FiveHour.Enabled = false;
+        settings.FiveHour.ShowResetTime = false;
+        settings.Weekly.Enabled = false;
+        settings.Weekly.ShowResetTime = false;
+        settings.Cpu.Enabled = true;
+        settings.Memory.Enabled = false;
+
+        int PercentWidth(float scale)
+        {
+            Size size = CompactBarRenderer.CalculateSize(settings, scale, (int)Math.Round(48 * scale));
+            using var bitmap = new Bitmap(size.Width, size.Height);
+            bitmap.SetResolution(96 * scale, 96 * scale);
+            using var graphics = Graphics.FromImage(bitmap);
+            var hits = new List<CompactBarRenderer.HitRegion>();
+            CompactBarRenderer.DrawWithRegions(graphics, size, settings, UsageSnapshot.Waiting,
+                new SystemUsageSnapshot(100, null), scale, hits);
+            return hits.Single(hit => hit.Panel == PanelId.Cpu && hit.Element == CompactBarRenderer.Element.Percent)
+                .Bounds.Width;
+        }
+
+        int normal = PercentWidth(1f);
+        int highDpi = PercentWidth(2f);
+        Assert.InRange((double)highDpi / normal, 1.8, 2.2);
+    }
+
+    [Fact]
     public void Light_theme_text_avoids_colored_subpixel_fringe_on_the_layered_bitmap()
     {
         var settings = new AppSettings { CompactBarStyle = CompactBarStyle.DarkMinimal };
@@ -713,16 +742,29 @@ public sealed class AppearanceTests
     }
 
     [Fact]
-    public void Compact_bar_reset_tooltip_anchors_to_the_whole_bar_and_stays_on_screen()
+    public void Compact_bar_reset_tooltip_aligns_to_the_nearest_visible_panel_edge_and_stays_on_screen()
     {
         Rectangle screen = new(0, 0, 1920, 1080);
         Size bar = new(500, 50), tooltip = new(200, 50);
-        Assert.Equal(new Point(150, -58), CompactBarForm.CenteredQuotaTooltipLocation(
-            bar, tooltip, new Point(200, 900), screen));
-        Assert.Equal(new Point(-80, -58), CompactBarForm.CenteredQuotaTooltipLocation(
-            bar, tooltip, new Point(1800, 900), screen));
-        Assert.Equal(new Point(150, 54), CompactBarForm.CenteredQuotaTooltipLocation(
-            bar, tooltip, new Point(200, 20), screen));
+        Assert.Equal(new Point(2, -52), CompactBarForm.EdgeAlignedQuotaTooltipLocation(
+            bar, 2, 498, tooltip, new Point(200, 900), screen));
+        Assert.Equal(new Point(-80, -52), CompactBarForm.EdgeAlignedQuotaTooltipLocation(
+            bar, 2, 498, tooltip, new Point(1800, 900), screen));
+        Assert.Equal(new Point(2, 52), CompactBarForm.EdgeAlignedQuotaTooltipLocation(
+            bar, 2, 498, tooltip, new Point(200, 20), screen));
+        Assert.Equal(new Point(140, -52), CompactBarForm.EdgeAlignedQuotaTooltipLocation(
+            bar, 2, 340, tooltip, new Point(1400, 900), screen));
+
+        var settings = new AppSettings();
+        int fullWidth = CompactBarRenderer.CalculateSize(settings, 1, 48).Width;
+        settings.Cpu.Enabled = false;
+        settings.Memory.Enabled = false;
+        Size visibleSize = CompactBarRenderer.CalculateSize(settings, 1, 48);
+        int lastVisiblePanelEdge = CompactBarRenderer.Layout(settings, 1, 48)
+            .Max(panel => panel.Bounds.Right);
+        var visibleBounds = CompactBarForm.VisiblePanelHorizontalBounds(visibleSize.Width, 1, 100);
+        Assert.True(visibleSize.Width < fullWidth);
+        Assert.Equal(lastVisiblePanelEdge, visibleBounds.Right);
     }
 
     [Fact]

@@ -13,6 +13,8 @@ public sealed class CompactBarForm : Form
     private readonly ContextMenuStrip _contextMenu = new();
     private readonly ToolTip _quotaToolTip = new() { ShowAlways = true };
     private string _visibleQuotaTooltip = "";
+    private int _visiblePanelLeft;
+    private int _visiblePanelRight;
     private AppSettings _settings = new();
     private AppSettings? _resolvedSettingsSource;
     private AppSettings? _resolvedSettings;
@@ -422,6 +424,8 @@ public sealed class CompactBarForm : Form
     private void DrawContent(Graphics graphics, Size size, float scale)
     {
         float userScale = UserScale(_settings.CompactBarScalePercent);
+        (_visiblePanelLeft, _visiblePanelRight) = VisiblePanelHorizontalBounds(
+            size.Width, scale, _settings.CompactBarScalePercent);
         graphics.ScaleTransform(userScale, userScale);
         var logicalSize = new Size(
             Math.Max(1, (int)Math.Round(size.Width / userScale)),
@@ -449,21 +453,36 @@ public sealed class CompactBarForm : Form
         {
             Size measured = TextRenderer.MeasureText(text, SystemFonts.MessageBoxFont);
             var tooltipSize = new Size(measured.Width + 12, measured.Height + 8);
-            Point anchor = CenteredQuotaTooltipLocation(ClientSize, tooltipSize,
+            Point anchor = EdgeAlignedQuotaTooltipLocation(ClientSize, _visiblePanelLeft, _visiblePanelRight, tooltipSize,
                 PointToScreen(Point.Empty), Screen.FromControl(this).Bounds);
             _quotaToolTip.Show(text, this, anchor);
         }
     }
 
-    internal static Point CenteredQuotaTooltipLocation(Size barSize, Size tooltipSize,
+    internal static (int Left, int Right) VisiblePanelHorizontalBounds(
+        int barWidth, float dpiScale, int scalePercent)
+    {
+        int padding = (int)Math.Round(Math.Max(1, Math.Round(2 * dpiScale)) * UserScale(scalePercent));
+        int left = Math.Min(barWidth, padding);
+        return (left, Math.Max(left, barWidth - padding));
+    }
+
+    internal static Point EdgeAlignedQuotaTooltipLocation(
+        Size barSize, int visiblePanelLeft, int visiblePanelRight, Size tooltipSize,
         Point barScreenOrigin, Rectangle screenBounds)
     {
-        int centeredX = (barSize.Width - tooltipSize.Width) / 2;
+        int panelCenterX = barScreenOrigin.X + visiblePanelLeft
+                           + (visiblePanelRight - visiblePanelLeft) / 2;
+        int screenCenterX = screenBounds.Left + screenBounds.Width / 2;
+        int edgeAlignedX = panelCenterX <= screenCenterX
+            ? visiblePanelLeft
+            : visiblePanelRight - tooltipSize.Width;
         int minX = screenBounds.Left - barScreenOrigin.X;
         int maxX = screenBounds.Right - tooltipSize.Width - barScreenOrigin.X;
-        int x = maxX < minX ? minX : Math.Clamp(centeredX, minX, maxX);
-        int aboveY = -tooltipSize.Height - 8;
-        int y = barScreenOrigin.Y + aboveY >= screenBounds.Top ? aboveY : barSize.Height + 4;
+        int x = maxX < minX ? minX : Math.Clamp(edgeAlignedX, minX, maxX);
+        const int panelGap = 2;
+        int aboveY = -tooltipSize.Height - panelGap;
+        int y = barScreenOrigin.Y + aboveY >= screenBounds.Top ? aboveY : barSize.Height + panelGap;
         return new Point(x, y);
     }
 

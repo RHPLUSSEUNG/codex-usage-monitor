@@ -35,24 +35,49 @@
 - 영어·한국어·중국어(간체)·일본어
 - 웹 스크래핑이나 인증 파일 접근 없이 로컬 `codex app-server` 사용
 
-## 최초 실행 기본값
+## Compact Bar
 
-새로 설치하면 다음 값으로 시작합니다.
+Compact Bar는 **5H**, **WK**, **CPU**, **RAM**의 주요 수치를 한눈에 보여 줍니다. 각 항목은 퍼센트, 그래프 또는 둘 다 표시할 수 있습니다.
 
-- **라이트** 스타일과 **Codex** 컬러 테마
-- **시스템** 화면 모드
-- 투명 배경 켜짐, 배경 알파 `0`
-- 초기화 시간은 별도 `5H`·`WK` 접두사 없이 `↻ 02h`, `↻ 05d` 형식으로 표시
+### 패널 위치 변경
 
-기존 설정은 유지됩니다. 삭제된 다크 미니멀·카드·원형 게이지·둥근 캡슐 스타일을 사용 중이었다면 라이트 스타일로 전환됩니다.
+모양 미리보기에서 패널을 다른 패널 위로 드래그하면 두 패널의 위치가 바뀝니다. 배치를 변경하는 동안 5시간·주간 초기화 남은 시간 패널도 함께 표시되며, 숨긴 패널은 빈자리를 차지하지 않습니다.
 
-## 스타일
+<p align="center">
+  <img src="../docs/panel-ordering.png" alt="모양 미리보기에서 5H 패널을 드래그하는 화면" width="838">
+</p>
+
+### 초기화 일시 툴팁
+
+Compact Bar의 어느 곳에든 마우스를 올리면 5시간·주간 한도의 정확한 초기화 일시가 표시됩니다. 툴팁은 보이는 패널의 가까운 끝에 정렬되며 화면을 벗어나지 않도록 위나 아래에 나타납니다.
+
+<p align="center">
+  <img src="../docs/reset-tooltip.png" alt="Compact Bar 초기화 일시 툴팁" width="720">
+</p>
+
+## 모양
+
+<details>
+<summary><strong>컬러 테마</strong> — 팔레트 28개</summary>
+
+컬러 테마를 선택하면 배경, 글자, 강조색, 그래프 채움 및 트랙 색상이 함께 변경됩니다. 원본 테마가 지원하는 경우 다크·라이트 모드를 선택할 수 있습니다.
+
+<p align="center">
+  <img src="../docs/color-themes.png" alt="Codex Usage Monitor 컬러 테마">
+</p>
+
+</details>
+
+<details>
+<summary><strong>바 스타일</strong> — 레이아웃 6개</summary>
 
 | | |
 |---|---|
 | **라이트**<br><img src="../docs/themes/light.png" alt="라이트 스타일" width="400"> | **라벨 박스형**<br><img src="../docs/themes/label-boxes.png" alt="라벨 박스형 스타일" width="400"> |
 | **네온 글로우**<br><img src="../docs/themes/neon-glow.png" alt="네온 글로우 스타일" width="400"> | **컴팩트 바**<br><img src="../docs/themes/compact-rows.png" alt="컴팩트 바 스타일" width="400"> |
 | **그라데이션**<br><img src="../docs/themes/gradient.png" alt="그라데이션 스타일" width="400"> | **미니멀 아이콘 + 텍스트**<br><img src="../docs/themes/minimal-icons.png" alt="미니멀 아이콘과 텍스트 스타일" width="400"> |
+
+</details>
 
 ## 설치
 

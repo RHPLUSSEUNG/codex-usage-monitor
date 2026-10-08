@@ -359,9 +359,17 @@ public sealed partial class SettingsForm
         var colors = CompactBarPaletteCatalog.Get(PaletteValues[e.Index], AppearanceTheme.Resolve(_draft).ThemeVariant);
         using var background = new SolidBrush((e.State & DrawItemState.Selected) != 0 ? SettingsPaint.Blend(_codexPalette.BackColor, ForeColor, .14f) : _codexPalette.BackColor);
         e.Graphics.FillRectangle(background, e.Bounds);
-        var swatch = new Rectangle(e.Bounds.X + 6, e.Bounds.Y + 4, 26, e.Bounds.Height - 8);
-        using var fill = new SolidBrush(HexColor.ParseOrDefault(colors.Background, Color.White));
-        e.Graphics.FillRectangle(fill, swatch);
+        int swatchSize = Math.Max(1, Math.Min(26, e.Bounds.Height - 8));
+        var swatch = new Rectangle(e.Bounds.X + 6, e.Bounds.Y + (e.Bounds.Height - swatchSize) / 2,
+            swatchSize, swatchSize);
+        Color swatchColor = HexColor.ParseOrDefault(colors.Background, Color.White);
+        using var fill = new SolidBrush(swatchColor);
+        using var border = new Pen(SettingsPaint.Blend(swatchColor, ForeColor, .22f));
+        SmoothingMode previousSmoothing = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        e.Graphics.FillEllipse(fill, swatch);
+        e.Graphics.DrawEllipse(border, swatch.X, swatch.Y, swatch.Width - 1, swatch.Height - 1);
+        e.Graphics.SmoothingMode = previousSmoothing;
         TextRenderer.DrawText(e.Graphics, "Aa", Font, swatch, HexColor.ParseOrDefault(colors.Accent, Color.Green), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         TextRenderer.DrawText(e.Graphics, PaletteNames()[e.Index], Font, new Rectangle(e.Bounds.X + 39, e.Bounds.Y, e.Bounds.Width - 39, e.Bounds.Height), ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         if ((e.State & DrawItemState.ComboBoxEdit) == 0 && e.Index == _codexPalette.SelectedIndex)

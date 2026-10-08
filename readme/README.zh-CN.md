@@ -54,19 +54,53 @@
 | 🌍 | **4 种语言** | 英语、韩语、简体中文和日语 |
 | 🔒 | **本地且私密** | 使用 `codex app-server`，不抓取网页或访问认证文件 |
 
-Compact Bar 分为两列：第一列显示 `5H` 和 `WK`，第二列显示 `CPU` 和 `RAM`。每项可显示百分比、FillBar 或两者。
+<a id="compact-bar"></a>
+
+## Compact Bar
+
+Compact Bar 可同时显示 **5H**、**WK**、**CPU** 和 **RAM**。每项可显示百分比、进度条或两者。
+
+### 调整面板顺序
+
+在外观预览中，将一个面板拖到另一个面板上即可交换位置。调整布局时会同时显示 5 小时和每周重置倒计时面板；隐藏的面板不会保留空位。
+
+<p align="center">
+  <img src="../docs/panel-ordering.png" alt="在外观预览中拖动 5H 面板" width="838">
+</p>
+
+### 重置时间提示
+
+将鼠标悬停在 Compact Bar 的任意位置，即可查看 5 小时和每周限额的准确重置日期。提示框会对齐到可见面板最近的一端，并根据屏幕空间显示在上方或下方。
+
+<p align="center">
+  <img src="../docs/reset-tooltip.png" alt="Compact Bar 重置时间提示" width="720">
+</p>
 
 <a id="styles"></a>
 
-## 🎨 样式图库
+## 🎨 外观
 
-以下预览均使用默认的 **Codex Light** 颜色主题渲染。其他颜色主题可在应用中选择，不在此图库中重复列出。
+<details>
+<summary><strong>颜色主题</strong> — 28 种调色板</summary>
+
+选择颜色主题会同时更新背景、文字、强调色、进度条填充和轨道颜色。原始主题同时提供深色与浅色版本时，可以在两者之间切换。
+
+<p align="center">
+  <img src="../docs/color-themes.png" alt="Codex Usage Monitor 颜色主题">
+</p>
+
+</details>
+
+<details>
+<summary><strong>进度条样式</strong> — 6 种布局</summary>
 
 | | |
 |---|---|
 | **浅色**<br><img src="../docs/themes/light.png" alt="浅色样式" width="400"> | **标签框**<br><img src="../docs/themes/label-boxes.png" alt="标签框样式" width="400"> |
 | **霓虹光效**<br><img src="../docs/themes/neon-glow.png" alt="霓虹光效样式" width="400"> | **紧凑条**<br><img src="../docs/themes/compact-rows.png" alt="紧凑条样式" width="400"> |
 | **渐变**<br><img src="../docs/themes/gradient.png" alt="渐变样式" width="400"> | **极简图标 + 文本**<br><img src="../docs/themes/minimal-icons.png" alt="极简图标加文本样式" width="400"> |
+
+</details>
 
 <a id="quick-start"></a>
 
@@ -109,8 +143,6 @@ codex login status
 也可以随时在 **设置 → 关于** 中选择 **检查更新**。自动安装仅适用于从上述安装路径运行的程序，不会覆盖源码或调试版本。
 
 v1.1.0 之前的版本不包含更新程序，因此需要手动安装一次 v1.1.0 或更高版本。
-
-首次安装时将使用浅色样式、Codex 调色板和系统模式。透明背景默认开启，背景 Alpha 为 `0`，重置时间中的 `5H`/`WK` 前缀默认关闭。现有的 `settings.json` 不会被覆盖。
 
 若要删除安装版，请在 **设置 → 关于** 中选择 **卸载**。确认窗口可选择保留或同时删除设置、预设和日志。卸载时也会删除开始菜单快捷方式和 Windows 启动项。
 

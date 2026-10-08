@@ -166,8 +166,7 @@ internal static class CompactBarRenderer
         int gaugeHeight = Math.Max(1, size.Height - S(4, scale));
         using var primaryFont = new Font("Segoe UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
         int maxLinearTitleWidth = Math.Max(S(29, scale), LinearPanelTitles.Max(title =>
-            TextRenderer.MeasureText(graphics, title, primaryFont, Size.Empty,
-                TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width));
+            MeasureThemeTextWidth(graphics, title, primaryFont)));
         foreach (var panel in Layout(settings, scale, gaugeHeight))
         {
             regions?.Add(new(panel.Panel, Element.Panel, panel.Bounds));
@@ -356,8 +355,7 @@ internal static class CompactBarRenderer
         using var textBrush = new SolidBrush(textColor);
         using var titleBrush = new SolidBrush(titleColor);
         string percentText = PercentText(metric.Percent);
-        int measuredTitleWidth = TextRenderer.MeasureText(graphics, metric.Title, font, Size.Empty,
-            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+        int measuredTitleWidth = MeasureThemeTextWidth(graphics, metric.Title, font);
         int graphStartX = bounds.X + maxTitleWidth + (style switch
         {
             LinearStyle.Cards => S(5, scale) + S(18, scale) + S(5, scale),
@@ -401,8 +399,7 @@ internal static class CompactBarRenderer
         hit?.Invoke(Element.Label, new Rectangle(bounds.X, bounds.Y, contentX - bounds.X, bounds.Height));
         // Measure the value as in the original compact bar. A longer value
         // takes space from the track, while hiding it leaves that space reserved.
-        int valueWidth = TextRenderer.MeasureText(percentText, font, Size.Empty,
-            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width + S(4, scale);
+        int valueWidth = MeasureThemeTextWidth(graphics, percentText, font) + S(4, scale);
         var valueBounds = new Rectangle(bounds.Right - valueWidth, bounds.Y,
             valueWidth - S(3, scale), bounds.Height);
         if (metric.Settings.Presentation != MetricPresentation.BarOnly)
@@ -612,6 +609,13 @@ internal static class CompactBarRenderer
         format.LineAlignment = StringAlignment.Center;
         format.FormatFlags |= StringFormatFlags.NoWrap;
         graphics.DrawString(text, font, brush, bounds, format);
+    }
+
+    internal static int MeasureThemeTextWidth(Graphics graphics, string text, Font font)
+    {
+        using var format = (StringFormat)StringFormat.GenericTypographic.Clone();
+        format.FormatFlags |= StringFormatFlags.NoWrap;
+        return Math.Max(1, (int)Math.Ceiling(graphics.MeasureString(text, font, PointF.Empty, format).Width));
     }
 
     private static string PercentText(double? percent) =>
