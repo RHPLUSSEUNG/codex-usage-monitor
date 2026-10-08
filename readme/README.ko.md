@@ -12,6 +12,7 @@
   <a href="../README.md">English</a> ·
   <a href="README.ko.md">한국어</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja.md">日本語</a>
 </p>
 
@@ -44,7 +45,7 @@ Compact Bar는 **5H**, **WK**, **CPU**, **RAM**의 주요 수치를 한눈에 �
 모양 미리보기에서 패널을 다른 패널 위로 드래그하면 두 패널의 위치가 바뀝니다. 배치를 변경하는 동안 5시간·주간 초기화 남은 시간 패널도 함께 표시되며, 숨긴 패널은 빈자리를 차지하지 않습니다.
 
 <p align="center">
-  <img src="../docs/panel-ordering.png" alt="모양 미리보기에서 5H 패널을 드래그하는 화면" width="838">
+  <img src="../docs/panel-ordering.png" alt="모양 미리보기에서 5H 패널을 드래그하는 화면" width="790">
 </p>
 
 ### 초기화 일시 툴팁
@@ -52,10 +53,18 @@ Compact Bar는 **5H**, **WK**, **CPU**, **RAM**의 주요 수치를 한눈에 �
 Compact Bar의 어느 곳에든 마우스를 올리면 5시간·주간 한도의 정확한 초기화 일시가 표시됩니다. 툴팁은 보이는 패널의 가까운 끝에 정렬되며 화면을 벗어나지 않도록 위나 아래에 나타납니다.
 
 <p align="center">
-  <img src="../docs/reset-tooltip.png" alt="Compact Bar 초기화 일시 툴팁" width="720">
+  <img src="../docs/reset-tooltip.png" alt="Compact Bar 초기화 일시 툴팁" width="672">
 </p>
 
 ## 모양
+
+### 화면 모드
+
+**시스템**은 Windows 테마를 자동으로 따르며, **다크 모드**나 **라이트 모드**로 고정할 수도 있습니다. 아래 미리보기에는 Everforest 컬러 테마를 적용했습니다.
+
+<p align="center">
+  <img src="../docs/screen-modes.png" alt="시스템, 다크 및 라이트 화면 모드" width="984">
+</p>
 
 <details>
 <summary><strong>컬러 테마</strong> — 팔레트 28개</summary>
@@ -70,6 +79,8 @@ Compact Bar의 어느 곳에든 마우스를 올리면 5시간·주간 한도의
 
 <details>
 <summary><strong>바 스타일</strong> — 레이아웃 6개</summary>
+
+모든 스타일 미리보기에는 다크 모드의 Everforest 컬러 테마를 적용했습니다.
 
 | | |
 |---|---|

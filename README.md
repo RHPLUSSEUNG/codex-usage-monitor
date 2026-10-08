@@ -12,6 +12,7 @@
   <a href="README.md">English</a> ·
   <a href="readme/README.ko.md">한국어</a> ·
   <a href="readme/README.zh-CN.md">简体中文</a> ·
+  <a href="readme/README.zh-TW.md">繁體中文</a> ·
   <a href="readme/README.ja.md">日本語</a>
 </p>
 
@@ -44,7 +45,7 @@ The Compact Bar keeps the main readings visible at a glance: **5H**, **WK**, **C
 Drag a panel in the Appearance preview onto another panel to swap their positions. The preview keeps the 5-hour and weekly reset countdown panels visible while you arrange the layout. Hidden panels do not reserve an empty slot.
 
 <p align="center">
-  <img src="docs/panel-ordering.png" alt="Dragging the 5H panel in the Appearance preview" width="838">
+  <img src="docs/panel-ordering.png" alt="Dragging the 5H panel in the Appearance preview" width="790">
 </p>
 
 ### Reset-time tooltip
@@ -52,10 +53,18 @@ Drag a panel in the Appearance preview onto another panel to swap their position
 Hover anywhere over the Compact Bar to see the exact 5-hour and weekly reset dates. The tooltip follows the nearest visible edge of the bar and moves above or below it to stay on screen.
 
 <p align="center">
-  <img src="docs/reset-tooltip.png" alt="Compact Bar reset-time tooltip" width="720">
+  <img src="docs/reset-tooltip.png" alt="Compact Bar reset-time tooltip" width="672">
 </p>
 
 ## Appearance
+
+### Screen mode
+
+Follow the Windows theme automatically with **System**, or keep the Compact Bar in **Dark** or **Light** mode. The previews below use the Everforest palette.
+
+<p align="center">
+  <img src="docs/screen-modes.png" alt="System, dark, and light screen modes" width="984">
+</p>
 
 <details>
 <summary><strong>Color themes</strong> — 28 palettes</summary>
@@ -70,6 +79,8 @@ Each palette updates the background, text, accent, fill, and track colors togeth
 
 <details>
 <summary><strong>Bar styles</strong> — 6 layouts</summary>
+
+All style previews use the Everforest palette in Dark mode.
 
 | | |
 |---|---|
