@@ -265,9 +265,9 @@ function New-ResetTooltipPreview {
             $tooltipX = $barX + $bar.Width - $tooltipWidth
             $tooltipY = $barY - $tooltipHeight - $gap
             $tooltipBounds = [Drawing.Rectangle]::new($tooltipX, $tooltipY, $tooltipWidth, $tooltipHeight)
-            $fill = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(52, 63, 68))
-            $border = [Drawing.Pen]::new([Drawing.Color]::FromArgb(167, 192, 128), 1)
-            $text = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(211, 198, 170))
+            $fill = [Drawing.SolidBrush]::new([Drawing.Color]::White)
+            $border = [Drawing.Pen]::new([Drawing.Color]::FromArgb(145, 150, 157), 1)
+            $text = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(36, 40, 46))
             try {
                 $graphics.FillRectangle($fill, $tooltipBounds)
                 $graphics.DrawRectangle($border, $tooltipBounds)
@@ -359,65 +359,80 @@ function New-ColorThemePreview {
 }
 
 function New-ScreenModePreview {
-    $light = New-BarBitmap "Light" "Light" "Everforest" | Select-Object -Last 1
-    $dark = New-BarBitmap "Light" "Dark" "Everforest" | Select-Object -Last 1
-    if ($light -is [Management.Automation.PSObject]) { $light = $light.PSObject.BaseObject }
-    if ($dark -is [Management.Automation.PSObject]) { $dark = $dark.PSObject.BaseObject }
+    $cardWidth = 320
+    $cardHeight = 116
+    $gap = 12
+    $canvas = [Drawing.Bitmap]::new($cardWidth * 3 + $gap * 2, $cardHeight,
+        [Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [Drawing.Graphics]::FromImage($canvas)
     try {
-        $cardWidth = 320
-        $cardHeight = 116
-        $gap = 12
-        $canvas = [Drawing.Bitmap]::new($cardWidth * 3 + $gap * 2, $cardHeight,
-            [Drawing.Imaging.PixelFormat]::Format32bppArgb)
-        $graphics = [Drawing.Graphics]::FromImage($canvas)
+        $surface = [Drawing.Color]::FromArgb(45, 53, 59)
+        $cardFill = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(52, 63, 68))
+        $selectedBorder = [Drawing.Pen]::new([Drawing.Color]::FromArgb(167, 192, 128), 2)
+        $labelBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(211, 198, 170))
+        $labelFont = [Drawing.Font]::new("Segoe UI", 11, [Drawing.FontStyle]::Regular)
+        $format = [Drawing.StringFormat]::new()
         try {
-            $surface = [Drawing.Color]::FromArgb(45, 53, 59)
-            $cardFill = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(52, 63, 68))
-            $selectedBorder = [Drawing.Pen]::new([Drawing.Color]::FromArgb(167, 192, 128), 2)
-            $labelBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(211, 198, 170))
-            $labelFont = [Drawing.Font]::new("Segoe UI", 11, [Drawing.FontStyle]::Regular)
-            $format = [Drawing.StringFormat]::new()
-            try {
-                $graphics.Clear($surface)
-                $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-                $format.Alignment = [Drawing.StringAlignment]::Center
-                $format.LineAlignment = [Drawing.StringAlignment]::Center
-                $labels = @("System", "Dark", "Light")
-                for ($index = 0; $index -lt 3; $index++) {
-                    $x = $index * ($cardWidth + $gap)
-                    $bounds = [Drawing.Rectangle]::new($x, 0, $cardWidth, $cardHeight)
-                    $graphics.FillRectangle($cardFill, $bounds)
-                    if ($index -eq 1) {
-                        $graphics.DrawRectangle($selectedBorder, $x + 1, 1, $cardWidth - 3, $cardHeight - 3)
-                    }
-                    $target = [Drawing.Rectangle]::new($x + 14, 14, $cardWidth - 28, 58)
-                    if ($index -eq 0) {
-                        $left = [Drawing.Rectangle]::new($target.X, $target.Y, [int]($target.Width / 2), $target.Height)
-                        $right = [Drawing.Rectangle]::new($left.Right, $target.Y, $target.Width - $left.Width, $target.Height)
-                        $graphics.DrawImage($light, $left, 0, 0, [int]($light.Width / 2), $light.Height, [Drawing.GraphicsUnit]::Pixel)
-                        $graphics.DrawImage($dark, $right, [int]($dark.Width / 2), 0, $dark.Width - [int]($dark.Width / 2), $dark.Height, [Drawing.GraphicsUnit]::Pixel)
-                    }
-                    elseif ($index -eq 1) { $graphics.DrawImage($dark, $target) }
-                    else { $graphics.DrawImage($light, $target) }
-                    $labelBounds = [Drawing.RectangleF]::new([single]$x, 78, [single]$cardWidth, 30)
-                    $graphics.DrawString($labels[$index], $labelFont, $labelBrush, $labelBounds, $format)
+            $graphics.Clear($surface)
+            $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $format.Alignment = [Drawing.StringAlignment]::Center
+            $format.LineAlignment = [Drawing.StringAlignment]::Center
+            $labels = @("System", "Dark", "Light")
+            for ($index = 0; $index -lt 3; $index++) {
+                $x = $index * ($cardWidth + $gap)
+                $bounds = [Drawing.Rectangle]::new($x, 0, $cardWidth, $cardHeight)
+                $graphics.FillRectangle($cardFill, $bounds)
+                if ($index -eq 1) {
+                    $graphics.DrawRectangle($selectedBorder, $x + 1, 1, $cardWidth - 3, $cardHeight - 3)
                 }
-            }
-            finally {
-                $format.Dispose()
-                $labelFont.Dispose()
-                $labelBrush.Dispose()
-                $selectedBorder.Dispose()
-                $cardFill.Dispose()
+
+                $preview = [Drawing.Rectangle]::new($x + 14, 14, $cardWidth - 28, 58)
+                $lightBackground = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(247, 247, 244))
+                $darkBackground = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(32, 38, 41))
+                $lightTrack = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(204, 207, 204))
+                $darkTrack = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(67, 78, 82))
+                $accent = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(167, 192, 128))
+                try {
+                    if ($index -eq 0) {
+                        $half = [int]($preview.Width / 2)
+                        $graphics.FillRectangle($lightBackground, $preview.X, $preview.Y, $half, $preview.Height)
+                        $graphics.FillRectangle($darkBackground, $preview.X + $half, $preview.Y, $preview.Width - $half, $preview.Height)
+                    }
+                    elseif ($index -eq 1) { $graphics.FillRectangle($darkBackground, $preview) }
+                    else { $graphics.FillRectangle($lightBackground, $preview) }
+
+                    foreach ($column in 0, 1) {
+                        $columnX = $preview.X + 10 + $column * 146
+                        $trackBrush = if ($index -eq 2 -or ($index -eq 0 -and $column -eq 0)) { $lightTrack } else { $darkTrack }
+                        foreach ($row in 0, 1) {
+                            $rowY = $preview.Y + 10 + $row * 24
+                            $graphics.FillRectangle($accent, $columnX, $rowY, 34, 9)
+                            $graphics.FillRectangle($trackBrush, $columnX + 42, $rowY, 84, 9)
+                            $graphics.FillRectangle($accent, $columnX + 42, $rowY, 38 + $row * 14, 9)
+                        }
+                    }
+                }
+                finally {
+                    $accent.Dispose()
+                    $darkTrack.Dispose()
+                    $lightTrack.Dispose()
+                    $darkBackground.Dispose()
+                    $lightBackground.Dispose()
+                }
+                $labelBounds = [Drawing.RectangleF]::new([single]$x, 78, [single]$cardWidth, 30)
+                $graphics.DrawString($labels[$index], $labelFont, $labelBrush, $labelBounds, $format)
             }
         }
-        finally { $graphics.Dispose() }
-        return $canvas
+        finally {
+            $format.Dispose()
+            $labelFont.Dispose()
+            $labelBrush.Dispose()
+            $selectedBorder.Dispose()
+            $cardFill.Dispose()
+        }
     }
-    finally {
-        $dark.Dispose()
-        $light.Dispose()
-    }
+    finally { $graphics.Dispose() }
+    return $canvas
 }
 
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
