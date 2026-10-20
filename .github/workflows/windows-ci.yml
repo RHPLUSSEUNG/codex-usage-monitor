@@ -35,6 +35,10 @@ jobs:
         shell: pwsh
         run: .\build.ps1
 
+      - name: Test installer in isolation
+        shell: powershell
+        run: .\tests\Install.Tests.ps1
+
       - name: Package and checksum
         shell: pwsh
         run: .\tools\PackageRelease.ps1 -SkipBuild
