@@ -64,6 +64,9 @@
   <data name="ShowCompactBar" xml:space="preserve">
     <value>显示 Compact Bar</value>
   </data>
+  <data name="Hide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
   <data name="StartWithWindows" xml:space="preserve">
     <value>Windows 启动时自动运行</value>
   </data>
@@ -442,4 +445,14 @@
   <data name="TokenAggregationPending" xml:space="preserve"><value>等待今日统计</value></data>
   <data name="LastTokenAggregation" xml:space="preserve"><value>最近 Token 统计日期</value></data>
   <data name="ResetAction" xml:space="preserve"><value>重置</value></data>
+  <data name="ActivityPanel" xml:space="preserve"><value>Codex 活动状态</value></data>
+  <data name="ActivityDotPosition" xml:space="preserve"><value>圆点垂直位置</value></data>
+  <data name="ActivityWorkingColor" xml:space="preserve"><value>工作中色</value></data>
+  <data name="ActivityCompletedColor" xml:space="preserve"><value>完成/等待色</value></data>
+  <data name="ActivityInterruptedColor" xml:space="preserve"><value>中断色</value></data>
+  <data name="ActivityUnknownColor" xml:space="preserve"><value>未知色</value></data>
+  <data name="ActivityWorking" xml:space="preserve"><value>工作中</value></data>
+  <data name="ActivityCompleted" xml:space="preserve"><value>完成/等待</value></data>
+  <data name="ActivityInterrupted" xml:space="preserve"><value>中断</value></data>
+  <data name="ActivityUnknown" xml:space="preserve"><value>未知</value></data>
 </root>

@@ -56,6 +56,7 @@ internal sealed class AppearancePreview : Panel
     private AppSettings CreatePreviewSettings()
     {
         var preview = Settings.Copy();
+        preview.ShowActivityPanel = true;
         foreach (PanelId id in new[] { PanelId.FiveHour, PanelId.Weekly, PanelId.Cpu, PanelId.Memory })
         {
             MetricSettings metric = preview.Metric(id);
@@ -220,6 +221,11 @@ internal sealed class AppearancePreview : Panel
             }
             if (!_owner.Settings.FiveHour.ShowResetTime) FadeElement(PanelId.FiveHourReset, CompactBarRenderer.Element.ResetTime);
             if (!_owner.Settings.Weekly.ShowResetTime) FadeElement(PanelId.WeeklyReset, CompactBarRenderer.Element.ResetTime);
+            if (!_owner.Settings.ShowActivityPanel && panels.TryGetValue(PanelId.CodexActivity, out Rectangle activity))
+            {
+                graphics.FillRectangle(fade, activity);
+                graphics.DrawRectangle(outline, activity);
+            }
 
             void FadeElement(PanelId id, CompactBarRenderer.Element element)
             {
@@ -273,7 +279,44 @@ internal sealed class AppearancePreview : Panel
             base.OnMouseUp(e);
             if (e.Button != MouseButtons.Left) return;
             var target = Hit(e.Location);
-            if (_dragging && _pressed is not null && target is not null && target.Panel != _pressed.Panel)
+            if (_dragging && _pressed?.Panel == PanelId.CodexActivity
+                && _pressed.Element == CompactBarRenderer.Element.ActivityDot)
+            {
+                AppSettings previewSettings = _owner.CreatePreviewSettings();
+                Rectangle activity = Panels(CreateLayout(previewSettings))[PanelId.CodexActivity];
+                _owner.Settings.ActivityDotPositionPercent = activity.Height <= 1 ? 50 : Math.Clamp(
+                    100 - (int)Math.Round((e.Y - activity.Top) * 100d / activity.Height), 0, 100);
+                _owner.Select(new CompactBarRenderer.HitRegion(PanelId.CodexActivity,
+                    CompactBarRenderer.Element.ActivityDot, Rectangle.Empty));
+                _owner.LayoutChanged?.Invoke();
+            }
+            else if (_dragging && _pressed?.Panel == PanelId.CodexActivity)
+            {
+                int logicalX = (int)((e.X - Origin.X) / UserScale);
+                List<CompactBarRenderer.PanelLayout> metrics = CreateLayout(_owner.CreatePreviewSettings())
+                    .Where(panel => panel.Panel != PanelId.CodexActivity)
+                    .ToList();
+                int position;
+                if (_owner.Settings.CompactBarStyle == CompactBarStyle.CompactRows)
+                {
+                    int left = metrics.Min(panel => panel.Bounds.Left);
+                    int right = metrics.Max(panel => panel.Bounds.Right);
+                    position = logicalX < left + (right - left) / 2 ? 0 : 3;
+                }
+                else
+                {
+                    int[] starts = metrics.GroupBy(panel => Array.IndexOf(_owner.Settings.PanelOrder, panel.Panel) % 3)
+                        .OrderBy(group => group.Key).Select(group => group.Min(panel => panel.Bounds.Left)).ToArray();
+                    position = Math.Clamp(starts.Count(x => logicalX >= x), 0, 3);
+                }
+                _owner.Settings.ActivityPanelPosition = position;
+                _owner.Select(_pressed);
+                _owner.LayoutChanged?.Invoke();
+                _animationStart = Environment.TickCount64;
+                _animation.Start();
+            }
+            else if (_dragging && _pressed is not null && target is not null
+                     && target.Panel != _pressed.Panel && target.Panel != PanelId.CodexActivity)
             {
                 AppSettings previewSettings = _owner.CreatePreviewSettings();
                 _from = Panels(CreateLayout(previewSettings));

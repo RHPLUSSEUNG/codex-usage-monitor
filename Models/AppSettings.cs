@@ -1,6 +1,15 @@
 namespace CodexUsageMonitor.Models;
 
-public enum PanelId { FiveHour, Weekly, Cpu, Memory, FiveHourReset, WeeklyReset }
+public enum PanelId
+{
+    FiveHour = 0,
+    Weekly = 1,
+    Cpu = 2,
+    Memory = 3,
+    FiveHourReset = 4,
+    WeeklyReset = 5,
+    CodexActivity = 6
+}
 
 public enum MetricPresentation
 {
@@ -77,7 +86,8 @@ public enum AppLanguage
     English,
     Korean,
     ChineseSimplified,
-    Japanese
+    Japanese,
+    ChineseTraditional
 }
 
 public sealed class MetricSettings
@@ -104,6 +114,13 @@ public sealed class CompactBarPreset
     public string BackgroundColor { get; set; } = "#0016181C";
     public bool TransparentBackground { get; set; } = true;
     public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
+    public bool ShowActivityPanel { get; set; } = true;
+    public int ActivityPanelPosition { get; set; } = 3;
+    public int ActivityDotPositionPercent { get; set; } = 50;
+    public string ActivityWorkingColor { get; set; } = "";
+    public string ActivityCompletedColor { get; set; } = "";
+    public string ActivityInterruptedColor { get; set; } = "";
+    public string ActivityUnknownColor { get; set; } = "";
     public MetricSettings FiveHour { get; set; } = new();
     public MetricSettings Weekly { get; set; } = new();
     public MetricSettings Cpu { get; set; } = new();
@@ -120,6 +137,13 @@ public sealed class CompactBarPreset
         BackgroundColor = settings.BackgroundColor,
         TransparentBackground = settings.TransparentBackground,
         PercentageMode = settings.PercentageMode,
+        ShowActivityPanel = settings.ShowActivityPanel,
+        ActivityPanelPosition = settings.ActivityPanelPosition,
+        ActivityDotPositionPercent = settings.ActivityDotPositionPercent,
+        ActivityWorkingColor = settings.ActivityWorkingColor,
+        ActivityCompletedColor = settings.ActivityCompletedColor,
+        ActivityInterruptedColor = settings.ActivityInterruptedColor,
+        ActivityUnknownColor = settings.ActivityUnknownColor,
         FiveHour = AppSettings.CopyMetric(settings.FiveHour),
         Weekly = AppSettings.CopyMetric(settings.Weekly),
         Cpu = AppSettings.CopyMetric(settings.Cpu),
@@ -137,6 +161,13 @@ public sealed class CompactBarPreset
         BackgroundColor = BackgroundColor,
         TransparentBackground = TransparentBackground,
         PercentageMode = PercentageMode,
+        ShowActivityPanel = ShowActivityPanel,
+        ActivityPanelPosition = ActivityPanelPosition,
+        ActivityDotPositionPercent = ActivityDotPositionPercent,
+        ActivityWorkingColor = ActivityWorkingColor,
+        ActivityCompletedColor = ActivityCompletedColor,
+        ActivityInterruptedColor = ActivityInterruptedColor,
+        ActivityUnknownColor = ActivityUnknownColor,
         FiveHour = AppSettings.CopyMetric(FiveHour),
         Weekly = AppSettings.CopyMetric(Weekly),
         Cpu = AppSettings.CopyMetric(Cpu),
@@ -154,6 +185,14 @@ public sealed class CompactBarPreset
         settings.BackgroundColor = BackgroundColor;
         settings.TransparentBackground = TransparentBackground;
         settings.PercentageMode = PercentageMode;
+        settings.ShowActivityPanel = ShowActivityPanel;
+        settings.ActivityPanelPosition = AppSettings.NormalizeActivityPanelPosition(
+            settings.CompactBarStyle, ActivityPanelPosition);
+        settings.ActivityDotPositionPercent = Math.Clamp(ActivityDotPositionPercent, 0, 100);
+        settings.ActivityWorkingColor = ActivityWorkingColor;
+        settings.ActivityCompletedColor = ActivityCompletedColor;
+        settings.ActivityInterruptedColor = ActivityInterruptedColor;
+        settings.ActivityUnknownColor = ActivityUnknownColor;
         AppSettings.CopyMetricInto(FiveHour, settings.FiveHour);
         AppSettings.CopyMetricInto(Weekly, settings.Weekly);
         AppSettings.CopyMetricInto(Cpu, settings.Cpu);
@@ -203,6 +242,13 @@ public sealed class AppSettings
     public int QuietHoursEnd { get; set; } = 8;
     public PercentageMode PercentageMode { get; set; } = PercentageMode.Remaining;
     public string CodexExecutable { get; set; } = "codex";
+    public bool ShowActivityPanel { get; set; } = true;
+    public int ActivityPanelPosition { get; set; } = 3;
+    public int ActivityDotPositionPercent { get; set; } = 50;
+    public string ActivityWorkingColor { get; set; } = "";
+    public string ActivityCompletedColor { get; set; } = "";
+    public string ActivityInterruptedColor { get; set; } = "";
+    public string ActivityUnknownColor { get; set; } = "";
     public MetricSettings FiveHour { get; set; } = new();
     public MetricSettings Weekly { get; set; } = new()
     {
@@ -267,6 +313,13 @@ public sealed class AppSettings
         QuietHoursEnd = QuietHoursEnd,
         PercentageMode = PercentageMode,
         CodexExecutable = CodexExecutable,
+        ShowActivityPanel = ShowActivityPanel,
+        ActivityPanelPosition = ActivityPanelPosition,
+        ActivityDotPositionPercent = ActivityDotPositionPercent,
+        ActivityWorkingColor = ActivityWorkingColor,
+        ActivityCompletedColor = ActivityCompletedColor,
+        ActivityInterruptedColor = ActivityInterruptedColor,
+        ActivityUnknownColor = ActivityUnknownColor,
         FiveHour = CopyMetric(FiveHour),
         Weekly = CopyMetric(Weekly),
         Cpu = CopyMetric(Cpu),
@@ -282,7 +335,7 @@ public sealed class AppSettings
 
     public static PanelId[] NormalizePanelOrder(PanelId[]? order)
     {
-        PanelId[] valid = (order ?? []).Where(id => Enum.IsDefined(id)).Distinct().ToArray();
+        PanelId[] valid = (order ?? []).Where(id => (uint)(int)id < 6u).Distinct().ToArray();
         if (valid.Length == 0) return DefaultPanelOrder();
         if (!valid.Contains(PanelId.FiveHourReset) && !valid.Contains(PanelId.WeeklyReset))
         {
@@ -308,6 +361,17 @@ public sealed class AppSettings
         PanelId.Weekly or PanelId.WeeklyReset => Weekly,
         PanelId.Cpu => Cpu, _ => Memory
     };
+
+    public void NormalizeActivityPanel()
+    {
+        ActivityPanelPosition = NormalizeActivityPanelPosition(CompactBarStyle, ActivityPanelPosition);
+        ActivityDotPositionPercent = Math.Clamp(ActivityDotPositionPercent, 0, 100);
+    }
+
+    public static int NormalizeActivityPanelPosition(CompactBarStyle style, int position) =>
+        NormalizeStyle(style) == CompactBarStyle.CompactRows
+            ? position <= 0 ? 0 : 3
+            : Math.Clamp(position, 0, 3);
 
     public int NotificationPercent(PanelId id)
     {

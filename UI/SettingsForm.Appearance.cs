@@ -1,4 +1,5 @@
 using CodexUsageMonitor.Models;
+using CodexUsageMonitor.Services;
 using System.Drawing.Drawing2D;
 
 namespace CodexUsageMonitor.UI;
@@ -13,6 +14,11 @@ public sealed partial class SettingsForm
     private readonly List<GroupBox> _resetInspectors = [];
     private readonly List<Button> _modeCards = [];
     private GroupBox _backgroundInspector = null!;
+    private GroupBox _activityInspector = null!;
+    private readonly TrackBar _activityDotPositionSlider = new SettingsTrackBar
+        { Minimum = 0, Maximum = 100, TickFrequency = 25, Width = 150 };
+    private readonly SettingsNumericUpDown _activityDotPosition = new()
+        { Minimum = 0, Maximum = 100, Width = 72 };
     private bool _selectingInspector;
     private readonly System.Windows.Forms.Timer _appearanceTimer = new() { Interval = 1000 };
     private ThemeVariant? _lastSystemVariant;
@@ -160,6 +166,54 @@ public sealed partial class SettingsForm
                 _inspector.Controls.Add(reset);
             }
         }
+        _activityInspector = new SettingsSection { AutoSize = true, Padding = new Padding(18), Text = T("ActivityPanel") };
+        var activityRows = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        var showActivity = new SettingsToggle { AutoSize = true, Checked = _draft.ShowActivityPanel };
+        showActivity.CheckedChanged += (_, _) =>
+        {
+            if (_loadingControls) return;
+            _draft.ShowActivityPanel = showActivity.Checked;
+            RaisePreview();
+        };
+        _refreshDraftEditors.Add(() => showActivity.Checked = _draft.ShowActivityPanel);
+        activityRows.Controls.Add(AppearanceRow("Show", showActivity));
+        var dotPositionEditor = new FlowLayoutPanel
+            { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false };
+        int initialDotPosition = Math.Clamp(_draft.ActivityDotPositionPercent, 0, 100);
+        _activityDotPositionSlider.Value = initialDotPosition;
+        _activityDotPosition.Value = initialDotPosition;
+        _activityDotPositionSlider.ValueChanged += (_, _) =>
+        {
+            if (_loadingControls) return;
+            ChangeActivityDotPosition(_activityDotPositionSlider.Value);
+        };
+        _activityDotPosition.ValueChanged += (_, _) =>
+        {
+            if (_loadingControls) return;
+            ChangeActivityDotPosition((int)_activityDotPosition.Value);
+        };
+        _refreshDraftEditors.Add(() =>
+        {
+            int value = Math.Clamp(_draft.ActivityDotPositionPercent, 0, 100);
+            _activityDotPositionSlider.Value = value;
+            _activityDotPosition.Value = value;
+        });
+        dotPositionEditor.Controls.AddRange([_activityDotPositionSlider, _activityDotPosition]);
+        activityRows.Controls.Add(AppearanceRow("ActivityDotPosition", dotPositionEditor));
+        activityRows.Controls.Add(CreateColorButton("ActivityWorkingColor",
+            () => ActivityColorValue(_draft.ActivityWorkingColor, CodexActivityState.Working),
+            value => _draft.ActivityWorkingColor = value));
+        activityRows.Controls.Add(CreateColorButton("ActivityCompletedColor",
+            () => ActivityColorValue(_draft.ActivityCompletedColor, CodexActivityState.Completed),
+            value => _draft.ActivityCompletedColor = value));
+        activityRows.Controls.Add(CreateColorButton("ActivityInterruptedColor",
+            () => ActivityColorValue(_draft.ActivityInterruptedColor, CodexActivityState.Interrupted),
+            value => _draft.ActivityInterruptedColor = value));
+        activityRows.Controls.Add(CreateColorButton("ActivityUnknownColor",
+            () => ActivityColorValue(_draft.ActivityUnknownColor, CodexActivityState.Unknown),
+            value => _draft.ActivityUnknownColor = value));
+        _activityInspector.Controls.Add(activityRows);
+        _inspector.Controls.Add(_activityInspector);
         content.Controls.Add(_inspector);
         void ResizeAppearance()
         {
@@ -176,6 +230,8 @@ public sealed partial class SettingsForm
             _backgroundInspector.MinimumSize = new Size(available, 0);
             _backgroundInspector.Width = available;
             foreach (var group in _metricInspectors.Concat(_resetInspectors)) { group.MinimumSize = new Size(available, 0); group.Width = available; }
+            _activityInspector.MinimumSize = new Size(available, 0);
+            _activityInspector.Width = available;
             _appearancePreview.RefreshPreview();
         }
         content.SizeChanged += (_, _) => ResizeAppearance();
@@ -204,6 +260,31 @@ public sealed partial class SettingsForm
         };
     }
 
+    private void ChangeActivityDotPosition(int value)
+    {
+        value = Math.Clamp(value, 0, 100);
+        _loadingControls = true;
+        try
+        {
+            _activityDotPositionSlider.Value = value;
+            _activityDotPosition.Value = value;
+            _draft.ActivityDotPositionPercent = value;
+        }
+        finally
+        {
+            _loadingControls = false;
+        }
+        RaisePreview();
+    }
+
+    private string ActivityColorValue(string configured, CodexActivityState state)
+    {
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured;
+        Color color = CompactBarRenderer.ActivityColor(_draft, state);
+        return HexColor.Format(color, includeAlpha: color.A != 255);
+    }
+
     internal void UpdatePreviewData(UsageSnapshot snapshot, SystemUsageSnapshot systemUsage)
     {
         _appearancePreview.Snapshot = snapshot;
@@ -216,7 +297,7 @@ public sealed partial class SettingsForm
         _selectingInspector = true;
         int selection = Math.Max(0, _selectionPicker.SelectedIndex);
         _selectionPicker.Items.Clear();
-        _selectionPicker.Items.AddRange([T("AppearanceBackground"), "5H", "WK", "CPU", "RAM", "5H · " + T("ResetTime"), "WK · " + T("ResetTime")]);
+        _selectionPicker.Items.AddRange([T("AppearanceBackground"), "5H", "WK", "CPU", "RAM", "5H · " + T("ResetTime"), "WK · " + T("ResetTime"), T("ActivityPanel")]);
         _selectionPicker.SelectedIndex = selection;
         _selectingInspector = false;
         string[] names = [T("SystemMode"), T("DarkMode"), T("WhiteMode")];
@@ -232,6 +313,7 @@ public sealed partial class SettingsForm
         _backgroundInspector.Visible = hit is null;
         foreach (var group in _metricInspectors) group.Visible = false;
         foreach (var group in _resetInspectors) group.Visible = false;
+        _activityInspector.Visible = false;
         if (hit is null) _selectionTitle.Text = T("AppearanceBackground");
         else
         {
@@ -244,7 +326,9 @@ public sealed partial class SettingsForm
                 _ => "AppearancePanel"
             };
             _selectionTitle.Text = CompactBarRenderer.PanelTitle(hit.Panel) + " · " + T(key);
-            if (CompactBarRenderer.IsResetPanel(hit.Panel))
+            if (hit.Panel == PanelId.CodexActivity)
+                _activityInspector.Visible = true;
+            else if (CompactBarRenderer.IsResetPanel(hit.Panel))
                 _resetInspectors[(int)hit.Panel - 4].Visible = true;
             else
             {
@@ -263,6 +347,7 @@ public sealed partial class SettingsForm
             }
         }
         GroupBox activeInspector = hit is null ? _backgroundInspector
+            : hit.Panel == PanelId.CodexActivity ? _activityInspector
             : CompactBarRenderer.IsResetPanel(hit.Panel) ? _resetInspectors[(int)hit.Panel - 4] : _metricInspectors[(int)hit.Panel];
         activeInspector.Text = _selectionTitle.Text;
         _selectingInspector = true;

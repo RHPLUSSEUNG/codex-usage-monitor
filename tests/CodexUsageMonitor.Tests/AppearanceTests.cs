@@ -121,6 +121,167 @@ public sealed class AppearanceTests
     }
 
     [Fact]
+    public void Settings_preview_moves_activity_panel_and_dot_independently()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var settings = new AppSettings { ActivityPanelPosition = 3, ActivityDotPositionPercent = 50 };
+                PanelId[] originalOrder = settings.PanelOrder.ToArray();
+                using var preview = new AppearancePreview(settings);
+                preview.CreateControl();
+                preview.RefreshPreview();
+                var canvas = preview.Controls.OfType<AppearancePreview.PreviewCanvas>().Single();
+                using (var bitmap = new Bitmap(canvas.Width, canvas.Height))
+                    canvas.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                void Mouse(string method, Point point) => canvas.GetType().GetMethod(method, flags)!.Invoke(canvas,
+                    [new MouseEventArgs(MouseButtons.Left, 1, point.X, point.Y, 0)]);
+                float userScale = CompactBarForm.UserScale(settings.CompactBarScalePercent);
+                Point ScreenPoint(Rectangle rect, int x, int y) => new(
+                    24 + (int)Math.Round((rect.X + x) * userScale),
+                    24 + (int)Math.Round((rect.Y + y) * userScale));
+                Rectangle activity = CompactBarRenderer.Layout(settings, canvas.DeviceDpi / 96f,
+                    (int)(48 * canvas.DeviceDpi / 96f)).Single(p => p.Panel == PanelId.CodexActivity).Bounds;
+                CompactBarRenderer.HitRegion dot = canvas.HitRegions.Single(hit =>
+                    hit.Panel == PanelId.CodexActivity && hit.Element == CompactBarRenderer.Element.ActivityDot);
+
+                Mouse("OnMouseDown", ScreenPoint(dot.Bounds, dot.Bounds.Width / 2, dot.Bounds.Height / 2));
+                Mouse("OnMouseMove", ScreenPoint(activity, activity.Width / 2, activity.Height - 1));
+                Mouse("OnMouseUp", ScreenPoint(activity, activity.Width / 2, activity.Height - 1));
+                Assert.True(settings.ActivityDotPositionPercent <= 10);
+                Assert.Equal(3, settings.ActivityPanelPosition);
+
+                Point panelPoint = ScreenPoint(activity, activity.Width / 2, 2);
+                Mouse("OnMouseDown", panelPoint);
+                Mouse("OnMouseMove", new Point(24, panelPoint.Y));
+                Mouse("OnMouseUp", new Point(24, panelPoint.Y));
+                Assert.Equal(0, settings.ActivityPanelPosition);
+                Assert.True(settings.ActivityDotPositionPercent <= 10);
+                Assert.Equal(originalOrder, settings.PanelOrder);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Activity preview drag test did not finish.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void Activity_dot_position_slider_and_numeric_input_stay_in_sync()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var form = new SettingsForm(new AppSettings { ActivityDotPositionPercent = 50 });
+                const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+                var slider = (TrackBar)typeof(SettingsForm).GetField("_activityDotPositionSlider", fields)!.GetValue(form)!;
+                var numeric = (SettingsNumericUpDown)typeof(SettingsForm).GetField("_activityDotPosition", fields)!.GetValue(form)!;
+                var editor = numeric.Controls.OfType<TextBox>().Single();
+
+                editor.Text = "82";
+                Assert.Equal(82, numeric.Value);
+                Assert.Equal(82, slider.Value);
+                Assert.Equal(82, form.Result.ActivityDotPositionPercent);
+
+                slider.Value = 17;
+                Assert.Equal(17, numeric.Value);
+                Assert.Equal("17", editor.Text);
+                Assert.Equal(17, form.Result.ActivityDotPositionPercent);
+
+                editor.Text = "999";
+                Assert.Equal(100, numeric.Value);
+                Assert.Equal(100, slider.Value);
+                Assert.Equal(100, form.Result.ActivityDotPositionPercent);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Activity dot position editor test did not finish.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void Compact_rows_style_switch_normalizes_activity_panel_to_an_edge()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var form = new SettingsForm(new AppSettings
+                {
+                    CompactBarStyle = CompactBarStyle.Light,
+                    ActivityPanelPosition = 2
+                });
+                const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+                object picker = typeof(SettingsForm).GetField("_compactBarStyle", fields)!.GetValue(form)!;
+                var values = (CompactBarStyle[])typeof(SettingsForm).GetField("StyleValues",
+                    BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+
+                picker.GetType().GetProperty("SelectedIndex", fields)!.SetValue(
+                    picker, Array.IndexOf(values, CompactBarStyle.CompactRows));
+
+                Assert.Equal(CompactBarStyle.CompactRows, form.Result.CompactBarStyle);
+                Assert.Equal(3, form.Result.ActivityPanelPosition);
+
+                Dictionary<int, List<CompactBarRenderer.PanelLayout>> layouts = new[] { 0, 3 }.ToDictionary(position => position, position =>
+                {
+                    form.Result.ActivityPanelPosition = position;
+                    return CompactBarRenderer.Layout(form.Result, 1, 48);
+                });
+                Rectangle leftActivity = layouts[0].Single(panel => panel.Panel == PanelId.CodexActivity).Bounds;
+                Rectangle rightActivity = layouts[3].Single(panel => panel.Panel == PanelId.CodexActivity).Bounds;
+                Assert.True(leftActivity.Left < layouts[0].Where(panel => panel.Panel != PanelId.CodexActivity)
+                    .Min(panel => panel.Bounds.Left));
+                Assert.True(rightActivity.Left > layouts[3].Where(panel => panel.Panel != PanelId.CodexActivity)
+                    .Max(panel => panel.Bounds.Right));
+
+                form.Result.ActivityPanelPosition = 3;
+                using var preview = new AppearancePreview(form.Result);
+                preview.CreateControl();
+                preview.RefreshPreview();
+                var canvas = preview.Controls.OfType<AppearancePreview.PreviewCanvas>().Single();
+                using (var bitmap = new Bitmap(canvas.Width, canvas.Height))
+                    canvas.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                void Mouse(string method, Point point) => canvas.GetType().GetMethod(method, fields)!.Invoke(canvas,
+                    [new MouseEventArgs(MouseButtons.Left, 1, point.X, point.Y, 0)]);
+                Point ActivityPoint() {
+                    Rectangle bounds = CompactBarRenderer.Layout(form.Result, 1, 48)
+                        .Single(panel => panel.Panel == PanelId.CodexActivity).Bounds;
+                    return new Point(24 + bounds.X + bounds.Width / 2, 24 + bounds.Y + 1);
+                }
+
+                Point rightPoint = ActivityPoint();
+                Mouse("OnMouseDown", rightPoint);
+                Mouse("OnMouseMove", new Point(24, rightPoint.Y));
+                Mouse("OnMouseUp", new Point(24, rightPoint.Y));
+                Assert.Equal(0, form.Result.ActivityPanelPosition);
+
+                using (var bitmap = new Bitmap(canvas.Width, canvas.Height))
+                    canvas.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                Point leftPoint = ActivityPoint();
+                Mouse("OnMouseDown", leftPoint);
+                Mouse("OnMouseMove", new Point(424, leftPoint.Y));
+                Mouse("OnMouseUp", new Point(424, leftPoint.Y));
+                Assert.Equal(3, form.Result.ActivityPanelPosition);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "CompactRows style test did not finish.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public void Settings_minimum_size_keeps_footer_outside_the_scrollable_tab()
     {
         Exception? failure = null;
@@ -682,6 +843,23 @@ public sealed class AppearanceTests
     }
 
     [Fact]
+    public void Compact_bar_context_menu_exposes_localized_hide_without_changing_other_actions()
+    {
+        using var form = new CompactBarForm();
+        int hidden = 0;
+        form.HideRequested += (_, _) => hidden++;
+        form.ApplyLanguage();
+
+        ToolStripMenuItem hide = form.ContextMenuStrip!.Items.OfType<ToolStripMenuItem>()
+            .Single(item => item.Text == Localization.Text("Hide"));
+        hide.PerformClick();
+
+        Assert.Equal(1, hidden);
+        Assert.Contains(form.ContextMenuStrip.Items.OfType<ToolStripMenuItem>(),
+            item => item.Text == Localization.Text("Refresh"));
+    }
+
+    [Fact]
     public void Compact_bar_hover_shows_reset_dates_across_the_background()
     {
         Exception? failure = null;
@@ -718,6 +896,7 @@ public sealed class AppearanceTests
                     Hover(id);
                     Assert.Contains(reset.ToLocalTime().ToString("yyyy-MM-dd HH:mm"), VisibleText());
                     Assert.Contains(reset.AddDays(4).ToLocalTime().ToString("yyyy-MM-dd HH:mm"), VisibleText());
+                    Assert.Contains("Codex · 확인 불가", VisibleText());
                 }
                 Assert.Equal(1, popupCount);
                 move.Invoke(form, [new MouseEventArgs(MouseButtons.None, 0, 0, 0, 0)]);
@@ -777,6 +956,7 @@ public sealed class AppearanceTests
         settings.FiveHour.ShowResetTimeLabel = false;
         settings.Weekly.ShowResetTimeLabel = true;
         settings.Weekly.ResetTimeColor = "#AABBCC";
+        settings.ActivityWorkingColor = "#FF123456";
         settings.Preset2 = CompactBarPreset.Capture(settings);
         settings.SwapPanels(PanelId.Cpu, PanelId.Weekly);
         SettingsStore.SaveToDirectory(settings, directory.Path);
@@ -788,6 +968,7 @@ public sealed class AppearanceTests
         Assert.False(loaded.FiveHour.ShowResetTime);
         Assert.False(loaded.FiveHour.ShowResetTimeLabel);
         Assert.True(loaded.Weekly.ShowResetTimeLabel);
+        Assert.Equal("#FF123456", loaded.ActivityWorkingColor);
         Assert.Equal("#AABBCC", loaded.Weekly.ResetTimeColor);
         Assert.NotSame(loaded.PanelOrder, loaded.Preset2.PanelOrder);
     }

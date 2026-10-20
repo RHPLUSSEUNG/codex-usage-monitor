@@ -120,7 +120,7 @@ public sealed partial class SettingsForm : Form
         general.Controls.Add(_startWithWindows);
         generalContent.Controls.Add(general);
 
-        _language.Items.AddRange(["English", "한국어", "中文", "日本語"]);
+        _language.Items.AddRange(["English", "한국어", "简体中文", "日本語", "繁體中文"]);
         _compactBarStyle.Items.AddRange(StyleNames());
         _codexPalette.Items.AddRange(PaletteNames());
         UpdateThemeVariantItems(settings.CodexPalette, settings.ThemeVariant);
@@ -212,6 +212,7 @@ public sealed partial class SettingsForm : Form
             if (_loadingControls || _updatingLanguage || _compactBarStyle.SelectedIndex < 0)
                 return;
             _draft.CompactBarStyle = StyleValues[_compactBarStyle.SelectedIndex];
+            _draft.NormalizeActivityPanel();
             RefreshControlsFromDraft();
             RaisePreview();
         };

@@ -1,4 +1,5 @@
 using CodexUsageMonitor.Models;
+using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.UI;
 
@@ -14,6 +15,7 @@ internal sealed class CompactBarHost : IDisposable
     public event EventHandler? SettingsRequested;
     public event EventHandler? RefreshRequested;
     public event Action<Point>? PositionChanged;
+    public event EventHandler? HideRequested;
 
     public CompactBarHost(Action<Action> postToOwner)
     {
@@ -33,6 +35,9 @@ internal sealed class CompactBarHost : IDisposable
 
     public void UpdateData(UsageSnapshot snapshot, SystemUsageSnapshot systemUsage) =>
         Post(form => form.UpdateData(snapshot, systemUsage));
+
+    public void UpdateActivity(CodexActivityState state) =>
+        Post(form => form.UpdateActivity(state));
 
     public void ApplyLanguage() => Post(form => form.ApplyLanguage());
 
@@ -68,6 +73,7 @@ internal sealed class CompactBarHost : IDisposable
 
         form.SettingsRequested += (_, _) => NotifyOwner(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
         form.RefreshRequested += (_, _) => NotifyOwner(() => RefreshRequested?.Invoke(this, EventArgs.Empty));
+        form.HideRequested += (_, _) => NotifyOwner(() => HideRequested?.Invoke(this, EventArgs.Empty));
         form.PositionChanged += (_, _) =>
         {
             Point position = form.StoredPosition;

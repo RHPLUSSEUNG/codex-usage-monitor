@@ -1,12 +1,13 @@
 using CodexUsageMonitor.Models;
 using CodexUsageMonitor.UI;
+using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.Tests;
 
 public sealed class LocalizationTests
 {
     [Fact]
-    public void Every_resource_key_has_all_four_translations()
+    public void Every_resource_key_has_all_supported_translations()
     {
         IReadOnlyList<string> keys = Localization.ResourceKeys();
 
@@ -27,6 +28,21 @@ public sealed class LocalizationTests
         Assert.Equal("설정", Localization.Text(AppLanguage.Korean, "Settings"));
         Assert.Equal("设置", Localization.Text(AppLanguage.ChineseSimplified, "Settings"));
         Assert.Equal("設定", Localization.Text(AppLanguage.Japanese, "Settings"));
+        Assert.Equal("設定", Localization.Text(AppLanguage.ChineseTraditional, "Settings"));
+    }
+
+    [Theory]
+    [InlineData(AppLanguage.English, 0)]
+    [InlineData(AppLanguage.Korean, 1)]
+    [InlineData(AppLanguage.ChineseSimplified, 2)]
+    [InlineData(AppLanguage.Japanese, 3)]
+    [InlineData(AppLanguage.ChineseTraditional, 4)]
+    public void Language_values_remain_compatible_and_round_trip(AppLanguage language, int value)
+    {
+        Assert.Equal(value, (int)language);
+        using var directory = new TemporaryDirectory();
+        SettingsStore.SaveToDirectory(new AppSettings { Language = language }, directory.Path);
+        Assert.Equal(language, SettingsStore.LoadFromDirectory(directory.Path).Settings.Language);
     }
 
     [Theory]

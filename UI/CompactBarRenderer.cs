@@ -2,6 +2,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Globalization;
 using CodexUsageMonitor.Models;
+using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.UI;
 
@@ -14,7 +15,7 @@ internal static class CompactBarRenderer
     private const int ResetPanelWidthWithoutLabel = 43;
     private static readonly string[] LinearPanelTitles = ["5H", "WK", "CPU", "RAM"];
 
-    internal enum Element { Panel, Label, Bar, Percent, ResetTime }
+    internal enum Element { Panel, Label, Bar, Percent, ResetTime, ActivityDot }
     internal sealed record HitRegion(PanelId Panel, Element Element, Rectangle Bounds);
     internal sealed record PanelLayout(PanelId Panel, Rectangle Bounds, Rectangle Content, Rectangle Reset);
 
@@ -27,7 +28,8 @@ internal static class CompactBarRenderer
         return $"{Math.Max(0, (int)remaining.TotalMinutes):00}m";
     }
 
-    internal static string FormatResetTooltip(UsageSnapshot snapshot, AppLanguage language)
+    internal static string FormatResetTooltip(UsageSnapshot snapshot, AppLanguage language,
+        CodexActivityState? activityState = null)
     {
         string Line(string titleKey, DateTimeOffset? resetsAt)
         {
@@ -37,8 +39,18 @@ internal static class CompactBarRenderer
                     resetsAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
             return $"{Localization.Text(language, titleKey)} · {reset}";
         }
-        return Line("FiveHour", snapshot.FiveHour?.ResetsAt) + Environment.NewLine
+        string result = Line("FiveHour", snapshot.FiveHour?.ResetsAt) + Environment.NewLine
             + Line("Weekly", snapshot.Weekly?.ResetsAt);
+        if (activityState is null)
+            return result;
+        string stateKey = activityState.Value switch
+        {
+            CodexActivityState.Working => "ActivityWorking",
+            CodexActivityState.Completed => "ActivityCompleted",
+            CodexActivityState.Interrupted => "ActivityInterrupted",
+            _ => "ActivityUnknown"
+        };
+        return result + Environment.NewLine + "Codex · " + Localization.Text(language, stateKey);
     }
 
     internal static string FormatResetPanelText(PanelId panel, AppSettings settings, UsageSnapshot snapshot, DateTimeOffset now)
@@ -111,8 +123,55 @@ internal static class CompactBarRenderer
             var bounds = new Rectangle(x, y, panelWidth, height);
             result.Add(new(id, bounds, bounds, IsResetPanel(id) ? bounds : Rectangle.Empty));
         }
+        if (!settings.ShowActivityPanel)
+            return result;
+
+        int activityWidth = S(12, scale);
+        int activityGap = S(4, scale);
+        int position = AppSettings.NormalizeActivityPanelPosition(
+            settings.CompactBarStyle, settings.ActivityPanelPosition);
+        if (rows)
+        {
+            int x = position == 0 || result.Count == 0
+                ? S(2, scale)
+                : result.Max(panel => panel.Bounds.Right) + activityGap;
+            if (position == 0)
+                result = result.Select(panel => MoveX(panel, activityWidth + activityGap)).ToList();
+            result.Add(new(PanelId.CodexActivity,
+                new Rectangle(x, S(2, scale), activityWidth, S(GridRowHeight * 2 + 2, scale)),
+                Rectangle.Empty, Rectangle.Empty));
+            return result;
+        }
+
+        int insertionX = S(2, scale);
+        if (position > 0)
+        {
+            PanelId[] sourceOrder = order;
+            insertionX = result
+                .Where(panel => Array.IndexOf(sourceOrder, panel.Panel) % 3 < position)
+                .Select(panel => panel.Bounds.Right)
+                .DefaultIfEmpty(S(2, scale))
+                .Max() + activityGap;
+        }
+        int delta = activityWidth + activityGap;
+        result = result.Select(panel =>
+        {
+            int slot = Array.IndexOf(order, panel.Panel);
+            return slot >= 0 && slot % 3 >= position ? MoveX(panel, delta) : panel;
+        }).ToList();
+        result.Add(new(PanelId.CodexActivity,
+            new Rectangle(insertionX, S(2, scale), activityWidth,
+                S(GridRowHeight * 2 + 2, scale)),
+            Rectangle.Empty, Rectangle.Empty));
         return result;
     }
+
+    private static PanelLayout MoveX(PanelLayout panel, int delta) => panel with
+    {
+        Bounds = new Rectangle(panel.Bounds.X + delta, panel.Bounds.Y, panel.Bounds.Width, panel.Bounds.Height),
+        Content = new Rectangle(panel.Content.X + delta, panel.Content.Y, panel.Content.Width, panel.Content.Height),
+        Reset = panel.Reset.IsEmpty ? panel.Reset : new Rectangle(panel.Reset.X + delta, panel.Reset.Y, panel.Reset.Width, panel.Reset.Height)
+    };
 
     private static bool HasCompletePanelOrder(PanelId[]? order)
     {
@@ -131,7 +190,9 @@ internal static class CompactBarRenderer
 
     internal static bool IsResetPanel(PanelId id) => id is PanelId.FiveHourReset or PanelId.WeeklyReset;
 
-    internal static bool IsPanelVisible(AppSettings settings, PanelId id) => IsResetPanel(id)
+    internal static bool IsPanelVisible(AppSettings settings, PanelId id) => id == PanelId.CodexActivity
+        ? settings.ShowActivityPanel
+        : IsResetPanel(id)
         ? settings.Metric(id).ShowResetTime : settings.Metric(id).Enabled;
 
     public static Size CalculateSize(AppSettings settings, float scale, int taskbarHeight)
@@ -155,7 +216,8 @@ internal static class CompactBarRenderer
         DrawWithRegions(graphics, size, settings, snapshot, systemUsage, scale, themeResolved: themeResolved);
 
     internal static void DrawWithRegions(Graphics graphics, Size size, AppSettings settings, UsageSnapshot snapshot,
-        SystemUsageSnapshot systemUsage, float scale, List<HitRegion>? regions = null, bool themeResolved = false)
+        SystemUsageSnapshot systemUsage, float scale, List<HitRegion>? regions = null, bool themeResolved = false,
+        CodexActivityState activityState = CodexActivityState.Unknown, bool activityPulseBright = true)
     {
         if (!themeResolved)
             settings = AppearanceTheme.Resolve(settings);
@@ -171,6 +233,12 @@ internal static class CompactBarRenderer
         {
             regions?.Add(new(panel.Panel, Element.Panel, panel.Bounds));
             void Hit(Element element, Rectangle bounds) => regions?.Add(new(panel.Panel, element, bounds));
+            if (panel.Panel == PanelId.CodexActivity)
+            {
+                Rectangle dot = DrawActivity(graphics, panel.Bounds, settings, activityState, scale, activityPulseBright);
+                Hit(Element.ActivityDot, dot);
+                continue;
+            }
             if (IsResetPanel(panel.Panel))
             {
                 MetricSettings resetSettings = settings.Metric(panel.Panel);
@@ -251,8 +319,61 @@ internal static class CompactBarRenderer
     internal static string PanelTitle(PanelId id) => id switch
     {
         PanelId.FiveHour => "5H", PanelId.Weekly => "WK", PanelId.Cpu => "CPU",
-        PanelId.FiveHourReset => "5H ↻", PanelId.WeeklyReset => "WK ↻", _ => "RAM"
+        PanelId.FiveHourReset => "5H ↻", PanelId.WeeklyReset => "WK ↻",
+        PanelId.CodexActivity => "Codex", _ => "RAM"
     };
+
+    private static Rectangle DrawActivity(Graphics graphics, Rectangle bounds, AppSettings settings,
+        CodexActivityState state, float scale, bool activityPulseBright)
+    {
+        Color color = ActivityColor(settings, state, activityPulseBright);
+        int diameter = Math.Max(S(6, scale), Math.Min(bounds.Width - S(2, scale), S(8, scale)));
+        int travel = Math.Max(0, bounds.Height - diameter - S(2, scale));
+        int y = bounds.Y + S(1, scale)
+                + (int)Math.Round(travel * (100 - Math.Clamp(settings.ActivityDotPositionPercent, 0, 100)) / 100d);
+        var dot = new Rectangle(bounds.X + (bounds.Width - diameter) / 2, y, diameter, diameter);
+        SmoothingMode old = graphics.SmoothingMode;
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var brush = new SolidBrush(color);
+        if (state == CodexActivityState.Unknown)
+        {
+            using var pen = new Pen(color, Math.Max(1, S(1, scale)));
+            graphics.DrawEllipse(pen, dot);
+        }
+        else
+        {
+            graphics.FillEllipse(brush, dot);
+        }
+        graphics.SmoothingMode = old;
+        return dot;
+    }
+
+    internal static Color ActivityColor(AppSettings settings, CodexActivityState state,
+        bool activityPulseBright = true)
+    {
+        Color foreground = CompactBarTheme.Foreground(settings.CodexPalette, settings.ThemeVariant);
+        Color accent = HexColor.ParseOrDefault(
+            CompactBarPaletteCatalog.Get(settings.CodexPalette, settings.ThemeVariant).Accent,
+            foreground);
+        string custom = state switch
+        {
+            CodexActivityState.Working => settings.ActivityWorkingColor,
+            CodexActivityState.Completed => settings.ActivityCompletedColor,
+            CodexActivityState.Interrupted => settings.ActivityInterruptedColor,
+            _ => settings.ActivityUnknownColor
+        };
+        Color fallback = state switch
+        {
+            CodexActivityState.Working => accent,
+            CodexActivityState.Completed => Color.FromArgb(115, foreground),
+            CodexActivityState.Interrupted => Color.FromArgb(220, 224, 168, 78),
+            _ => Color.FromArgb(190, foreground)
+        };
+        Color color = HexColor.ParseOrDefault(custom, fallback);
+        if (state != CodexActivityState.Working || activityPulseBright)
+            return color;
+        return Color.FromArgb((int)Math.Round(color.A * 72d / 255d), color);
+    }
 
     private static MetricVisual[] Metrics(
         AppSettings settings,
