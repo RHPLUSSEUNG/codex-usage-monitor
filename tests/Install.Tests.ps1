@@ -163,3 +163,7 @@ try {
     $env:PATH = $originalPath
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# Expected failure cases leave a nonzero native exit code. Report the suite's
+# successful completion explicitly so CI does not reuse that scenario's code.
+exit 0
