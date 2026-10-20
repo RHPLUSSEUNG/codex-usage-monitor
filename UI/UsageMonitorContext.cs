@@ -22,6 +22,8 @@ public sealed class UsageMonitorContext : ApplicationContext
     private readonly SystemUsageMonitor _systemMonitor = new();
     private readonly UpdateService _updateService = new();
     private readonly QuotaNotificationTracker _quotaNotifications = new();
+    private readonly CodexActivityMonitor _activityMonitor = new();
+    private readonly ResetRefreshGate _resetRefreshGate = new();
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private CancellationTokenSource? _activeUpdateCancellation;
     private readonly Action? _startupReady;
@@ -39,6 +41,7 @@ public sealed class UsageMonitorContext : ApplicationContext
     private bool _exiting;
     private bool _startupReadySignaled;
     private DateTimeOffset? _lastSuccessfulRefresh;
+    private long _lastActivitySampleTick = long.MinValue;
 
     public UsageMonitorContext(Action? startupReady = null)
     {
@@ -52,6 +55,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _compactBar = new CompactBarHost(PostToUi);
         _compactBar.SettingsRequested += (_, _) => ShowSettings();
         _compactBar.RefreshRequested += async (_, _) => await RefreshAsync();
+        _compactBar.HideRequested += (_, _) => SetCompactBarVisible(false);
         _compactBar.PositionChanged += position =>
         {
             _settings.WindowPositionX = position.X;
@@ -97,7 +101,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _usageTimer = new System.Windows.Forms.Timer();
         _usageTimer.Tick += async (_, _) => await RefreshAsync();
         _systemTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-        _systemTimer.Tick += (_, _) => RefreshSystemUsage();
+        _systemTimer.Tick += (_, _) => OnSystemTimerTick();
         _updateTimer = new System.Windows.Forms.Timer
         {
             Interval = (int)TimeSpan.FromHours(6).TotalMilliseconds
@@ -119,6 +123,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         if (_refreshing)
             return;
         _refreshing = true;
+        _resetRefreshGate.RecordRefreshAttempt(Environment.TickCount64);
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -183,6 +188,34 @@ public sealed class UsageMonitorContext : ApplicationContext
         _systemSnapshot = next;
         _compactBar.UpdateData(_snapshot, _systemSnapshot);
         _settingsForm?.UpdatePreviewData(_snapshot, _systemSnapshot);
+    }
+
+    private void OnSystemTimerTick()
+    {
+        RefreshSystemUsage();
+        long tick = Environment.TickCount64;
+        if (tick - _lastActivitySampleTick >= 3000 || _lastActivitySampleTick == long.MinValue)
+        {
+            _lastActivitySampleTick = tick;
+            _ = RefreshActivityAsync();
+        }
+        if (_resetRefreshGate.ShouldRefresh(_snapshot, DateTimeOffset.Now, tick, _refreshing))
+            _ = RefreshAsync();
+    }
+
+    private async Task RefreshActivityAsync()
+    {
+        try
+        {
+            CodexActivityState state = await _activityMonitor.SampleAsync(
+                DateTimeOffset.UtcNow,
+                _lifetimeCancellation.Token);
+            if (!_exiting)
+                _compactBar.UpdateActivity(state);
+        }
+        catch (OperationCanceledException) when (_lifetimeCancellation.IsCancellationRequested)
+        {
+        }
     }
 
     private string FormatShort(QuotaWindow? window)
@@ -262,7 +295,12 @@ public sealed class UsageMonitorContext : ApplicationContext
 
     private void ToggleCompactBar()
     {
-        _settings.ShowCompactBar = !_settings.ShowCompactBar;
+        SetCompactBarVisible(!_settings.ShowCompactBar);
+    }
+
+    private void SetCompactBarVisible(bool visible)
+    {
+        _settings.ShowCompactBar = visible;
         _showBarMenu.Checked = _settings.ShowCompactBar;
         SettingsStore.Save(_settings);
         _compactBar.Apply(_settings, _snapshot, _systemSnapshot);
@@ -698,6 +736,7 @@ public sealed class UsageMonitorContext : ApplicationContext
         _updateTimer.Stop();
         _trayIcon.Visible = false;
         _compactBar.Dispose();
+        _activityMonitor.Dispose();
         _client.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _updateService.Dispose();
         _trayIcon.Dispose();

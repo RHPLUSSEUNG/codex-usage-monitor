@@ -29,11 +29,13 @@
 ## Features
 
 - Codex 5-hour and weekly quota percentages and reset countdowns
+- Automatic usage refresh at 5-hour and weekly reset boundaries
 - CPU and RAM usage
+- Independent Codex activity indicator based on local lifecycle events
 - Independent 5-hour and weekly threshold notifications with quiet hours
 - Six styles, 28 Codex color palettes, and system/light/dark screen modes
 - Drag-and-drop panel ordering and three appearance presets
-- English, Korean, Simplified Chinese, and Japanese
+- English, Korean, Simplified Chinese, Traditional Chinese, and Japanese
 - Local `codex app-server` integration without webpage scraping or auth-file access
 
 ## Compact Bar
@@ -50,7 +52,7 @@ Drag a panel in the Appearance preview onto another panel to swap their position
 
 ### Reset-time tooltip
 
-Hover anywhere over the Compact Bar to see the exact 5-hour and weekly reset dates. The tooltip follows the nearest visible edge of the bar and moves above or below it to stay on screen.
+Hover anywhere over the Compact Bar to see the exact 5-hour and weekly reset dates and the current Codex activity state, such as `Codex · Working`. The tooltip follows the nearest visible edge of the bar and moves above or below it to stay on screen.
 
 <p align="center">
   <img src="docs/reset-tooltip.png" alt="Compact Bar reset-time tooltip" width="672">
@@ -106,16 +108,35 @@ codex login status
 
 Download or clone this repository, then run `install.cmd`. The installer builds the app, installs it under `%LOCALAPPDATA%\Programs\CodexUsageMonitor`, and creates a Start menu shortcut.
 
+The installer checks the configured Codex CLI login first. It does not ask an already authenticated CLI to sign in again. When the CLI explicitly reports that it is signed out, login is offered as a separate choice; skipping or cancelling login does not cancel installation. Authentication files are never edited directly.
+
+Installation failures return a stage-specific exit code: dependency `10`, build `30`, file replacement `40`, shortcut `50`, launch health check `60`, or unexpected failure `99`. Per-run logs under `%TEMP%\CodexUsageMonitor` are deleted at the end. A failed run keeps only a sanitized `%LOCALAPPDATA%\CodexUsageMonitor\install-last-error.log`; the next successful run removes it. URLs, authorization headers, and token-like fields are removed from captured diagnostics.
+
 Settings are stored at `%LOCALAPPDATA%\CodexUsageMonitor\settings.json`. The app checks stable GitHub Releases at startup and every six hours; updates can also be checked under **Settings → About**.
 
 ## Controls and settings
 
 - Left-click the tray icon to view detailed usage.
 - Right-click the tray icon to refresh, show or hide the Compact Bar, open settings, or exit.
-- Drag the Compact Bar to move it; right-click it to refresh, open settings, or reset its position.
+- Drag the Compact Bar to move it; right-click it to refresh, open settings, reset its position, or hide it.
 - Double-click the tray icon or Compact Bar to open settings.
 
 The **Appearance** tab provides a live preview. Drag panels in the preview to swap their positions, then click the background, a panel, or an element to edit it. Metric values can show a percentage, a fill bar, or both. Hidden elements remain translucent in the preview.
+
+### Codex activity indicator
+
+The independent activity panel shows the latest state detected from local Codex lifecycle events.
+
+| State | Indicator |
+|---|---|
+| Working | Blinking accent dot |
+| Completed / idle | Muted filled dot |
+| Interrupted | Amber filled dot |
+| Unknown | Outlined foreground dot |
+
+The panel can be moved horizontally without changing the metric-panel order. Its dot position and state colors can also be customized. Current local events do not reliably distinguish user-response or approval waiting, so the app does not claim those states.
+
+The app refreshes usage automatically when a 5-hour or weekly reset boundary is reached. This refresh uses the existing local Codex connection and does not start a model request.
 
 The background section includes a transparent-background toggle and an RGBA color editor. With transparency enabled, only the background is hidden; labels and graphs remain visible. Reset-panel settings can independently show or hide the `5H` and `WK` prefixes.
 
@@ -133,6 +154,8 @@ The publish output is written to `bin\Release\net8.0-windows\win-x64\publish`.
 ## Privacy and troubleshooting
 
 The app calls `account/rateLimits/read` and `account/usage/read` through the local `codex app-server`. It does not store an API key.
+
+Codex activity records are processed locally and incrementally in the background. Only lifecycle event types and timestamps are retained; prompt and response content is not stored separately, copied to diagnostics, or transmitted.
 
 If Codex usage is unavailable, run `codex login status`, sign in again if needed, and check the Codex executable path in Advanced settings. If the Compact Bar is missing, enable it from the tray menu or reset its position. **Settings → About → Copy diagnostics** copies the information needed for troubleshooting.
 

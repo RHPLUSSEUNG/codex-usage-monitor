@@ -2,6 +2,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using CodexUsageMonitor.Models;
+using CodexUsageMonitor.Services;
 
 namespace CodexUsageMonitor.UI;
 
@@ -10,8 +11,10 @@ public sealed class CompactBarForm : Form
     private readonly ToolStripMenuItem _refreshMenu = new();
     private readonly ToolStripMenuItem _settingsMenu = new();
     private readonly ToolStripMenuItem _resetPositionMenu = new();
+    private readonly ToolStripMenuItem _hideMenu = new();
     private readonly ContextMenuStrip _contextMenu = new();
     private readonly ToolTip _quotaToolTip = new() { ShowAlways = true };
+    private readonly System.Windows.Forms.Timer _activityPulseTimer = new() { Interval = 650 };
     private string _visibleQuotaTooltip = "";
     private int _visiblePanelLeft;
     private int _visiblePanelRight;
@@ -23,6 +26,8 @@ public sealed class CompactBarForm : Form
     private uint _renderBitmapDpi;
     private UsageSnapshot _snapshot = UsageSnapshot.Waiting;
     private SystemUsageSnapshot _systemUsage = SystemUsageSnapshot.Empty;
+    private CodexActivityState _activityState = CodexActivityState.Unknown;
+    private bool _activityPulseBright = true;
     private bool _dragging;
     private bool _renderingSuspended;
     private Point _dragCursorStart;
@@ -35,6 +40,7 @@ public sealed class CompactBarForm : Form
     public event EventHandler? SettingsRequested;
     public event EventHandler? RefreshRequested;
     public event EventHandler? PositionChanged;
+    public event EventHandler? HideRequested;
     public Point StoredPosition => new(_settings.WindowPositionX, _settings.WindowPositionY);
 
     public CompactBarForm()
@@ -47,9 +53,12 @@ public sealed class CompactBarForm : Form
         _refreshMenu.Click += (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty);
         _settingsMenu.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         _resetPositionMenu.Click += (_, _) => ResetPosition();
+        _hideMenu.Click += (_, _) => HideRequested?.Invoke(this, EventArgs.Empty);
         _contextMenu.Items.Add(_refreshMenu);
         _contextMenu.Items.Add(_settingsMenu);
         _contextMenu.Items.Add(_resetPositionMenu);
+        _contextMenu.Items.Add(new ToolStripSeparator());
+        _contextMenu.Items.Add(_hideMenu);
         _contextMenu.Opening += (_, _) => HideQuotaTooltip();
         _contextMenu.Opened += (_, _) => { _menuOpenVersion++; StartOutsideClickHook(); };
         _contextMenu.Closed += (_, _) => StopOutsideClickHook();
@@ -62,6 +71,14 @@ public sealed class CompactBarForm : Form
         MouseLeave += (_, _) => HideQuotaTooltip();
         MouseUp += EndDrag;
         MouseDoubleClick += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _activityPulseTimer.Tick += (_, _) =>
+        {
+            if (_activityState != CodexActivityState.Working || !_settings.ShowActivityPanel
+                || !Visible || _renderingSuspended || _dragging)
+                return;
+            _activityPulseBright = !_activityPulseBright;
+            RenderAtStoredPosition(updateZOrder: false);
+        };
     }
 
     protected override bool ShowWithoutActivation => true;
@@ -74,6 +91,7 @@ public sealed class CompactBarForm : Form
             _renderBitmap?.Dispose();
             _renderBitmap = null;
             _quotaToolTip.Dispose();
+            _activityPulseTimer.Dispose();
             _contextMenu.Dispose();
         }
         base.Dispose(disposing);
@@ -84,6 +102,7 @@ public sealed class CompactBarForm : Form
         _refreshMenu.Text = Localization.Text("Refresh");
         _settingsMenu.Text = Localization.Text("Settings");
         _resetPositionMenu.Text = Localization.Text("ResetPosition");
+        _hideMenu.Text = Localization.Text("Hide");
     }
 
     public void BeginPreview()
@@ -92,7 +111,8 @@ public sealed class CompactBarForm : Form
         bool anyMetricEnabled = _settings.FiveHour.Enabled
                                 || _settings.Weekly.Enabled
                                 || _settings.Cpu.Enabled
-                                || _settings.Memory.Enabled;
+                                || _settings.Memory.Enabled
+                                || _settings.ShowActivityPanel;
         if (_settings.ShowCompactBar && anyMetricEnabled)
         {
             if (!Visible)
@@ -101,12 +121,14 @@ public sealed class CompactBarForm : Form
                 RenderAtStoredPosition(updateZOrder: true);
         }
         _renderingSuspended = true;
+        UpdateActivityAnimation();
     }
 
     public void ResumeRendering()
     {
         _renderingSuspended = false;
         PositionWindow();
+        UpdateActivityAnimation();
     }
 
     protected override CreateParams CreateParams
@@ -134,11 +156,13 @@ public sealed class CompactBarForm : Form
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled
                                 || settings.Cpu.Enabled
-                                || settings.Memory.Enabled;
+                                || settings.Memory.Enabled
+                                || settings.ShowActivityPanel;
         bool shouldShow = settings.ShowCompactBar && anyMetricEnabled;
         if (!shouldShow)
         {
             Hide();
+            UpdateActivityAnimation();
             return;
         }
 
@@ -146,6 +170,7 @@ public sealed class CompactBarForm : Form
             Show();
         if (!_dragging && !_renderingSuspended)
             RenderAtStoredPosition();
+        UpdateActivityAnimation();
     }
 
     public void Preview(AppSettings settings)
@@ -156,10 +181,12 @@ public sealed class CompactBarForm : Form
         bool anyMetricEnabled = settings.FiveHour.Enabled
                                 || settings.Weekly.Enabled
                                 || settings.Cpu.Enabled
-                                || settings.Memory.Enabled;
+                                || settings.Memory.Enabled
+                                || settings.ShowActivityPanel;
         if (!settings.ShowCompactBar || !anyMetricEnabled)
         {
             Hide();
+            UpdateActivityAnimation();
             return;
         }
 
@@ -167,6 +194,7 @@ public sealed class CompactBarForm : Form
             Show();
         if (!_dragging)
             RenderAtStoredPosition(updateZOrder: true);
+        UpdateActivityAnimation();
     }
 
     public void UpdateData(UsageSnapshot snapshot, SystemUsageSnapshot systemUsage)
@@ -179,6 +207,36 @@ public sealed class CompactBarForm : Form
         // topmost position on each data refresh so the bar cannot remain
         // hidden behind the taskbar after that happens.
         RenderAtStoredPosition(updateZOrder: true);
+    }
+
+    public void UpdateActivity(CodexActivityState state)
+    {
+        if (_activityState == state)
+            return;
+        _activityState = state;
+        _activityPulseBright = true;
+        UpdateActivityAnimation();
+        if (!_renderingSuspended && Visible && !_dragging)
+            RenderAtStoredPosition(updateZOrder: false);
+    }
+
+    private void UpdateActivityAnimation()
+    {
+        bool animate = _activityState == CodexActivityState.Working
+                       && _settings.ShowActivityPanel
+                       && _settings.ShowCompactBar
+                       && Visible
+                       && !_renderingSuspended;
+        if (animate)
+        {
+            if (!_activityPulseTimer.Enabled)
+                _activityPulseTimer.Start();
+        }
+        else
+        {
+            _activityPulseTimer.Stop();
+            _activityPulseBright = true;
+        }
     }
 
     private void SetSettings(AppSettings settings)
@@ -430,21 +488,23 @@ public sealed class CompactBarForm : Form
         var logicalSize = new Size(
             Math.Max(1, (int)Math.Round(size.Width / userScale)),
             Math.Max(1, (int)Math.Round(size.Height / userScale)));
-        CompactBarRenderer.Draw(
+        CompactBarRenderer.DrawWithRegions(
             graphics,
             logicalSize,
             RenderSettings(),
             _snapshot,
             _systemUsage,
             scale,
-            themeResolved: true);
+            themeResolved: true,
+            activityState: _activityState,
+            activityPulseBright: _activityPulseBright);
     }
 
     private void UpdateQuotaTooltip(Point clientPoint)
     {
         string text = "";
         if (!_dragging && !_contextMenu.Visible && ClientRectangle.Contains(clientPoint))
-            text = CompactBarRenderer.FormatResetTooltip(_snapshot, _settings.Language);
+            text = CompactBarRenderer.FormatResetTooltip(_snapshot, _settings.Language, _activityState);
         if (_visibleQuotaTooltip == text) return;
         HideQuotaTooltip();
         if (text.Length == 0) return;

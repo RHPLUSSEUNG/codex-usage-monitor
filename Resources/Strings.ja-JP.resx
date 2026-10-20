@@ -64,6 +64,9 @@
   <data name="ShowCompactBar" xml:space="preserve">
     <value>Compact Bar を表示</value>
   </data>
+  <data name="Hide" xml:space="preserve">
+    <value>非表示</value>
+  </data>
   <data name="StartWithWindows" xml:space="preserve">
     <value>Windows 起動時に自動実行</value>
   </data>
@@ -442,4 +445,14 @@
   <data name="TokenAggregationPending" xml:space="preserve"><value>本日の集計待ち</value></data>
   <data name="LastTokenAggregation" xml:space="preserve"><value>最新トークン集計日</value></data>
   <data name="ResetAction" xml:space="preserve"><value>リセット</value></data>
+  <data name="ActivityPanel" xml:space="preserve"><value>Codex アクティビティ</value></data>
+  <data name="ActivityDotPosition" xml:space="preserve"><value>ドットの縦位置</value></data>
+  <data name="ActivityWorkingColor" xml:space="preserve"><value>作業中色</value></data>
+  <data name="ActivityCompletedColor" xml:space="preserve"><value>完了・待機色</value></data>
+  <data name="ActivityInterruptedColor" xml:space="preserve"><value>中断色</value></data>
+  <data name="ActivityUnknownColor" xml:space="preserve"><value>不明色</value></data>
+  <data name="ActivityWorking" xml:space="preserve"><value>作業中</value></data>
+  <data name="ActivityCompleted" xml:space="preserve"><value>完了・待機</value></data>
+  <data name="ActivityInterrupted" xml:space="preserve"><value>中断</value></data>
+  <data name="ActivityUnknown" xml:space="preserve"><value>不明</value></data>
 </root>

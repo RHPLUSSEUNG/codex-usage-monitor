@@ -64,6 +64,9 @@
   <data name="ShowCompactBar" xml:space="preserve">
     <value>Show Compact Bar</value>
   </data>
+  <data name="Hide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
   <data name="StartWithWindows" xml:space="preserve">
     <value>Start with Windows</value>
   </data>
@@ -442,4 +445,14 @@
   <data name="TokenAggregationPending" xml:space="preserve"><value>Awaiting today’s aggregation</value></data>
   <data name="LastTokenAggregation" xml:space="preserve"><value>Latest daily token entry</value></data>
   <data name="ResetAction" xml:space="preserve"><value>Reset</value></data>
+  <data name="ActivityPanel" xml:space="preserve"><value>Codex activity</value></data>
+  <data name="ActivityDotPosition" xml:space="preserve"><value>Dot vertical position</value></data>
+  <data name="ActivityWorkingColor" xml:space="preserve"><value>Working color</value></data>
+  <data name="ActivityCompletedColor" xml:space="preserve"><value>Completed / idle color</value></data>
+  <data name="ActivityInterruptedColor" xml:space="preserve"><value>Interrupted color</value></data>
+  <data name="ActivityUnknownColor" xml:space="preserve"><value>Unknown color</value></data>
+  <data name="ActivityWorking" xml:space="preserve"><value>Working</value></data>
+  <data name="ActivityCompleted" xml:space="preserve"><value>Completed / idle</value></data>
+  <data name="ActivityInterrupted" xml:space="preserve"><value>Interrupted</value></data>
+  <data name="ActivityUnknown" xml:space="preserve"><value>Unknown</value></data>
 </root>

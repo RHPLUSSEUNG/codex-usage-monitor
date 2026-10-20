@@ -98,6 +98,7 @@ public static class SettingsStore
         settings.SettingsVersion = AppSettings.CurrentSettingsVersion;
         settings.PanelOrder = AppSettings.NormalizePanelOrder(settings.PanelOrder);
         settings.CompactBarStyle = AppSettings.NormalizeStyle(settings.CompactBarStyle);
+        settings.NormalizeActivityPanel();
 
         string settingsPath = Path.Combine(directory, "settings.json");
         string backupPath = Path.Combine(directory, "settings.json.bak");
@@ -193,6 +194,7 @@ public static class SettingsStore
         settings.SettingsVersion = AppSettings.CurrentSettingsVersion;
         settings.PanelOrder = AppSettings.NormalizePanelOrder(settings.PanelOrder);
         settings.CompactBarStyle = AppSettings.NormalizeStyle(settings.CompactBarStyle);
+        settings.NormalizeActivityPanel();
         settings.QuotaNotificationPercent = Math.Clamp(settings.QuotaNotificationPercent, 1, 99);
         settings.FiveHourNotificationPercent = settings.NotificationPercent(PanelId.FiveHour);
         settings.WeeklyNotificationPercent = settings.NotificationPercent(PanelId.Weekly);
@@ -217,6 +219,9 @@ public static class SettingsStore
             preset.TransparentBackground = HasZeroAlpha(preset.BackgroundColor);
         preset.Style = AppSettings.NormalizeStyle(preset.Style);
         preset.PanelOrder = AppSettings.NormalizePanelOrder(preset.PanelOrder);
+        preset.ActivityPanelPosition = AppSettings.NormalizeActivityPanelPosition(
+            preset.Style, preset.ActivityPanelPosition);
+        preset.ActivityDotPositionPercent = Math.Clamp(preset.ActivityDotPositionPercent, 0, 100);
         NormalizeAppearance(preset);
         preset.ScalePercent = Math.Clamp(preset.ScalePercent, 50, 200);
         preset.FiveHour ??= new MetricSettings();

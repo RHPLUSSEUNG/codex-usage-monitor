@@ -68,6 +68,7 @@ internal static class Localization
         AppLanguage.Korean => CultureInfo.GetCultureInfo("ko-KR"),
         AppLanguage.ChineseSimplified => CultureInfo.GetCultureInfo("zh-CN"),
         AppLanguage.Japanese => CultureInfo.GetCultureInfo("ja-JP"),
+        AppLanguage.ChineseTraditional => CultureInfo.GetCultureInfo("zh-TW"),
         _ => CultureInfo.GetCultureInfo("en-US")
     };
 }
